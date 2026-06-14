@@ -37,11 +37,11 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: anvil/dist/
+          skip-existing: true
 
   docker:
     name: Build and push Docker image
     runs-on: ubuntu-latest
-    needs: build-and-publish
     permissions:
       packages: write
       contents: read
