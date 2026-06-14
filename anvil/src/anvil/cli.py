@@ -10,6 +10,8 @@ from typing import Optional
 
 import click
 from rich.console import Console
+
+from anvil import __version__
 from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -473,25 +475,33 @@ def _print_agents(mgr: AgentManager) -> None:
     console.print("[dim]Switch primary agent with: anvil chat --agent <name>[/]")
 
 
-class DefaultGroup(click.Group):
-    """Click group that invokes a default command when no subcommand is given."""
+@click.group(invoke_without_command=True)
+@click.option("--model", "-m", default="local", help="Model to use (local, gpt-4o, claude-3.5-sonnet)")
+@click.option("--agent", "-a", default=None, help="Agent to use (build, plan, explore, general, scout)")
+@click.option("--config", "-c", type=click.Path(), help="Config file path")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
+@click.option("--quiet", "-q", is_flag=True, help="Minimal output")
+@click.version_option(version=__version__, prog_name="anvil")
+@click.pass_context
+def main(ctx, model, agent, config, verbose, quiet):
+    """Anvil — the self-verified coding agent.
 
-    def __init__(self, *args, default_cmd="tui", **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_cmd_name = default_cmd
+    Every other open agent generates and hopes. This one generates,
+    runs, checks, and fixes — because it was trained on 210K examples
+    of real agents doing exactly that.
 
-    def parse_args(self, ctx, args):
-        if not args:
-            args = [self.default_cmd_name]
-        elif args[0] not in self.commands and not args[0].startswith("-"):
-            args = [self.default_cmd_name] + list(args)
-        return super().parse_args(ctx, args)
-
-    def invoke(self, ctx):
-        return super().invoke(ctx)
-
-
-main.__class__ = DefaultGroup
-
-if __name__ == "__main__":
-    main()
+    Use --agent to pick a persona, or @mention subagents mid-conversation.
+    """
+    ctx.ensure_object(dict)
+    if config:
+        cfg = AnvilConfig.from_file(Path(config))
+    else:
+        cfg = AnvilConfig()
+    cfg.model.model = model
+    cfg.verbose = verbose
+    cfg.quiet = quiet
+    if agent:
+        cfg.default_agent = agent
+    ctx.obj["config"] = cfg
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())

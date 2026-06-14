@@ -6,12 +6,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends curl git && \
     rm -rf /var/lib/apt/lists/*
 
 FROM base AS builder
 
-RUN pip install --no-cache-dir anvil[local-model] httpx
+WORKDIR /build
+COPY . /build/anvil/
+RUN pip install --no-cache-dir /build/anvil httpx
 
 FROM base AS runtime
 
