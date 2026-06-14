@@ -7,6 +7,7 @@ on:
 
 permissions:
   id-token: write
+  packages: write
 
 jobs:
   build-and-publish:
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/fableforge-trace-compiler
+      url: https://pypi.org/p/trace-compiler
     permissions:
       id-token: write
 

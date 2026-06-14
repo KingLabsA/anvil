@@ -65,7 +65,7 @@ from anvil.sdk import (
     _AgentsProxy,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.1.0"
 
 # ── Agent management via SDK ──────────────────────────────────────────────
 # anvil._agents is the SDK proxy for agent operations.
