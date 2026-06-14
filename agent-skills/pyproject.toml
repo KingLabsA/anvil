@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agent-skills"
+name = "fableforge-agent-skills"
 version = "0.1.0"
 description = "Skill registry, decomposition, and LoRA building for coding agents"
 readme = "README.md"

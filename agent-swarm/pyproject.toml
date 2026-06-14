@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agent-swarm"
+name = "fableforge-agent-swarm"
 version = "0.1.0"
 description = "Orchestrate micro-agent swarms using Markov transition matrices as handoff patterns"
 readme = "README.md"

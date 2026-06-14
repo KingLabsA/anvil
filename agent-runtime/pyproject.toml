@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agent-runtime"
+name = "fableforge-agent-runtime"
 version = "0.1.0"
 description = "Persistent agent daemon — systemd for AI agents"
 readme = "README.md"
