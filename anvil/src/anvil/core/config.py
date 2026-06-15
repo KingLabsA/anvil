@@ -149,6 +149,7 @@ class AnvilConfig:
     verbose: bool = False
     quiet: bool = False
     project_root: str = field(default_factory=lambda: os.getcwd())
+    skills_dir: str | None = None
 
     @classmethod
     def from_file(cls, path: Path) -> AnvilConfig:

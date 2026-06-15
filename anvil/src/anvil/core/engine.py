@@ -35,6 +35,8 @@ TOOL_DEFINITIONS = [
     {"name": "grep", "description": "Search file contents", "args": ["pattern", "path", "include"]},
     {"name": "glob", "description": "Find files by pattern", "args": ["pattern", "path"]},
     {"name": "ls", "description": "List directory contents", "args": ["path"]},
+    {"name": "task", "description": "Dispatch a specialized subagent to autonomously handle a multi-step task. Args: subagent_type, description, prompt", "args": ["subagent_type", "description", "prompt", "task_id"]},
+    {"name": "skill", "description": "Load a specialized skill's instructions when the task matches it. Args: name", "args": ["name"]},
 ]
 
 ALL_TOOL_NAMES = [t["name"] for t in TOOL_DEFINITIONS]
@@ -54,6 +56,13 @@ Rules:
 - If a test fails, read the error, fix it, and re-verify
 - Never claim "done" without verifying
 - When you're done, summarize what was changed and how it was verified
+
+Delegation & skills:
+- Use `task` to dispatch a specialized subagent (e.g. explore, scout, general) for
+  independent multi-step work. Provide `subagent_type`, a short `description`, and a
+  detailed `prompt`. The subagent runs its own verify-loop and returns its result.
+- Use `skill` to load a specialized skill's instructions when the task matches one of
+  the available skills. Provide the skill `name`.
 
 Current agent: {agent_name}
 Available tools: {tools}"""
@@ -173,6 +182,7 @@ class AnvilEngine:
         self.verify = VerifyPipeline(self.config.verify)
         self.session: Session | None = None
         self._steps_taken: int = 0
+        self._is_subagent: bool = False
         self._init_integrations()
 
     def _init_integrations(self) -> None:
@@ -248,7 +258,111 @@ class AnvilEngine:
             )
         # ASK is handled upstream (engine logs it); for now we treat it like ALLOW
         # and rely on the TUI / CLI to intercept when needed.
+        if tool == "task":
+            return self._run_task(args)
+        if tool == "skill":
+            return self._run_skill(args)
         return self.tools.execute(tool, args)
+
+    def _run_task(self, args: dict[str, Any]) -> ToolResult:
+        """Dispatch a subagent via a nested verify-loop engine (OpenCode-style task tool)."""
+        subagent_type = args.get("subagent_type") or args.get("agent") or ""
+        prompt = args.get("prompt") or args.get("task") or ""
+        description = args.get("description", subagent_type)
+
+        if not subagent_type:
+            return ToolResult(success=False, output="", error="task: 'subagent_type' is required")
+        if not prompt:
+            return ToolResult(success=False, output="", error="task: 'prompt' is required")
+
+        # Recursion guard: subagents may not themselves dispatch tasks.
+        if getattr(self, "_is_subagent", False):
+            return ToolResult(
+                success=False, output="",
+                error="task: nested subagent dispatch is not allowed (recursion guard)",
+            )
+
+        subagent = self.agent_manager.get(subagent_type)
+        if subagent is None:
+            available = ", ".join(self.agent_manager.all_agent_names())
+            return ToolResult(
+                success=False, output="",
+                error=f"task: unknown subagent_type '{subagent_type}'. Available: {available}",
+            )
+
+        # Build a child config inheriting the parent's settings but bound to the
+        # subagent's model, with the verify-loop intact.
+        from copy import deepcopy
+
+        child_config = deepcopy(self.config)
+        child_config.model.model = subagent.model or self.config.model.model
+
+        child_engine = AnvilEngine(child_config, agent=subagent)
+        child_engine._is_subagent = True
+
+        result = child_engine.run(prompt, max_iterations=subagent.max_steps or 10)
+        state = "completed" if result.success else "error"
+        body = result.output or (result.error or "")
+        rendered = (
+            f'<task agent="{subagent.name}" state="{state}">\n'
+            f"<description>{description}</description>\n"
+            f"<task_result>\n{body}\n</task_result>\n"
+            f"</task>"
+        )
+        return ToolResult(success=result.success, output=rendered, error=None if result.success else result.error)
+
+    def _run_skill(self, args: dict[str, Any]) -> ToolResult:
+        """Load a skill's SKILL.md content by name (OpenCode-style skill tool)."""
+        name = args.get("name", "")
+        if not name:
+            return ToolResult(success=False, output="", error="skill: 'name' is required")
+
+        skill = self._find_skill(name)
+        if skill is None:
+            available = ", ".join(self._available_skill_names()) or "(none found)"
+            return ToolResult(
+                success=False, output="",
+                error=f"skill: unknown skill '{name}'. Available: {available}",
+            )
+
+        location, content = skill
+        base_dir = location.parent
+        rendered = (
+            f'<skill_content name="{name}">\n'
+            f"# Skill: {name}\n\n"
+            f"{content.strip()}\n\n"
+            f"Base directory for this skill: {base_dir}\n"
+            "Relative paths in this skill (e.g., scripts/, reference/) are relative to this base directory.\n"
+            f"</skill_content>"
+        )
+        return ToolResult(success=True, output=rendered)
+
+    def _skill_search_paths(self) -> list[Path]:
+        """Directories scanned for SKILL.md files."""
+        paths: list[Path] = []
+        configured = getattr(self.config, "skills_dir", None)
+        if configured:
+            paths.append(Path(configured))
+        root = Path(self.config.project_root or ".")
+        paths.append(root / ".anvil" / "skills")
+        paths.append(root / "skills")
+        paths.append(Path.home() / ".anvil" / "skills")
+        return [p for p in paths if p.exists()]
+
+    def _find_skill(self, name: str) -> tuple[Path, str] | None:
+        for base in self._skill_search_paths():
+            candidate = base / name / "SKILL.md"
+            if candidate.exists():
+                return candidate, candidate.read_text(encoding="utf-8")
+        return None
+
+    def _available_skill_names(self) -> list[str]:
+        names: list[str] = []
+        for base in self._skill_search_paths():
+            for child in base.iterdir():
+                if (child / "SKILL.md").exists():
+                    names.append(child.name)
+        return sorted(set(names))
 
     # ── main loop ───────────────────────────────────────────────────────
 
