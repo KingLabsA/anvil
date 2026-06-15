@@ -437,6 +437,112 @@ def sessions(ctx):
     console.print(table)
 
 
+@main.command()
+@click.argument("session_id")
+@click.option("--output", "-o", type=click.Path(), help="Save to file instead of printing")
+@click.option("--link", "-l", is_flag=True, help="Generate shareable link")
+def share(session_id, output, link):
+    """Share a session — export as JSON or generate shareable link."""
+    from anvil.core.session import Session
+    
+    session = Session.load(session_id)
+    if not session:
+        console.print(f"[red]Session {session_id} not found.[/]")
+        sys.exit(1)
+    
+    # Load full session data from step files
+    session_dir = Path.home() / ".anvil" / "sessions" / session_id
+    if session_dir.exists():
+        for step_file in sorted(session_dir.glob("step_*.json")):
+            try:
+                step_data = json.loads(step_file.read_text())
+                from anvil.core.session import Step, StepKind, StepStatus, ToolCall
+                tool_calls = [ToolCall(**tc) for tc in step_data.get("tool_calls", [])]
+                step = Step(
+                    kind=StepKind(step_data["kind"]),
+                    content=step_data["content"],
+                    tool_calls=tool_calls,
+                    status=StepStatus(step_data["status"]),
+                    verify_result=step_data.get("verify_result"),
+                    recovery_attempts=step_data.get("recovery_attempts", 0),
+                    duration_ms=step_data.get("duration_ms", 0.0),
+                    timestamp=step_data.get("timestamp", 0.0),
+                )
+                session.steps.append(step)
+            except (json.JSONDecodeError, KeyError, ValueError):
+                continue
+    
+    if link:
+        shareable = session.to_shareable_link()
+        if output:
+            Path(output).write_text(shareable)
+            console.print(f"[green]Shareable link saved to {output}[/]")
+        else:
+            console.print(f"\n[bold]Shareable link:[/bold]")
+            console.print(f"[cyan]{shareable}[/]")
+            console.print(f"\n[dim]Share this link to let others import this session.[/]")
+    else:
+        json_data = session.to_json()
+        if output:
+            Path(output).write_text(json_data)
+            console.print(f"[green]Session exported to {output}[/]")
+        else:
+            console.print(json_data)
+
+
+@main.command()
+@click.argument("source")
+@click.option("--id", "session_id", help="Override session ID")
+def import_session(source, session_id):
+    """Import a session from JSON file or shareable link."""
+    from anvil.core.session import Session
+    
+    # Determine if source is a link or file
+    if source.startswith("anvil://"):
+        try:
+            session = Session.from_shareable_link(source)
+            console.print("[green]Session imported from shareable link.[/]")
+        except (ValueError, json.JSONDecodeError) as e:
+            console.print(f"[red]Invalid shareable link: {e}[/]")
+            sys.exit(1)
+    else:
+        # Treat as file path
+        path = Path(source)
+        if not path.exists():
+            console.print(f"[red]File not found: {source}[/]")
+            sys.exit(1)
+        try:
+            json_data = path.read_text()
+            session = Session.from_json(json_data)
+            console.print(f"[green]Session imported from {source}[/]")
+        except (json.JSONDecodeError, KeyError) as e:
+            console.print(f"[red]Invalid session file: {e}[/]")
+            sys.exit(1)
+    
+    # Override ID if provided
+    if session_id:
+        session.id = session_id
+    
+    # Save the imported session
+    session.persist = True
+    session_dir = Path.home() / ".anvil" / "sessions" / session.id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save summary
+    summary = session.summary()
+    (session_dir / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
+    
+    # Save steps
+    for i, step in enumerate(session.steps):
+        from dataclasses import asdict
+        step_file = session_dir / f"step_{i:04d}.json"
+        step_file.write_text(json.dumps(asdict(step), indent=2, default=str))
+    
+    console.print(f"[green]Session {session.id} saved.[/]")
+    console.print(f"[dim]Task: {session.task}[/]")
+    console.print(f"[dim]Steps: {len(session.steps)}[/]")
+
+
 # ── Agent management commands ───────────────────────────────────────────
 
 @main.group()

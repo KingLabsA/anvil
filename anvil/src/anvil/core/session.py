@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import time
 import uuid
@@ -164,3 +165,104 @@ class Session:
             f"| {self.stats.recovery_rate:.0%} recovery rate"
         )
         return "\n".join(lines)
+
+    def export(self) -> dict[str, Any]:
+        """Export session to a JSON-serializable dictionary."""
+        return {
+            "id": self.id,
+            "task": self.task,
+            "project_root": self.project_root,
+            "steps": [asdict(step) for step in self.steps],
+            "stats": asdict(self.stats),
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
+        }
+
+    def to_json(self, indent: int = 2) -> str:
+        """Export session as JSON string."""
+        return json.dumps(self.export(), indent=indent, default=str)
+
+    def to_shareable_link(self) -> str:
+        """Generate a base64-encoded shareable link for the session."""
+        data = self.to_json(indent=None)
+        encoded = base64.urlsafe_b64encode(data.encode()).decode()
+        return f"anvil://{encoded}"
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Session:
+        """Import session from a dictionary."""
+        session = cls(
+            task=data["task"],
+            session_id=data.get("id"),
+            project_root=data.get("project_root"),
+            persist=False,  # Don't auto-save imported sessions
+        )
+        
+        # Restore steps
+        for step_data in data.get("steps", []):
+            tool_calls = [
+                ToolCall(**tc) for tc in step_data.get("tool_calls", [])
+            ]
+            step = Step(
+                kind=StepKind(step_data["kind"]),
+                content=step_data["content"],
+                tool_calls=tool_calls,
+                status=StepStatus(step_data["status"]),
+                verify_result=step_data.get("verify_result"),
+                recovery_attempts=step_data.get("recovery_attempts", 0),
+                duration_ms=step_data.get("duration_ms", 0.0),
+                timestamp=step_data.get("timestamp", time.time()),
+            )
+            session.steps.append(step)
+        
+        # Restore stats
+        if "stats" in data:
+            session.stats = SessionStats(**data["stats"])
+        
+        # Restore timestamps
+        session.started_at = data.get("started_at", time.time())
+        session.ended_at = data.get("ended_at")
+        
+        return session
+
+    @classmethod
+    def from_json(cls, json_str: str) -> Session:
+        """Import session from a JSON string."""
+        data = json.loads(json_str)
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_shareable_link(cls, link: str) -> Session:
+        """Import session from a shareable link."""
+        if not link.startswith("anvil://"):
+            raise ValueError("Invalid shareable link format")
+        
+        encoded = link[8:]  # Remove "anvil://" prefix
+        decoded = base64.urlsafe_b64decode(encoded.encode()).decode()
+        return cls.from_json(decoded)
+
+    @classmethod
+    def list_sessions(cls) -> list[dict[str, Any]]:
+        """List all saved sessions."""
+        sessions_dir = Path.home() / ".anvil" / "sessions"
+        if not sessions_dir.exists():
+            return []
+        
+        sessions = []
+        for session_dir in sessions_dir.iterdir():
+            if session_dir.is_dir():
+                summary_file = session_dir / "summary.json"
+                if summary_file.exists():
+                    try:
+                        summary = json.loads(summary_file.read_text())
+                        sessions.append({
+                            "id": session_dir.name,
+                            "task": summary.get("task"),
+                            "status": summary.get("status"),
+                            "steps": summary.get("steps"),
+                            "duration_seconds": summary.get("duration_seconds"),
+                        })
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+        
+        return sorted(sessions, key=lambda s: s.get("id", ""))
