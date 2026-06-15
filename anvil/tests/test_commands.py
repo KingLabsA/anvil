@@ -39,7 +39,10 @@ class TestCommand:
 
 class TestBuiltinCommands:
     def test_all_builtin_commands_defined(self):
-        expected = {"/help", "/init", "/undo", "/redo", "/share", "/compact", "/agents", "/models"}
+        expected = {
+            "/help", "/init", "/undo", "/redo", "/share", "/compact", "/agents", "/models",
+            "/brainstorm", "/plan", "/work", "/lfg",
+        }
         assert set(BUILTIN_COMMANDS.keys()) == expected
 
     def test_builtin_commands_have_descriptions(self):
@@ -256,3 +259,49 @@ class TestTabCompletion:
         mgr = CommandManager()
         suggestions = mgr.tab_complete("/co")
         assert "/compact" in suggestions
+
+
+class TestCompoundEngineeringFlows:
+    """Tests for the /brainstorm, /plan, /work, /lfg compound-engineering flows."""
+
+    def test_all_flows_registered(self):
+        mgr = CommandManager()
+        names = {c.name for c in mgr.list()}
+        assert {"/brainstorm", "/plan", "/work", "/lfg"}.issubset(names)
+
+    def test_brainstorm_renders_prompt_with_args(self):
+        mgr = CommandManager()
+        result = mgr.execute("/brainstorm", "add dark mode toggle")
+        assert result["success"] is True
+        assert "BRAINSTORM mode" in result["output"]
+        assert "add dark mode toggle" in result["output"]
+        assert "$ARGUMENTS" not in result["output"]
+        assert result["prompt"] == result["output"]
+
+    def test_plan_renders_prompt(self):
+        mgr = CommandManager()
+        result = mgr.execute("/plan", "refactor auth")
+        assert "PLAN mode" in result["output"]
+        assert "refactor auth" in result["output"]
+        assert "verify" in result["output"].lower()
+
+    def test_work_mentions_verify_loop(self):
+        mgr = CommandManager()
+        result = mgr.execute("/work", "implement step 1")
+        assert "WORK mode" in result["output"]
+        assert "RECOVER" in result["output"]
+        assert "implement step 1" in result["output"]
+
+    def test_lfg_runs_full_loop(self):
+        mgr = CommandManager()
+        result = mgr.execute("/lfg", "ship feature X")
+        out = result["output"]
+        assert "BRAINSTORM" in out and "PLAN" in out and "WORK" in out
+        assert "ship feature X" in out
+
+    def test_flows_have_descriptions(self):
+        mgr = CommandManager()
+        for name in ("/brainstorm", "/plan", "/work", "/lfg"):
+            cmd = mgr.get(name)
+            assert cmd is not None
+            assert cmd.description

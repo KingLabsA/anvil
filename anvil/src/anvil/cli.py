@@ -105,8 +105,14 @@ def main(ctx, model, agent, config, verbose, quiet):
 @click.option("--max-iterations", "-i", default=20, help="Max verify-recover cycles")
 @click.option("--no-verify", is_flag=True, help="Disable verification")
 @click.option("--no-recover", is_flag=True, help="Disable auto-recovery")
+@click.option(
+    "--flow", "-f",
+    type=click.Choice(["brainstorm", "plan", "work", "lfg"]),
+    default=None,
+    help="Wrap the task in a compound-engineering flow",
+)
 @click.pass_context
-def run(ctx, task, max_iterations, no_verify, no_recover):
+def run(ctx, task, max_iterations, no_verify, no_recover, flow):
     """Run a task with self-verification."""
     if not ctx.obj.get("quiet"):
         print_banner()
@@ -127,6 +133,14 @@ def run(ctx, task, max_iterations, no_verify, no_recover):
             sys.exit(1)
 
     task_str = " ".join(task)
+
+    # Optionally wrap the task in a compound-engineering flow template.
+    if flow:
+        from anvil.commands.command_manager import CommandManager
+
+        cmd_mgr = CommandManager(project_root=cfg.project_root)
+        rendered = cmd_mgr.execute(f"/{flow}", task_str)
+        task_str = rendered.get("prompt") or rendered.get("output") or task_str
 
     with Progress(
         SpinnerColumn(), TextColumn("[progress.description]{task.description}"),

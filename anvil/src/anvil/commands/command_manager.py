@@ -17,6 +17,72 @@ class Command:
     hidden: bool = False
 
 
+# ── Compound Engineering flows ────────────────────────────────────────────
+# Structured agentic workflows (inspired by Matt Van Horn's compound-engineering
+# skills) mapped onto Anvil's Plan → Execute → Verify → Recover loop. Each is a
+# prompt template rendered with $ARGUMENTS and fed to the active agent.
+
+_BRAINSTORM_TEMPLATE = """You are in BRAINSTORM mode. Do NOT write code yet.
+
+Goal: $ARGUMENTS
+
+Steps:
+1. Use `read`, `grep`, `glob` to explore the relevant parts of the codebase.
+2. Identify constraints, existing patterns, and edge cases.
+3. Ask clarifying questions only if truly blocking.
+4. Produce a concise requirements document with:
+   - Problem statement
+   - Proposed approach (2-3 options with trade-offs, then a recommendation)
+   - Affected files/modules
+   - Edge cases and risks
+   - Open questions
+
+Output the requirements doc as markdown. End by suggesting `/plan` as the next step."""
+
+_PLAN_TEMPLATE = """You are in PLAN mode. Do NOT modify files yet.
+
+Task: $ARGUMENTS
+
+Steps:
+1. Research the codebase (`read`, `grep`, `glob`) to understand current behavior.
+2. Map the exact implementation path: which files change and how.
+3. Enumerate edge cases and how each will be handled.
+4. Define the verification strategy (tests, lint, type checks) for each step.
+
+Produce a numbered, verifiable implementation plan. Each step must state:
+- What to do
+- Which tool(s) to use
+- How to verify it worked
+
+End by suggesting `/work` to execute the plan."""
+
+_WORK_TEMPLATE = """You are in WORK mode. Execute the plan with the full verify-loop.
+
+Plan / task: $ARGUMENTS
+
+Rules:
+- Follow the project's existing patterns and conventions.
+- Implement one step at a time.
+- After each change, VERIFY (syntax, tests, lint). If verification fails,
+  diagnose and RECOVER automatically before moving on.
+- Never claim done without verifying.
+- When finished, summarize what changed and how it was verified."""
+
+_LFG_TEMPLATE = """You are running the FULL compound-engineering loop end to end.
+
+Objective: $ARGUMENTS
+
+Run all phases in order, without stopping for confirmation unless truly blocked:
+1. BRAINSTORM — explore the codebase and write a short requirements doc.
+2. PLAN — produce a numbered, verifiable implementation plan.
+3. WORK — implement the plan step by step, verifying and recovering after each change.
+4. WRAP-UP — run the full test/lint suite, summarize all changes, and prepare a
+   conventional-commit message and PR description.
+
+Use the `task` tool to delegate independent sub-tasks to subagents when helpful.
+Use the `skill` tool if a loaded skill matches the work. Verify everything."""
+
+
 BUILTIN_COMMANDS: dict[str, Command] = {
     "/help": Command(name="/help", description="Show available commands", hidden=False),
     "/init": Command(name="/init", description="Initialize anvil config and rules", hidden=False),
@@ -26,6 +92,27 @@ BUILTIN_COMMANDS: dict[str, Command] = {
     "/compact": Command(name="/compact", description="Compact conversation context", hidden=False),
     "/agents": Command(name="/agents", description="List available agents", hidden=False),
     "/models": Command(name="/models", description="List available models", hidden=False),
+    # Compound Engineering flows
+    "/brainstorm": Command(
+        name="/brainstorm",
+        description="Explore the codebase and produce a requirements doc (no code)",
+        template=_BRAINSTORM_TEMPLATE,
+    ),
+    "/plan": Command(
+        name="/plan",
+        description="Research and produce a numbered, verifiable implementation plan",
+        template=_PLAN_TEMPLATE,
+    ),
+    "/work": Command(
+        name="/work",
+        description="Execute a plan with the full Plan→Execute→Verify→Recover loop",
+        template=_WORK_TEMPLATE,
+    ),
+    "/lfg": Command(
+        name="/lfg",
+        description="Run the full loop: brainstorm → plan → work → wrap-up/PR",
+        template=_LFG_TEMPLATE,
+    ),
 }
 
 
@@ -66,7 +153,11 @@ class CommandManager:
 
         if name in self._custom_templates:
             rendered = self._render_template(self._custom_templates[name], args)
-            return {"success": True, "output": rendered}
+            return {"success": True, "output": rendered, "prompt": rendered}
+
+        if cmd.template:
+            rendered = self._render_template(cmd.template, args)
+            return {"success": True, "output": rendered, "prompt": rendered}
 
         return {"success": True, "output": f"Executed {name}"}
 
