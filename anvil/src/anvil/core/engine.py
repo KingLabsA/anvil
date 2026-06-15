@@ -68,6 +68,31 @@ Delegation & skills:
   external API. Provide `service` and either `base_url` or `spec_url` (an OpenAPI
   spec URL). After pressing, load the new skill with `skill` and call its CLI via `bash`.
 
+TOOL-CALL PROTOCOL (REQUIRED):
+To use a tool, emit a fenced block tagged `tool` containing a JSON object with
+`tool` and `args`. You may emit multiple blocks. Examples:
+
+```tool
+{{"tool": "edit", "args": {{"path": "src/app.py", "old_string": "return a - b", "new_string": "return a + b"}}}}
+```
+
+```tool
+{{"tool": "write", "args": {{"path": "hello.py", "content": "print('hi')\\n"}}}}
+```
+
+```tool
+{{"tool": "bash", "args": {{"command": "python -m pytest -x"}}}}
+```
+
+```tool
+{{"tool": "read", "args": {{"path": "src/app.py"}}}}
+```
+
+Rules:
+- Always use the ```tool JSON format above for ANY file change or command.
+- Do NOT write pseudo-code like `edit_file(...)`; emit a real ```tool block.
+- To modify an existing file, prefer `edit` (old_string/new_string), not `write`.
+
 Current agent: {agent_name}
 Available tools: {tools}"""
 
@@ -437,6 +462,7 @@ class AnvilEngine:
 
         files_changed: list[str] = []
         verify_results: str = ""
+        verify_report = None
 
         for i in range(min(len(plan), effective_max)):
             if self._steps_taken >= effective_max:
@@ -522,11 +548,49 @@ class AnvilEngine:
                                 agent_name=self.agent.name,
                             )
 
+        # ── Final verification gate ──────────────────────────────────────
+        # The agent claiming "done" is not enough. Only run when the agent
+        # actually changed files (avoids spawning the project's full test suite
+        # when nothing was done), and gate success on the real result.
+        final_report = verify_report or None
+        if self.config.verify.enabled and files_changed:
+            test_command = self._find_test_command()
+            final_report = self.verify.verify(
+                files=files_changed,
+                test_command=test_command,
+                working_dir=self.config.tools.working_dir,
+            )
+            session.add_step(Step(
+                kind=StepKind.VERIFY,
+                content="Final verification",
+                status=StepStatus.SUCCESS if final_report.passed else StepStatus.FAILED,
+                verify_result={
+                    "passed": final_report.passed,
+                    "failures": [f.message for f in final_report.failures],
+                },
+            ))
+            if not final_report.passed:
+                session.end("failed")
+                return EngineResult(
+                    success=False, session=session,
+                    output="Final verification failed",
+                    verify_report=final_report,
+                    error="Final verification failed: "
+                          + "; ".join(f.message for f in final_report.failures),
+                    agent_name=self.agent.name,
+                )
+
         session.end("completed")
+        if final_report is not None:
+            output = "Task completed and verified"
+        elif files_changed:
+            output = "Task completed (no test command found; changes not test-verified)"
+        else:
+            output = "Task completed but no file changes were made and nothing was verified"
         return EngineResult(
             success=True, session=session,
-            output="Task completed and verified",
-            verify_report=verify_report if files_changed else None,
+            output=output,
+            verify_report=final_report,
             agent_name=self.agent.name,
         )
 
@@ -568,14 +632,18 @@ class AnvilEngine:
             agent_name=self.agent.name,
             tools=", ".join(available_tools),
         )
+        context = self._gather_file_context(step, files_changed)
+        user_content = EXECUTE_PROMPT.format(
+            agent_name=self.agent.name,
+            plan=self.session.task, step=step,
+            files=", ".join(files_changed[-5:]) if files_changed else "none yet",
+            verify_results=verify_results or "none yet",
+        )
+        if context:
+            user_content += "\n\n" + context
         messages = [
             Message(role="system", content=system),
-            Message(role="user", content=EXECUTE_PROMPT.format(
-                agent_name=self.agent.name,
-                plan=self.session.task, step=step,
-                files=", ".join(files_changed[-5:]) if files_changed else "none yet",
-                verify_results=verify_results or "none yet",
-            )),
+            Message(role="user", content=user_content),
         ]
         response = self.model.complete(messages, temperature=self.agent.temperature)
         tool_calls = self._parse_tool_calls(response.content)
@@ -596,18 +664,65 @@ class AnvilEngine:
             "files_changed": files_in_step,
         }
 
+    def _gather_file_context(self, step: str, files_changed: list, max_files: int = 4, max_bytes: int = 4000) -> str:
+        """Read files referenced in the step/task plus recently changed files and
+        return their current contents so the model can craft exact edits.
+        """
+        candidates: list[str] = []
+        # Files explicitly referenced in the task or step text.
+        text = f"{getattr(self.session, 'task', '')} {step}"
+        for m in re.findall(r"[\w./\-]+\.[A-Za-z0-9]{1,6}", text):
+            candidates.append(m)
+        # Recently changed files take priority.
+        candidates = list(dict.fromkeys(list(files_changed)[-max_files:] + candidates))
+
+        root = Path(self.config.tools.working_dir or self.config.project_root or ".")
+        blocks: list[str] = []
+        seen: set[str] = set()
+        for ref in candidates:
+            if len(blocks) >= max_files:
+                break
+            path = Path(ref)
+            if not path.is_absolute():
+                path = root / ref
+            try:
+                rp = path.resolve()
+            except OSError:
+                continue
+            key = str(rp)
+            if key in seen or not rp.is_file():
+                continue
+            seen.add(key)
+            try:
+                content = rp.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if len(content) > max_bytes:
+                content = content[:max_bytes] + "\n... (truncated)"
+            blocks.append(f"### Current contents of {ref}\n```\n{content}\n```")
+        if not blocks:
+            return ""
+        return (
+            "Relevant file contents (use exact text for edit old_string):\n\n"
+            + "\n\n".join(blocks)
+        )
+
     def _recover(self, step: str, verify_report: VerifyReport, files_changed: list, session: Session) -> dict:
         failures = "\n".join(f"- {f.message}" for f in verify_report.failures)
+        context = self._gather_file_context(step, files_changed)
+        user_content = RECOVER_PROMPT.format(
+            step=step, error=failures,
+            verify_report=verify_report.format_summary(),
+            files=", ".join(files_changed[-5:]),
+        )
+        if context:
+            user_content += "\n\n" + context
         messages = [
             Message(role="system", content=SYSTEM_PROMPT.format(
                 agent_name=self.agent.name,
                 tools=", ".join(self.agent.available_tools(ALL_TOOL_NAMES)),
             )),
-            Message(role="user", content=RECOVER_PROMPT.format(
-                step=step, error=failures,
-                verify_report=verify_report.format_summary(),
-                files=", ".join(files_changed[-5:]),
-            )),
+            Message(role="user", content=user_content),
         ]
         response = self.model.complete(messages, temperature=self.agent.temperature)
         tool_calls = self._parse_tool_calls(response.content)
@@ -631,6 +746,12 @@ class AnvilEngine:
     # ── tool-call parser ────────────────────────────────────────────────
 
     def _parse_tool_calls(self, text: str) -> list[dict]:
+        # 1. Preferred: structured JSON tool calls in ```tool fences.
+        structured = self._parse_structured_tool_calls(text)
+        if structured:
+            return structured
+
+        # 2. Fallback: legacy freeform heuristics (best-effort for weak models).
         calls: list[dict] = []
         patterns = [
             (r'```(\w+)?\n(.*?)```', self._parse_code_block),
@@ -647,6 +768,39 @@ class AnvilEngine:
                     calls.append(result)
         return calls
 
+    def _parse_structured_tool_calls(self, text: str) -> list[dict]:
+        """Parse explicit ```tool / ```tool_call / ```json fenced JSON tool calls.
+
+        Each block may contain a single object ``{"tool": ..., "args": {...}}``
+        or a JSON array of such objects. This is the protocol the system prompt
+        instructs the model to use, and it is parsed deterministically.
+        """
+        import json as _json
+
+        calls: list[dict] = []
+        valid_tools = set(ALL_TOOL_NAMES)
+        fence = re.compile(r"```(?:tool|tool_call|tool_calls|json)\s*\n(.*?)```", re.DOTALL)
+        for match in fence.finditer(text):
+            blob = match.group(1).strip()
+            if not blob:
+                continue
+            try:
+                parsed = _json.loads(blob)
+            except (ValueError, TypeError):
+                continue
+            items = parsed if isinstance(parsed, list) else [parsed]
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                tool = item.get("tool") or item.get("name")
+                if tool not in valid_tools:
+                    continue
+                args = item.get("args") or item.get("arguments") or {}
+                if not isinstance(args, dict):
+                    continue
+                calls.append({"tool": tool, "args": args})
+        return calls
+
     def _parse_code_block(self, match) -> dict | None:
         lang = (match.group(1) or "").lower()
         code = match.group(2).strip()
@@ -660,15 +814,27 @@ class AnvilEngine:
         return {"tool": "bash", "args": {"command": code}}
 
     def _find_test_command(self) -> str | None:
+        import sys
+
         root = Path(self.config.project_root)
+        pytest_cmd = f"{sys.executable} -m pytest -x"
         test_markers = [
-            (root / "pytest.ini", "pytest -x"),
-            (root / "pyproject.toml", "pytest -x"),
+            (root / "pytest.ini", pytest_cmd),
+            (root / "pyproject.toml", pytest_cmd),
+            (root / "setup.cfg", pytest_cmd),
+            (root / "tox.ini", pytest_cmd),
             (root / "package.json", "npm test"),
-            (root / "Cargo.toml", "cargo test ./..."),
+            (root / "Cargo.toml", "cargo test"),
             (root / "go.mod", "go test ./..."),
         ]
         for marker_path, cmd in test_markers:
             if marker_path.exists():
                 return cmd
+        # Heuristic: detect Python test files even without config markers.
+        try:
+            for pattern in ("test_*.py", "*_test.py"):
+                if any(root.rglob(pattern)):
+                    return pytest_cmd
+        except OSError:
+            pass
         return None

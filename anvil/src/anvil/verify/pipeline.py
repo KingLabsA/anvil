@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -206,7 +207,7 @@ class Checkers:
             return VerifyResult(checker="imports", status=VerifyStatus.SKIP, message="Only Python import checking supported")
         try:
             result = subprocess.run(
-                ["python", "-c", f"import ast; ast.parse(open('{file_path}').read())"],
+                [sys.executable, "-c", f"import ast; ast.parse(open('{file_path}').read())"],
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode == 0:
