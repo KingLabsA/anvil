@@ -220,11 +220,82 @@ class Checkers:
         except Exception as e:
             return VerifyResult(checker="imports", status=VerifyStatus.ERROR, message=str(e))
 
+    @staticmethod
+    def check_types(file_path: str, working_dir: str = ".") -> VerifyResult:
+        """LSP-style static diagnostics via a language type checker.
+
+        Python: prefer ``pyright`` (a Pyright LSP server backend), else ``mypy``.
+        TS/JS:  ``tsc --noEmit``.
+        Returns SKIP when no checker is installed for the language.
+        """
+        import shutil
+
+        suffix = Path(file_path).suffix
+        if suffix == ".py":
+            if shutil.which("pyright"):
+                cmd = ["pyright", "--outputjson", file_path]
+                tool = "pyright"
+            elif shutil.which("mypy"):
+                cmd = [sys.executable, "-m", "mypy", "--no-error-summary",
+                       "--hide-error-context", file_path]
+                tool = "mypy"
+            else:
+                return VerifyResult(checker="types", status=VerifyStatus.SKIP,
+                                    message="No type checker (pyright/mypy) installed")
+        elif suffix in (".ts", ".tsx"):
+            if shutil.which("tsc"):
+                cmd = ["tsc", "--noEmit", file_path]
+                tool = "tsc"
+            else:
+                return VerifyResult(checker="types", status=VerifyStatus.SKIP,
+                                    message="tsc not installed")
+        else:
+            return VerifyResult(checker="types", status=VerifyStatus.SKIP,
+                                message=f"No type checker for {suffix}")
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=working_dir)
+            output = (result.stdout + result.stderr).strip()
+            if result.returncode == 0:
+                return VerifyResult(checker="types", status=VerifyStatus.PASS,
+                                    message=f"No type errors ({tool})")
+            return VerifyResult(
+                checker="types", status=VerifyStatus.FAIL,
+                message=f"Type errors found ({tool})",
+                details=output[:800],
+                file_path=file_path,
+                fixes=["Resolve the reported type diagnostics"],
+            )
+        except FileNotFoundError:
+            return VerifyResult(checker="types", status=VerifyStatus.SKIP,
+                                message=f"{tool} not available")
+        except subprocess.TimeoutExpired:
+            return VerifyResult(checker="types", status=VerifyStatus.SKIP,
+                                message=f"{tool} timed out")
+        except Exception as e:  # noqa: BLE001
+            return VerifyResult(checker="types", status=VerifyStatus.ERROR, message=str(e))
+
 
 class VerifyPipeline:
     def __init__(self, config: Any | None = None):
         self.config = config
         self.checkers = Checkers()
+
+    def _default_checks(self) -> list[str]:
+        """Derive the enabled checks from the VerifyConfig flags (if present)."""
+        cfg = self.config
+        if cfg is None:
+            return ["syntax", "lint", "imports"]
+        enabled: list[str] = []
+        if getattr(cfg, "check_syntax", True):
+            enabled.append("syntax")
+        if getattr(cfg, "check_lint", True):
+            enabled.append("lint")
+        # imports is part of the baseline correctness suite
+        enabled.append("imports")
+        if getattr(cfg, "check_types", False):
+            enabled.append("types")
+        return enabled
 
     def verify(
         self,
@@ -234,7 +305,10 @@ class VerifyPipeline:
         checks: list[str] | None = None,
     ) -> VerifyReport:
         report = VerifyReport()
-        enabled = checks or ["syntax", "lint", "imports"]
+        if checks is not None:
+            enabled = list(checks)
+        else:
+            enabled = self._default_checks()
         if test_command:
             enabled.append("tests")
 
@@ -245,6 +319,8 @@ class VerifyPipeline:
                 report.add(self.checkers.check_lint(file_path))
             if "imports" in enabled:
                 report.add(self.checkers.check_imports(file_path))
+            if "types" in enabled:
+                report.add(self.checkers.check_types(file_path, working_dir))
 
         if test_command and "tests" in enabled:
             report.add(self.checkers.check_tests(test_command, working_dir))

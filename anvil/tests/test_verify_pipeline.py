@@ -331,3 +331,49 @@ class TestVerifyPipeline:
         pipeline = VerifyPipeline()
         report = pipeline.verify(files=[str(f)], checks=["syntax", "lint"], working_dir=str(tmp_path))
         assert len(report.results) >= 1
+
+
+class TestCheckTypes:
+    """LSP-style type diagnostics via pyright/mypy/tsc."""
+
+    def test_passes_valid_python(self, tmp_path):
+        f = tmp_path / "ok.py"
+        f.write_text("def add(a: int, b: int) -> int:\n    return a + b\n")
+        result = Checkers.check_types(str(f))
+        # SKIP if no checker installed; PASS if mypy/pyright available and clean.
+        assert result.status in (VerifyStatus.PASS, VerifyStatus.SKIP)
+
+    def test_fails_on_type_error(self, tmp_path):
+        f = tmp_path / "bad.py"
+        f.write_text("def add(a: int, b: int) -> int:\n    return a + b\n\nadd('x', 'y')\n")
+        result = Checkers.check_types(str(f))
+        # SKIP if no checker; FAIL if mypy/pyright catches the error.
+        assert result.status in (VerifyStatus.FAIL, VerifyStatus.SKIP)
+        if result.status == VerifyStatus.FAIL:
+            assert "types" in result.checker
+            assert result.details  # should contain the diagnostic
+
+    def test_skips_unsupported_language(self, tmp_path):
+        f = tmp_path / "file.xyz"
+        f.write_text("not a real language")
+        result = Checkers.check_types(str(f))
+        assert result.status == VerifyStatus.SKIP
+
+    def test_pipeline_honors_check_types_flag(self, tmp_path):
+        f = tmp_path / "ok.py"
+        f.write_text("x = 1\n")
+        # Default config: check_types=False → types NOT in enabled
+        from anvil.core.config import VerifyConfig
+        cfg = VerifyConfig()
+        cfg.check_types = False
+        pipe = VerifyPipeline(config=cfg)
+        rep = pipe.verify([str(f)])
+        checkers_run = [r.checker for r in rep.results]
+        assert "types" not in checkers_run
+
+        # Opt-in: check_types=True → types IS in enabled
+        cfg.check_types = True
+        pipe2 = VerifyPipeline(config=cfg)
+        rep2 = pipe2.verify([str(f)])
+        checkers_run2 = [r.checker for r in rep2.results]
+        assert "types" in checkers_run2

@@ -29,7 +29,7 @@ class VerifyConfig:
     check_syntax: bool = True
     check_tests: bool = True
     check_lint: bool = True
-    check_types: bool = True
+    check_types: bool = False
     timeout_seconds: int = 30
 
 
