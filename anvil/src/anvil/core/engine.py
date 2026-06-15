@@ -22,6 +22,7 @@ from anvil.agents.agent_manager import AgentManager
 from anvil.agents.builtin_agents import BuildAgent
 from anvil.core.config import AnvilConfig
 from anvil.core.session import Session, Step, StepKind, StepStatus, ToolCall
+from anvil.memory.manager import MemoryManager
 from anvil.models.registry import Message, ModelRegistry
 from anvil.permissions.permissions import PermissionAction, PermissionConfig, PermissionManager
 from anvil.tools.executor import ToolExecutor, ToolResult
@@ -209,6 +210,7 @@ class AnvilEngine:
         self.permissions = PermissionManager(self.config.get_global_permission_config())
 
         self.verify = VerifyPipeline(self.config.verify)
+        self.memory = MemoryManager()
         self.session: Session | None = None
         self._steps_taken: int = 0
         self._is_subagent: bool = False
@@ -540,6 +542,12 @@ class AnvilEngine:
 
                         if not recovered:
                             session.end("failed")
+                            # Extract memories from the failed task
+                            self.memory.extract_from_task(
+                                task,
+                                f"Failed to recover after {self.config.verify.max_retries} retries",
+                                success=False,
+                            )
                             return EngineResult(
                                 success=False, session=session,
                                 output=f"Failed to recover after {self.config.verify.max_retries} retries",
@@ -571,6 +579,12 @@ class AnvilEngine:
             ))
             if not final_report.passed:
                 session.end("failed")
+                # Extract memories from the failed task
+                self.memory.extract_from_task(
+                    task,
+                    "Final verification failed",
+                    success=False,
+                )
                 return EngineResult(
                     success=False, session=session,
                     output="Final verification failed",
@@ -587,6 +601,10 @@ class AnvilEngine:
             output = "Task completed (no test command found; changes not test-verified)"
         else:
             output = "Task completed but no file changes were made and nothing was verified"
+        
+        # Extract memories from the completed task
+        self.memory.extract_from_task(task, output, success=True)
+        
         return EngineResult(
             success=True, session=session,
             output=output,
@@ -605,6 +623,10 @@ class AnvilEngine:
             agent_name=self.agent.name,
             tools=", ".join(available_tools),
         )
+        # Inject relevant memories
+        memory_context = self.memory.get_context_prompt(task, limit=5)
+        if memory_context:
+            system += f"\n\n{memory_context}"
         messages = [
             Message(role="system", content=system),
             Message(role="user", content=PLAN_PROMPT.format(task=task)),
@@ -632,6 +654,10 @@ class AnvilEngine:
             agent_name=self.agent.name,
             tools=", ".join(available_tools),
         )
+        # Inject relevant memories
+        memory_context = self.memory.get_context_prompt(step, limit=3)
+        if memory_context:
+            system += f"\n\n{memory_context}"
         context = self._gather_file_context(step, files_changed)
         user_content = EXECUTE_PROMPT.format(
             agent_name=self.agent.name,

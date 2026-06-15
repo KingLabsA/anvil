@@ -755,3 +755,115 @@ def _print_agents(mgr: AgentManager) -> None:
     console.print("[dim]Switch primary agent with: anvil chat --agent <name>[/]")
 
 
+# ── Memory management commands ─────────────────────────────────────────
+
+@main.group()
+def memory():
+    """Manage agent memory — persistent cross-session learning."""
+    pass
+
+
+@memory.command("list")
+@click.option("--category", "-c", type=click.Choice(["preference", "project", "pattern", "mistake", "fact"]), help="Filter by category")
+@click.option("--limit", "-n", default=50, help="Maximum memories to show")
+def memory_list(category, limit):
+    """List stored memories."""
+    from anvil.memory.manager import MemoryManager, MemoryCategory
+    
+    mgr = MemoryManager()
+    cat = MemoryCategory(category) if category else None
+    memories = mgr.list(category=cat, limit=limit)
+    
+    if not memories:
+        console.print("[dim]No memories found.[/]")
+        return
+    
+    table = Table(show_header=True, title="Agent Memories")
+    table.add_column("ID", style="cyan", no_wrap=True)
+    table.add_column("Category", style="green")
+    table.add_column("Content")
+    table.add_column("Importance", justify="right")
+    table.add_column("Uses", justify="right")
+    
+    for mem in memories:
+        table.add_row(
+            mem.id,
+            mem.category.value,
+            mem.content[:60],
+            f"{mem.importance:.2f}",
+            str(mem.use_count),
+        )
+    
+    console.print(table)
+
+
+@memory.command("add")
+@click.option("--category", "-c", type=click.Choice(["preference", "project", "pattern", "mistake", "fact"]), required=True, help="Memory category")
+@click.option("--content", "-m", required=True, help="Memory content")
+@click.option("--context", "-x", default="", help="Context in which this was learned")
+@click.option("--importance", "-i", type=float, default=0.5, help="Importance (0.0 to 1.0)")
+def memory_add(category, content, context, importance):
+    """Add a new memory."""
+    from anvil.memory.manager import MemoryManager, MemoryCategory
+    
+    mgr = MemoryManager()
+    mem = mgr.add(
+        category=MemoryCategory(category),
+        content=content,
+        context=context,
+        importance=importance,
+    )
+    console.print(f"[green]✓ Memory added: {mem.id}[/]")
+    console.print(f"  Category: {mem.category.value}")
+    console.print(f"  Content: {mem.content}")
+    console.print(f"  Importance: {mem.importance:.2f}")
+
+
+@memory.command("recall")
+@click.argument("query")
+@click.option("--limit", "-n", default=5, help="Maximum memories to recall")
+def memory_recall(query, limit):
+    """Recall relevant memories for a query."""
+    from anvil.memory.manager import MemoryManager
+    
+    mgr = MemoryManager()
+    memories = mgr.recall(query, limit=limit)
+    
+    if not memories:
+        console.print(f"[dim]No memories found for: {query}[/]")
+        return
+    
+    console.print(f"\n[bold]Recalled memories for:[/] [cyan]{query}[/]\n")
+    for mem in memories:
+        console.print(f"[green][{mem.category.value}][/] {mem.content}")
+        if mem.context:
+            console.print(f"  [dim]Context: {mem.context}[/]")
+        console.print()
+
+
+@memory.command("delete")
+@click.argument("memory_id")
+def memory_delete(memory_id):
+    """Delete a memory by ID."""
+    from anvil.memory.manager import MemoryManager
+    
+    mgr = MemoryManager()
+    if mgr.delete(memory_id):
+        console.print(f"[green]✓ Memory deleted: {memory_id}[/]")
+    else:
+        console.print(f"[red]Memory not found: {memory_id}[/]")
+
+
+@memory.command("clear")
+@click.option("--category", "-c", type=click.Choice(["preference", "project", "pattern", "mistake", "fact"]), help="Clear only this category")
+@click.confirmation_option(prompt="Are you sure you want to clear memories?")
+def memory_clear(category):
+    """Clear memories (optionally by category)."""
+    from anvil.memory.manager import MemoryManager, MemoryCategory
+    
+    mgr = MemoryManager()
+    cat = MemoryCategory(category) if category else None
+    count = mgr.clear(category=cat)
+    console.print(f"[green]✓ Cleared {count} memories[/]")
+
+
