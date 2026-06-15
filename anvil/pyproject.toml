@@ -22,16 +22,16 @@ classifiers = [
 ]
 
 dependencies = [
-    "rich>=13.0",
-    "click>=8.1",
-    "pydantic>=2.0",
-    "httpx>=0.25",
-    "tiktoken>=0.5",
+    "rich>=13.7.0",
+    "click>=8.1.0",
+    "pydantic>=2.7.0",
+    "httpx>=0.27.0",
+    "tiktoken>=0.7.0",
     "pathspec>=0.11",
-    "tree-sitter>=0.20",
-    "prompt-toolkit>=3.0",
-    "jsonschema>=4.0",
-    "python-slugify>=8.0",
+    "tree-sitter>=0.21.0",
+    "prompt-toolkit>=3.0.47",
+    "jsonschema>=4.22.0",
+    "python-slugify>=8.0.4",
 ]
 
 [project.optional-dependencies]

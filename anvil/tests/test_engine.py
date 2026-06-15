@@ -24,7 +24,7 @@ class TestAnvilEngineInit:
     def test_default_config(self):
         cfg = AnvilConfig()
         engine = AnvilEngine(cfg)
-        assert engine.config.model.model == "local"
+        assert engine.config.model.model == "shellwhisperer"
         assert engine.config.verify.enabled is True
         assert engine.tools is not None
         assert engine.verify is not None
@@ -39,7 +39,7 @@ class TestAnvilEngineInit:
         assert engine.config.verify.max_retries == 1
 
     def test_integrations_initialized(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         assert hasattr(engine, "verifyloop")
         assert hasattr(engine, "error_recovery")
@@ -47,7 +47,7 @@ class TestAnvilEngineInit:
         assert hasattr(engine, "cost_optimizer")
 
     def test_tool_executor_initialized(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         assert isinstance(engine.tools, ToolExecutor)
 
@@ -58,7 +58,7 @@ class TestAnvilEngineInit:
 
 class TestPlanPhase:
     def _mock_engine(self, response_content="1. Read the file\n2. Fix the bug\n3. Run tests\n4. Verify the fix"):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         mock_model = MagicMock()
         mock_response = MagicMock()
@@ -108,7 +108,7 @@ class TestPlanPhase:
 
 class TestExecutePhase:
     def test_parse_bash_code_block(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         text = "```bash\npytest -x\n```"
         calls = engine._parse_tool_calls(text)
@@ -116,14 +116,14 @@ class TestExecutePhase:
         assert calls[0]["tool"] == "bash"
 
     def test_parse_python_code_block(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         text = "```python\ndef hello():\n    print('hi')\n```"
         calls = engine._parse_tool_calls(text)
         assert len(calls) >= 1
 
     def test_parse_inline_bash(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         text = "bash: `pip install flask`"
         calls = engine._parse_tool_calls(text)
@@ -131,7 +131,7 @@ class TestExecutePhase:
         assert calls[0]["tool"] == "bash"
 
     def test_parse_inline_read(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         text = "read `src/main.py`"
         calls = engine._parse_tool_calls(text)
@@ -139,14 +139,14 @@ class TestExecutePhase:
         assert calls[0]["tool"] == "read"
 
     def test_parse_empty_code_block_skipped(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         text = "```\n```"
         calls = engine._parse_tool_calls(text)
         assert len(calls) == 0
 
     def test_execute_uses_tools(self, tmp_path):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         cfg.tools.working_dir = str(tmp_path)
         engine = AnvilEngine(cfg)
         mock_model = MagicMock()
@@ -192,7 +192,7 @@ class TestVerifyPhase:
 
 class TestRecoverPhase:
     def test_recover_returns_dict(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         mock_model = MagicMock()
         mock_response = MagicMock()
@@ -228,7 +228,7 @@ class TestFullLoop:
         assert "error msg" in formatted
 
     def test_max_iterations_respected(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         cfg.verify.enabled = False
         engine = AnvilEngine(cfg)
         mock_model = MagicMock()
@@ -250,7 +250,7 @@ class TestFullLoop:
 class TestEngineConfig:
     def test_default_config(self):
         cfg = AnvilConfig()
-        assert cfg.model.model == "local"
+        assert cfg.model.model == "shellwhisperer"
         assert cfg.verify.enabled is True
         assert cfg.verify.max_retries == 3
         assert cfg.cost.max_cost_per_session_usd == 5.0
@@ -287,12 +287,12 @@ class TestEngineConfig:
 
     def test_env_vars_not_used_for_defaults(self):
         cfg = AnvilConfig()
-        assert cfg.model.model == "local"
+        assert cfg.model.model == "shellwhisperer"
 
     def test_find_config_returns_default_when_no_file(self):
         with patch.object(Path, "exists", return_value=False):
             cfg = AnvilConfig.find_config()
-            assert cfg.model.model == "local"
+            assert cfg.model.model == "shellwhisperer"
 
     def test_model_config(self):
         mc = ModelConfig(model="gpt-4o", api_key="key123", max_tokens=2048)

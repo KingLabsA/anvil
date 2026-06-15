@@ -23,9 +23,9 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-  "click>=8.0",
-  "rich>=13.0",
-  "httpx>=0.25",
+  "click>=8.1.0",
+  "rich>=13.7.0",
+  "httpx>=0.27.0",
   "fableforge-anvil-agent>=0.1.0",
 ]
 

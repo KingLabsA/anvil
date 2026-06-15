@@ -475,13 +475,13 @@ class TestMaxSteps:
 # ---------------------------------------------------------------------------
 
 class TestAgentModelConfig:
-    def test_build_agent_local_model(self):
+    def test_build_agent_shellwhisperer_model(self):
         agent = BuildAgent()
-        assert agent.model == "local"
+        assert agent.model == "shellwhisperer"
 
-    def test_scout_agent_local_model(self):
+    def test_scout_agent_shellwhisperer_model(self):
         agent = ScoutAgent()
-        assert agent.model == "local"
+        assert agent.model == "shellwhisperer"
 
     def test_custom_model_override(self):
         agent = BaseAgent(name="test", model="gpt-4o", temperature=0.8)

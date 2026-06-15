@@ -11,11 +11,11 @@ requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "FableForge"}]
 dependencies = [
-    "pydantic>=2.0",
-    "rich>=13.0",
-    "jinja2>=3.1",
-    "docker>=6.0",
-    "click>=8.0",
+    "pydantic>=2.7.0",
+    "rich>=13.7.0",
+    "jinja2>=3.1.4",
+    "docker>=7.0.0",
+    "click>=8.1.0",
 ]
 
 [project.scripts]

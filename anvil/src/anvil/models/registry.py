@@ -63,7 +63,7 @@ class TransformersModel(BaseModel):
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
 
-            kwargs = {"torch_dtype": torch.float16 if self.device == "cuda" else torch.float32, "trust_remote_code": True}
+            kwargs = {"dtype": torch.float16 if self.device == "cuda" else torch.float32, "trust_remote_code": True}
             if load_in_4bit and self.device == "cuda":
                 kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True)
                 kwargs["device_map"] = "auto"
@@ -366,8 +366,9 @@ class ModelRegistry:
     def create(cls, name: str, **kwargs) -> BaseModel:
         if name in cls._models:
             return cls._models[name](**kwargs)
+        transformers_kwargs = {k: v for k, v in kwargs.items() if k in ("device", "load_in_4bit")}
         if name in ("shellwhisperer", "fableforge-ai/ShellWhisperer-1.5B"):
-            return TransformersModel(model_name="fableforge-ai/ShellWhisperer-1.5B", **kwargs)
+            return TransformersModel(model_name="fableforge-ai/ShellWhisperer-1.5B", **transformers_kwargs)
         if name in ("local", "ollama", "llama"):
             local_kwargs = {k: v for k, v in kwargs.items() if k in ("model_path", "api_base")}
             return LocalModel(**local_kwargs)
@@ -381,8 +382,11 @@ class ModelRegistry:
             return AnthropicModel(**anthropic_kwargs)
         if "/" in name:
             # Treat as HuggingFace model ID
-            return TransformersModel(model_name=name, **kwargs)
-        return TransformersModel(model_name="fableforge-ai/ShellWhisperer-1.5B", **kwargs)
+            return TransformersModel(model_name=name, **transformers_kwargs)
+        # Default to local/ollama-compatible backend for truly unknown names
+        local_kwargs = {k: v for k, v in kwargs.items() if k in ("model_path", "api_base")}
+        local_kwargs.setdefault("model_path", name)
+        return LocalModel(**local_kwargs)
 
     @classmethod
     def available(cls) -> list[str]:

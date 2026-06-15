@@ -9,11 +9,11 @@ description = "Skill registry, decomposition, and LoRA building for coding agent
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "pydantic>=2.0",
-    "pyyaml>=6.0",
-    "click>=8.0",
-    "rich>=13.0",
-    "torch>=2.1",
+    "pydantic>=2.7.0",
+    "pyyaml>=6.0.1",
+    "click>=8.1.0",
+    "rich>=13.7.0",
+    "torch>=2.2.0",
     "peft>=0.7",
 ]
 

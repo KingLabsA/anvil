@@ -18,7 +18,7 @@ from anvil.models.registry import ModelRegistry, LocalModel, BaseModel, Message,
 class TestConfig:
     def test_default_config(self):
         cfg = AnvilConfig()
-        assert cfg.model.model == "local"
+        assert cfg.model.model == "shellwhisperer"
         assert cfg.verify.enabled is True
         assert cfg.verify.auto_recover is True
         assert cfg.verify.max_retries == 3
@@ -270,7 +270,7 @@ class TestEngine:
         assert engine.verify is not None
 
     def test_parse_tool_calls_bash(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         text = 'Run this:\n```bash\npytest -x\n```\nThen check results.'
         calls = engine._parse_tool_calls(text)
@@ -278,14 +278,14 @@ class TestEngine:
         assert calls[0]["tool"] == "bash"
 
     def test_parse_tool_calls_python(self):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
         text = 'Here is the code:\n```python\nx = 1\nprint(x)\n```'
         calls = engine._parse_tool_calls(text)
         assert len(calls) >= 1
 
     def test_find_test_command(self, tmp_path):
-        cfg = AnvilConfig()
+        cfg = AnvilConfig(model=ModelConfig(model="local"))
         cfg.project_root = str(tmp_path)
         engine = AnvilEngine(cfg)
         (tmp_path / "pyproject.toml").write_text("[tool.pytest]")

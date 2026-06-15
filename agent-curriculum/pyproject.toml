@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Curriculum learning for agent training — difficulty-scored stages"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["pydantic>=2.0", "pyyaml>=6.0", "numpy>=1.24", "click>=8.0", "rich>=13.0"]
+dependencies = ["pydantic>=2.7.0", "pyyaml>=6.0.1", "numpy>=1.26.4", "click>=8.1.0", "rich>=13.7.0"]
 
 [project.scripts]
 acurriculum = "agent_curriculum.cli:cli"

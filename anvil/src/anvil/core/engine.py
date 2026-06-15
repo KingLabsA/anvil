@@ -155,9 +155,10 @@ class AnvilEngine:
         self.agent: BaseAgent = agent or self.agent_manager.get(self.config.default_agent) or BuildAgent
         self.agent_manager.switch(self.agent.name) if self.agent.is_primary else None
 
-        # Model backend — derived from the agent's model setting.
+        # Model backend — derived from config; agent model is decorative unless config omits it.
+        active_model = self.config.model.model or self.agent.model
         self.model = ModelRegistry.create(
-            self.agent.model,
+            active_model,
             api_key=self.config.model.api_key,
             api_base=self.config.model.api_base,
         )

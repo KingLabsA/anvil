@@ -8,16 +8,16 @@ version = "0.1.0"
 description = "Datadog for AI agents — real-time observability, token tracking, cost estimation, error rates"
 requires-python = ">=3.10"
 dependencies = [
-    "fastapi>=0.110.0",
-    "uvicorn[standard]>=0.27.0",
-    "clickhouse-driver>=0.2.6",
-    "sqlalchemy>=2.0.0",
-    "pydantic>=2.5.0",
-    "plotly>=5.18.0",
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "clickhouse-driver>=0.2.9",
+    "sqlalchemy>=2.0.30",
+    "pydantic>=2.7.0",
+    "plotly>=5.22.0",
     "click>=8.1.0",
-    "tiktoken>=0.6.0",
+    "tiktoken>=0.7.0",
     "rich>=13.7.0",
-    "jinja2>=3.1.0",
+    "jinja2>=3.1.4",
 ]
 
 [project.optional-dependencies]
