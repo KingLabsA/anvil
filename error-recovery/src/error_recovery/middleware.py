@@ -148,7 +148,7 @@ class ErrorRecoveryMiddleware:
                 logger.warning("Recovery retry also failed for %s: %s", tool_name, exc)
                 if self.on_failure:
                     self.on_failure(str(exc))
-                raise
+                raise ToolCallError(tool_name, str(exc), context) from exc
 
         if result.recovery_prompt and not result.success:
             logger.info("Returning recovery strategy for %s", tool_name)
@@ -193,7 +193,7 @@ class ErrorRecoveryMiddleware:
                 logger.warning("Async recovery retry failed for %s: %s", tool_name, exc)
                 if self.on_failure:
                     self.on_failure(str(exc))
-                raise
+                raise ToolCallError(tool_name, str(exc), context) from exc
 
         if result.recovery_prompt and not result.success:
             return result.recovery_prompt

@@ -432,11 +432,15 @@ def _apply_bug(code: str, bug_type: str) -> str | None:
         return re.sub(r"await\s+", "", code, count=1) if "await " in code else None
 
     elif bug_type == "mutable_default":
-        replacements = {"=[]": "=None", "={}": "=None", "= list()": "=None", "= dict()": "=None"}
-        for old, new in replacements.items():
-            if old in code:
-                return code.replace(old, new, 1)
-        return None
+        # Replace a mutable default ([], {}, list(), dict()) with `= None`,
+        # normalizing spacing so the result reads `param = None`.
+        new_code, n = re.subn(
+            r"=\s*(\[\]|\{\}|list\(\)|dict\(\))",
+            "= None",
+            code,
+            count=1,
+        )
+        return new_code if n else None
 
     elif bug_type == "shadowed_variable":
         for_scope = re.search(r"for\s+(\w+)\s+in\s+", code)

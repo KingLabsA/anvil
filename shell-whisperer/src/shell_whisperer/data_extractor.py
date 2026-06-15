@@ -74,6 +74,80 @@ class TrainingPair:
         }
 
 
+def _check_safety(cmd: str) -> list[str]:
+    """Return a list of human-readable safety warnings for a shell command.
+
+    Used to flag dangerous patterns in extracted/generated training commands.
+    Returns an empty list for commands with no detected risks.
+    """
+    warnings: list[str] = []
+    c = cmd.strip()
+    lowered = c.lower()
+    normalized = c.replace(" ", "")
+
+    # Fork bomb (check before generic patterns).
+    if ":|:&" in normalized or normalized.startswith(":(){"):
+        warnings.append("Fork bomb pattern detected")
+
+    # Destructive recursive deletes.
+    import re as _re
+
+    if _re.search(r"\brm\s+-[a-z]*r[a-z]*f?\b", lowered) or _re.search(r"\brm\s+-[a-z]*f[a-z]*r?\b", lowered):
+        if _re.search(r"\s/(\s|$)", c) or " / " in f" {c} " or c.rstrip().endswith(" /"):
+            warnings.append("Destructive recursive delete of root filesystem")
+        else:
+            warnings.append("Destructive recursive delete")
+
+    # Piping remote scripts into a shell.
+    if _re.search(r"(curl|wget)\b.*\|\s*(sudo\s+)?(bash|sh|zsh)\b", lowered):
+        warnings.append("Downloading and piping a remote script into a shell")
+
+    # Privilege escalation.
+    if _re.search(r"\bsudo\b", lowered):
+        warnings.append("Uses sudo (elevated privileges)")
+
+    # Overly permissive chmod.
+    if _re.search(r"\bchmod\s+(-[a-zA-Z]+\s+)*777\b", lowered):
+        warnings.append("chmod 777 grants world-writable permissions")
+
+    # Disk-wiping / overwrite primitives.
+    if _re.search(r"\b(mkfs|dd\s+if=)", lowered) or ">/dev/sd" in normalized:
+        warnings.append("Destructive disk operation")
+
+    return warnings
+
+
+def _clean_output(text: str) -> str:
+    """Normalize a model/raw command string into a clean shell command.
+
+    - Strips markdown code fences (```bash ... ```), keeping the command.
+    - Removes leading prose prefixes like "Here is the command: ".
+    - Drops leading comment-only lines (``# ...``).
+    - Preserves pipes (``|``) and chaining (``&&``, ``||``, ``;``).
+    """
+    import re as _re
+
+    s = text.strip()
+
+    # Remove fenced code blocks: keep inner content.
+    fence = _re.search(r"```(?:[a-zA-Z0-9]+)?\n(.*?)```", s, _re.DOTALL)
+    if fence:
+        s = fence.group(1).strip()
+    else:
+        s = s.replace("```", "").strip()
+
+    # Drop leading comment-only lines, keep the first real command line(s).
+    lines = [ln for ln in s.splitlines()]
+    non_comment = [ln for ln in lines if ln.strip() and not ln.lstrip().startswith("#")]
+    if non_comment:
+        s = "\n".join(non_comment).strip()
+
+    # Remove a leading prose prefix ending in a colon (e.g. "Here is the command:").
+    s = _re.sub(r"^[^\n`]*?:\s+(?=\S)", "", s, count=1).strip()
+
+    return s
+
+
 def _is_high_quality(cmd: str, nl: str) -> bool:
     """Return True if the (nl, cmd) pair is high-quality training data.
 

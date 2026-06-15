@@ -36,13 +36,23 @@ class PatternMatcher:
     def _load_model(self) -> None:
         if self._model is not None:
             return
+        # Allow disabling embeddings entirely (offline/CI/tests).
+        import os
+
+        if os.environ.get("ERROR_RECOVERY_NO_EMBEDDINGS"):
+            logger.info("ERROR_RECOVERY_NO_EMBEDDINGS set; using keyword matching")
+            self._model = None
+            return
         try:
             from sentence_transformers import SentenceTransformer
 
             self._model = SentenceTransformer(self.model_name)
             logger.info("Loaded sentence-transformers model: %s", self.model_name)
-        except ImportError:
-            logger.warning("sentence-transformers not available; falling back to keyword matching")
+        except Exception as exc:  # noqa: BLE001 — network/download/import all fall back
+            logger.warning(
+                "Could not load sentence-transformers model (%s); falling back to keyword matching",
+                exc,
+            )
             self._model = None
 
     def load_patterns(self, data_dir: str | Path | None = None) -> int:
