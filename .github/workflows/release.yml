@@ -60,11 +60,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT || secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase image name
+        id: image
+        run: |
+          repo=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/${repo}" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ steps.image.outputs.name }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
