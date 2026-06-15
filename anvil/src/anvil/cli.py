@@ -867,3 +867,21 @@ def memory_clear(category):
     console.print(f"[green]✓ Cleared {count} memories[/]")
 
 
+# ── MCP server command ─────────────────────────────────────────────────
+
+@main.command()
+def mcp():
+    """Start Anvil as an MCP (Model Context Protocol) server.
+    
+    The MCP server exposes Anvil's capabilities to other AI agents and tools
+    via the Model Context Protocol. It runs on stdin/stdout.
+    
+    Example:
+        anvil mcp
+    """
+    from anvil.mcp.server import run_mcp_server
+    console.print("[dim]Starting Anvil MCP server on stdin/stdout...[/]")
+    run_mcp_server()
+
+
+

@@ -1,13 +1,5 @@
-"""MCP (Model Context Protocol) server support for Anvil."""
+"""MCP (Model Context Protocol) server for Anvil."""
 
-from anvil.mcp.mcp_manager import MCPManager, MCPServer
-from anvil.mcp.mcp_types import JSONRPCRequest, JSONRPCResponse, MCPCallResult, MCPToolDefinition
+from anvil.mcp.server import AnvilMCPServer, run_mcp_server
 
-__all__ = [
-    "JSONRPCRequest",
-    "JSONRPCResponse",
-    "MCPToolDefinition",
-    "MCPCallResult",
-    "MCPServer",
-    "MCPManager",
-]
+__all__ = ["AnvilMCPServer", "run_mcp_server"]
