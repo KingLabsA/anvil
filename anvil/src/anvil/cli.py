@@ -318,6 +318,21 @@ def tui(ctx):
 
 
 @main.command()
+@click.option("--host", "-h", default="127.0.0.1", help="Host to bind")
+@click.option("--port", "-p", default=8000, help="Port to bind")
+@click.pass_context
+def serve(ctx, host, port):
+    """Start the web UI server (browser-based interface)."""
+    cfg: AnvilConfig = ctx.obj["config"]
+    console.print(f"[bold green]Starting Anvil web UI at http://{host}:{port}[/]")
+    console.print("[dim]Press Ctrl+C to stop[/]\n")
+    from anvil.web.server import create_app
+    import uvicorn
+    app = create_app(config=cfg)
+    uvicorn.run(app, host=host, port=port)
+
+
+@main.command()
 def models():
     """List available models."""
     console.print("[bold]Available Models:[/]\n")
