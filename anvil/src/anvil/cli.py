@@ -155,6 +155,52 @@ def run(ctx, task, max_iterations, no_verify, no_recover, flow):
 
 
 @main.command()
+@click.argument("service", required=True)
+@click.option("--base-url", "-u", default="", help="API base URL")
+@click.option("--spec-url", "-s", default="", help="OpenAPI/Swagger spec URL")
+@click.option("--spec-file", default="", help="Local OpenAPI/Swagger JSON file")
+@click.option("--output-dir", "-o", default=None, help="Skills output directory")
+@click.pass_context
+def press(ctx, service, base_url, spec_url, spec_file, output_dir):
+    """Printing Press: generate a CLI + skill wrapper for an API service."""
+    import json as _json
+    import urllib.request
+
+    from anvil.printing_press import press as _press
+
+    cfg: AnvilConfig = ctx.obj["config"]
+    spec = None
+    if spec_file:
+        try:
+            spec = _json.loads(Path(spec_file).read_text(encoding="utf-8"))
+        except Exception as e:  # noqa: BLE001
+            console.print(f"[red]Failed to read spec file: {e}[/]")
+            sys.exit(1)
+    elif spec_url:
+        try:
+            with urllib.request.urlopen(spec_url, timeout=30) as resp:
+                spec = _json.loads(resp.read().decode())
+        except Exception as e:  # noqa: BLE001
+            console.print(f"[red]Failed to fetch spec URL: {e}[/]")
+            sys.exit(1)
+
+    out_dir = output_dir or (Path(cfg.project_root or ".") / ".anvil" / "skills")
+    try:
+        result = _press(service, base_url=base_url, spec=spec, output_dir=out_dir)
+    except ValueError as e:
+        console.print(f"[red]{e}[/]")
+        sys.exit(1)
+
+    console.print(f"[green]Pressed[/] [bold]{service}[/] -> {len(result.endpoints)} endpoint(s)")
+    console.print(f"  Base URL: {result.base_url}")
+    console.print(f"  CLI:   {result.cli_path}")
+    console.print(f"  Skill: {result.skill_path}")
+    console.print(f"  Load with: [cyan]skill name={result.cli_path.parent.name}[/]")
+    console.print(f"  Try: [cyan]python {result.cli_path} --list[/]")
+    sys.exit(0)
+
+
+@main.command()
 @click.argument("task", nargs=-1, required=False)
 @click.option("--max-iterations", "-i", default=20)
 @click.pass_context

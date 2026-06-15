@@ -37,6 +37,7 @@ TOOL_DEFINITIONS = [
     {"name": "ls", "description": "List directory contents", "args": ["path"]},
     {"name": "task", "description": "Dispatch a specialized subagent to autonomously handle a multi-step task. Args: subagent_type, description, prompt", "args": ["subagent_type", "description", "prompt", "task_id"]},
     {"name": "skill", "description": "Load a specialized skill's instructions when the task matches it. Args: name", "args": ["name"]},
+    {"name": "press", "description": "Printing Press: generate a runnable CLI + skill wrapper for an API. Args: service, base_url, spec_url", "args": ["service", "base_url", "spec_url"]},
 ]
 
 ALL_TOOL_NAMES = [t["name"] for t in TOOL_DEFINITIONS]
@@ -63,6 +64,9 @@ Delegation & skills:
   detailed `prompt`. The subagent runs its own verify-loop and returns its result.
 - Use `skill` to load a specialized skill's instructions when the task matches one of
   the available skills. Provide the skill `name`.
+- Use `press` (Printing Press) to generate a runnable CLI + skill wrapper for an
+  external API. Provide `service` and either `base_url` or `spec_url` (an OpenAPI
+  spec URL). After pressing, load the new skill with `skill` and call its CLI via `bash`.
 
 Current agent: {agent_name}
 Available tools: {tools}"""
@@ -262,7 +266,49 @@ class AnvilEngine:
             return self._run_task(args)
         if tool == "skill":
             return self._run_skill(args)
+        if tool == "press":
+            return self._run_press(args)
         return self.tools.execute(tool, args)
+
+    def _run_press(self, args: dict[str, Any]) -> ToolResult:
+        """Printing Press: generate a CLI + skill wrapper for an API service."""
+        service = args.get("service", "")
+        base_url = args.get("base_url", "")
+        spec_url = args.get("spec_url", "")
+        if not service:
+            return ToolResult(success=False, output="", error="press: 'service' is required")
+        if not base_url and not spec_url:
+            return ToolResult(success=False, output="", error="press: provide 'base_url' or 'spec_url'")
+
+        spec = None
+        if spec_url:
+            try:
+                import json as _json
+                import urllib.request
+
+                with urllib.request.urlopen(spec_url, timeout=30) as resp:
+                    spec = _json.loads(resp.read().decode())
+            except Exception as e:  # noqa: BLE001
+                return ToolResult(success=False, output="", error=f"press: failed to fetch spec_url: {e}")
+
+        from anvil.printing_press import press as _press
+
+        search = self._skill_search_paths()
+        out_dir = search[0] if search else Path(self.config.project_root or ".") / ".anvil" / "skills"
+        try:
+            result = _press(service, base_url=base_url, spec=spec, output_dir=out_dir)
+        except Exception as e:  # noqa: BLE001
+            return ToolResult(success=False, output="", error=f"press: {e}")
+
+        rendered = (
+            f"Generated Printing Press wrapper for '{service}'\n"
+            f"- Base URL: {result.base_url}\n"
+            f"- Endpoints: {len(result.endpoints)}\n"
+            f"- CLI: {result.cli_path}\n"
+            f"- Skill: {result.skill_path} (load with the `skill` tool: name='{result.cli_path.parent.name}')\n"
+            f"Run `python {result.cli_path} --list` to see commands."
+        )
+        return ToolResult(success=True, output=rendered)
 
     def _run_task(self, args: dict[str, Any]) -> ToolResult:
         """Dispatch a subagent via a nested verify-loop engine (OpenCode-style task tool)."""

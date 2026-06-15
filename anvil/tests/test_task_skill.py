@@ -109,3 +109,28 @@ class TestTaskTool:
         assert r.success is True
         assert "subagent done" in r.output
         assert 'state="completed"' in r.output
+
+
+class TestPressTool:
+    def test_press_registered(self):
+        from anvil.core.engine import ALL_TOOL_NAMES
+        assert "press" in ALL_TOOL_NAMES
+
+    def test_press_requires_service(self):
+        eng = _engine()
+        r = eng._run_press({"base_url": "https://x.com"})
+        assert r.success is False
+        assert "service" in r.error
+
+    def test_press_requires_url_or_spec(self):
+        eng = _engine()
+        r = eng._run_press({"service": "X"})
+        assert r.success is False
+        assert "base_url" in r.error
+
+    def test_press_generates_wrapper(self, tmp_path):
+        eng = _engine(tmp_path)
+        r = eng._run_press({"service": "Demo", "base_url": "https://api.demo.com"})
+        assert r.success is True
+        assert "Printing Press wrapper" in r.output
+        assert "Demo" in r.output

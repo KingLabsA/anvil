@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fableforge-anvil-agent"
-version = "0.2.1"
+version = "0.3.0"
 description = "The open-source, self-verified coding agent. Generate → Execute → Verify → Recover."
 readme = "README.md"
 license = {text = "MIT"}

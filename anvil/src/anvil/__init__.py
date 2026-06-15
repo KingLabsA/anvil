@@ -67,7 +67,7 @@ from anvil.sdk import (
 )
 from anvil.verify.pipeline import VerifyPipeline
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 # ── Agent management via SDK ──────────────────────────────────────────────
 # anvil._agents is the SDK proxy for agent operations.
