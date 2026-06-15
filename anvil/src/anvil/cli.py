@@ -75,12 +75,13 @@ def format_result(result: EngineResult) -> None:
         )
 
 
-@click.group()
-@click.option("--model", "-m", default="local", help="Model to use (local, gpt-4o, claude-3.5-sonnet)")
+@click.group(invoke_without_command=True)
+@click.option("--model", "-m", default="shellwhisperer", help="Model to use (shellwhisperer, local, gpt-4o, claude-3.5-sonnet)")
 @click.option("--agent", "-a", default=None, help="Agent to use (build, plan, explore, general, scout)")
 @click.option("--config", "-c", type=click.Path(), help="Config file path")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output")
+@click.version_option(version=__version__, prog_name="anvil")
 @click.pass_context
 def main(ctx, model, agent, config, verbose, quiet):
     """Anvil — the self-verified coding agent.
@@ -102,6 +103,8 @@ def main(ctx, model, agent, config, verbose, quiet):
     if agent:
         cfg.default_agent = agent
     ctx.obj["config"] = cfg
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 @main.command()
@@ -273,7 +276,8 @@ def models():
     table.add_column("Output $/1M tokens")
 
     models_info = [
-        ("local (fableforge-14b)", "Local", "Free", "Free"),
+        ("shellwhisperer (fableforge-ai/ShellWhisperer-1.5B)", "Local (Transformers)", "Free", "Free"),
+        ("local (fableforge-14b)", "Local (Ollama/llama.cpp)", "Free", "Free"),
         ("gpt-4o", "API (OpenAI)", "$2.50", "$10.00"),
         ("gpt-4o-mini", "API (OpenAI)", "$0.15", "$0.60"),
         ("o3-mini", "API (OpenAI)", "$1.10", "$4.40"),
@@ -475,33 +479,3 @@ def _print_agents(mgr: AgentManager) -> None:
     console.print("[dim]Switch primary agent with: anvil chat --agent <name>[/]")
 
 
-@click.group(invoke_without_command=True)
-@click.option("--model", "-m", default="local", help="Model to use (local, gpt-4o, claude-3.5-sonnet)")
-@click.option("--agent", "-a", default=None, help="Agent to use (build, plan, explore, general, scout)")
-@click.option("--config", "-c", type=click.Path(), help="Config file path")
-@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--quiet", "-q", is_flag=True, help="Minimal output")
-@click.version_option(version=__version__, prog_name="anvil")
-@click.pass_context
-def main(ctx, model, agent, config, verbose, quiet):
-    """Anvil — the self-verified coding agent.
-
-    Every other open agent generates and hopes. This one generates,
-    runs, checks, and fixes — because it was trained on 210K examples
-    of real agents doing exactly that.
-
-    Use --agent to pick a persona, or @mention subagents mid-conversation.
-    """
-    ctx.ensure_object(dict)
-    if config:
-        cfg = AnvilConfig.from_file(Path(config))
-    else:
-        cfg = AnvilConfig()
-    cfg.model.model = model
-    cfg.verbose = verbose
-    cfg.quiet = quiet
-    if agent:
-        cfg.default_agent = agent
-    ctx.obj["config"] = cfg
-    if ctx.invoked_subcommand is None:
-        click.echo(ctx.get_help())

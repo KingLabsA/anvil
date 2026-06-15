@@ -12,7 +12,7 @@ from anvil.permissions.permissions import PermissionConfig, PermissionAction
 
 @dataclass
 class ModelConfig:
-    model: str = "local"
+    model: str = "shellwhisperer"
     api_base: Optional[str] = None
     api_key: Optional[str] = None
     max_tokens: int = 4096

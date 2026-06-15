@@ -1,4 +1,4 @@
-"""Model backends — local (llama.cpp/ollama) and API (OpenAI/Anthropic)."""
+"""Model backends — local (llama.cpp/ollama), HuggingFace Transformers, and API (OpenAI/Anthropic)."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Any, Generator
 
 import httpx
+import torch
 
 
 @dataclass
@@ -44,6 +45,107 @@ class BaseModel(ABC):
 
     def count_tokens(self, text: str) -> int:
         return len(text) // 4
+
+
+class TransformersModel(BaseModel):
+    name = "transformers"
+
+    def __init__(self, model_name: str = "fableforge-ai/ShellWhisperer-1.5B", device: Optional[str] = None, load_in_4bit: bool = False):
+        self.model_name = model_name
+        self.device = device or ("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+        self.model = None
+        self.tokenizer = None
+        self.load_error = ""
+        try:
+            from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+            print(f"Loading {model_name} on {self.device}...")
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+
+            kwargs = {"torch_dtype": torch.float16 if self.device == "cuda" else torch.float32, "trust_remote_code": True}
+            if load_in_4bit and self.device == "cuda":
+                kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True)
+                kwargs["device_map"] = "auto"
+            else:
+                kwargs["device_map"] = None
+
+            self.model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs)
+            if not kwargs.get("device_map"):
+                self.model = self.model.to(self.device)
+            print(f"Model loaded on {self.device}")
+        except Exception as e:
+            self.model = None
+            self.tokenizer = None
+            self.load_error = str(e)
+            print(f"Warning: failed to load {model_name}: {e}")
+
+    def _prepare_inputs(self, messages: list[Message], max_new_tokens: int = 512, temperature: float = 0.2):
+        if self.model is None or self.tokenizer is None:
+            return None, None, "Error: model not loaded. " + getattr(self, "load_error", "")
+
+        chat_text = self.tokenizer.apply_chat_template(
+            [{"role": m.role, "content": m.content} for m in messages],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        inputs = self.tokenizer(chat_text, return_tensors="pt", padding=True, truncation=True, max_length=2048)
+        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+        input_tokens = inputs["input_ids"].shape[1]
+
+        gen_kwargs = {
+            "max_new_tokens": max_new_tokens,
+            "temperature": temperature,
+            "top_p": 0.9,
+            "do_sample": temperature > 0,
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "eos_token_id": self.tokenizer.eos_token_id,
+        }
+        return inputs, gen_kwargs, input_tokens
+
+    def complete(self, messages: list[Message], **kwargs) -> ModelResponse:
+        start = time.time()
+        if self.model is None or self.tokenizer is None:
+            return ModelResponse(
+                content=getattr(self, "load_error", "Model not loaded"),
+                model=self.model_name,
+                duration_ms=(time.time() - start) * 1000,
+            )
+
+        inputs, gen_kwargs, input_tokens = self._prepare_inputs(
+            messages,
+            max_new_tokens=kwargs.get("max_tokens", 512),
+            temperature=kwargs.get("temperature", 0.2),
+        )
+        try:
+            with torch.no_grad():
+                outputs = self.model.generate(**inputs, **gen_kwargs)
+            output_text = self.tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+            output_tokens = outputs.shape[1] - inputs["input_ids"].shape[1]
+            duration = (time.time() - start) * 1000
+            return ModelResponse(
+                content=output_text.strip(),
+                model=self.model_name,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                duration_ms=duration,
+                cost_usd=0.0,
+            )
+        except Exception as e:
+            return ModelResponse(
+                content=f"Error during generation: {e}",
+                model=self.model_name,
+                duration_ms=(time.time() - start) * 1000,
+            )
+
+    def stream(self, messages: list[Message], **kwargs) -> Generator[str, None, None]:
+        response = self.complete(messages, **kwargs)
+        yield response.content
+
+    def count_tokens(self, text: str) -> int:
+        if self.tokenizer is None:
+            return len(text) // 4
+        return len(self.tokenizer.encode(text))
 
 
 class LocalModel(BaseModel):
@@ -264,6 +366,8 @@ class ModelRegistry:
     def create(cls, name: str, **kwargs) -> BaseModel:
         if name in cls._models:
             return cls._models[name](**kwargs)
+        if name in ("shellwhisperer", "fableforge-ai/ShellWhisperer-1.5B"):
+            return TransformersModel(model_name="fableforge-ai/ShellWhisperer-1.5B", **kwargs)
         if name in ("local", "ollama", "llama"):
             local_kwargs = {k: v for k, v in kwargs.items() if k in ("model_path", "api_base")}
             return LocalModel(**local_kwargs)
@@ -275,10 +379,13 @@ class ModelRegistry:
             anthropic_kwargs = {k: v for k, v in kwargs.items() if k in ("api_key", "model")}
             anthropic_kwargs.setdefault("model", name)
             return AnthropicModel(**anthropic_kwargs)
-        return LocalModel()
+        if "/" in name:
+            # Treat as HuggingFace model ID
+            return TransformersModel(model_name=name, **kwargs)
+        return TransformersModel(model_name="fableforge-ai/ShellWhisperer-1.5B", **kwargs)
 
     @classmethod
     def available(cls) -> list[str]:
-        return list(cls._models.keys()) + ["local", "gpt-4o", "gpt-4o-mini", "o3-mini", "claude-3.5-sonnet"]
+        return list(cls._models.keys()) + ["shellwhisperer", "local", "gpt-4o", "gpt-4o-mini", "o3-mini", "claude-3.5-sonnet"]
 
 import os
