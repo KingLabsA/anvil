@@ -543,6 +543,109 @@ def import_session(source, session_id):
     console.print(f"[dim]Steps: {len(session.steps)}[/]")
 
 
+# ── Skill management commands ───────────────────────────────────────────
+
+@main.group()
+def skills():
+    """Manage skills — search, install, list, remove."""
+    pass
+
+
+@skills.command("search")
+@click.argument("query")
+@click.option("--limit", "-n", default=20, help="Maximum results")
+def skills_search(query, limit):
+    """Search for available skills."""
+    from anvil.skills.registry import SkillRegistry
+    registry = SkillRegistry()
+    results = registry.search(query, limit)
+    if not results:
+        console.print(f"[dim]No skills found matching '{query}'[/]")
+        return
+    table = Table(show_header=True)
+    table.add_column("Name", style="cyan")
+    table.add_column("Description")
+    table.add_column("Tags")
+    for skill in results:
+        table.add_row(skill.name, skill.description[:60], ", ".join(skill.tags[:3]))
+    console.print(table)
+
+
+@skills.command("list")
+def skills_list():
+    """List installed skills."""
+    from anvil.skills.registry import SkillRegistry
+    registry = SkillRegistry()
+    skills = registry.list_installed()
+    if not skills:
+        console.print("[dim]No skills installed.[/]")
+        return
+    table = Table(show_header=True)
+    table.add_column("Name", style="cyan")
+    table.add_column("Version")
+    table.add_column("Description")
+    table.add_column("Tags")
+    for skill in skills:
+        table.add_row(
+            skill.name,
+            skill.version,
+            skill.description[:50],
+            ", ".join(skill.tags[:3])
+        )
+    console.print(table)
+
+
+@skills.command("install")
+@click.argument("source")
+@click.option("--name", help="Custom name for the skill")
+def skills_install(source, name):
+    """Install a skill from GitHub URL or local path."""
+    from anvil.skills.registry import SkillRegistry
+    registry = SkillRegistry()
+    try:
+        if source.startswith("https://github.com/"):
+            skill = registry.install_from_github(source, name)
+        else:
+            skill = registry.install_from_path(source, name)
+        console.print(f"[green]✓ Installed skill: {skill.name}[/]")
+        console.print(f"[dim]Location: {skill.path}[/]")
+    except Exception as e:
+        console.print(f"[red]Failed to install: {e}[/]")
+        sys.exit(1)
+
+
+@skills.command("remove")
+@click.argument("name")
+def skills_remove(name):
+    """Remove an installed skill."""
+    from anvil.skills.registry import SkillRegistry
+    registry = SkillRegistry()
+    if registry.uninstall(name):
+        console.print(f"[green]✓ Removed skill: {name}[/]")
+    else:
+        console.print(f"[red]Skill '{name}' not found.[/]")
+        sys.exit(1)
+
+
+@skills.command("info")
+@click.argument("name")
+def skills_info(name):
+    """Show detailed info about an installed skill."""
+    from anvil.skills.registry import SkillRegistry
+    registry = SkillRegistry()
+    skill = registry.get_skill(name)
+    if not skill:
+        console.print(f"[red]Skill '{name}' not found.[/]")
+        sys.exit(1)
+    console.print(f"[bold cyan]{skill.name}[/] v{skill.version}")
+    console.print(f"[dim]Author: {skill.author or 'Unknown'}[/]")
+    console.print(f"[dim]Source: {skill.source}[/]")
+    console.print(f"[dim]Path: {skill.path}[/]")
+    if skill.tags:
+        console.print(f"[dim]Tags: {', '.join(skill.tags)}[/]")
+    console.print(f"\n{skill.description}")
+
+
 # ── Agent management commands ───────────────────────────────────────────
 
 @main.group()
