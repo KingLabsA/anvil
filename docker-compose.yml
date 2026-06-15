@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  anvil:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./workspace:/home/anvil/workspace
+      - anvil-data:/home/anvil/.anvil
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  anvil-data:
