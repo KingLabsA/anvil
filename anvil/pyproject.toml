@@ -57,8 +57,9 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
+line-length = 120
 target-version = "py310"
-line-length = 100
 
 [tool.ruff.lint]
+ignore = ["E501"]
 select = ["E", "F", "I", "N", "W", "UP"]

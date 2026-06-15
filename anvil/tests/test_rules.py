@@ -1,11 +1,10 @@
 """Tests for Anvil rules system — AGENTS.md, .anvil/rules/, global rules, merging."""
 
-import os
 from pathlib import Path
 
 import pytest
 
-from anvil.rules.rules_manager import RulesManager, Rule
+from anvil.rules.rules_manager import Rule, RulesManager
 
 
 class TestRule:

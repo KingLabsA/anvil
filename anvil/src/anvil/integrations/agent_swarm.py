@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
-
+from dataclasses import dataclass
 
 # Real transition probabilities from Fable-5 traces (87.7% planning rate)
 TRANSITION_MATRIX = {
@@ -43,7 +41,7 @@ class AgentSwarmIntegration:
     Falls back to built-in transition-matrix routing otherwise.
     """
 
-    def __init__(self, config: Optional[SwarmConfig] = None):
+    def __init__(self, config: SwarmConfig | None = None):
         self.config = config or SwarmConfig()
         self._swarm = None
         self._available = False

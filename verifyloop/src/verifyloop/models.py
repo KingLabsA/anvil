@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Literal
 
@@ -22,7 +21,7 @@ class Step(BaseModel):
     content: str
     tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     confidence: float = 0.0
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class Substep(BaseModel):
@@ -119,7 +118,7 @@ class AgentRun(BaseModel):
     duration_seconds: float = 0.0
     iteration: int = 0
     max_iterations: int = 5
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     completed_at: datetime | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -129,7 +128,7 @@ class AgentRun(BaseModel):
     def elapsed(self) -> float:
         if self.completed_at:
             return (self.completed_at - self.created_at).total_seconds()
-        return (datetime.now(timezone.utc) - self.created_at).total_seconds()
+        return (datetime.now(UTC) - self.created_at).total_seconds()
 
 
 class PipelineConfig(BaseModel):

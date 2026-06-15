@@ -5,13 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import time
 from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 from error_recovery.error_classifier import ErrorClassifier
 from error_recovery.models import ErrorRecoveryConfig
@@ -75,9 +74,9 @@ def _cmd_analyze(args: argparse.Namespace) -> None:
         console.print("[red]No valid records found in trace file[/red]")
         sys.exit(1)
 
-    from error_recovery.models import ErrorCategory, RecoveryResult
 
     classifier = ErrorClassifier()
+    engine = ErrorRecoveryEngine(ErrorRecoveryConfig())
     total = len(records)
     by_category: dict[str, int] = {}
     errors_with_recovery: int = 0
@@ -154,9 +153,9 @@ def _cmd_build_index(args: argparse.Namespace) -> None:
 
 def _cmd_serve(args: argparse.Namespace) -> None:
     try:
+        import uvicorn
         from fastapi import FastAPI
         from pydantic import BaseModel as APImodel
-        import uvicorn
     except ImportError:
         console.print("[red]Error:[/red] Install server dependencies: pip install error-recovery[server]")
         sys.exit(1)

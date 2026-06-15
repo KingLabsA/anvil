@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import re
 import subprocess
-from pathlib import Path
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Any
+from pathlib import Path
+from typing import Any
 
 
 class VerifyStatus(str, Enum):
@@ -22,8 +21,8 @@ class VerifyResult:
     checker: str
     status: VerifyStatus
     message: str
-    details: Optional[str] = None
-    file_path: Optional[str] = None
+    details: str | None = None
+    file_path: str | None = None
     fixes: list[str] = field(default_factory=list)
 
 
@@ -62,7 +61,7 @@ class VerifyReport:
 
 class Checkers:
     @staticmethod
-    def check_syntax(file_path: str, content: Optional[str] = None) -> VerifyResult:
+    def check_syntax(file_path: str, content: str | None = None) -> VerifyResult:
         path = Path(file_path)
         suffix = path.suffix
         if suffix == ".py":
@@ -79,7 +78,7 @@ class Checkers:
         )
 
     @staticmethod
-    def _check_python_syntax(file_path: str, content: Optional[str] = None) -> VerifyResult:
+    def _check_python_syntax(file_path: str, content: str | None = None) -> VerifyResult:
         try:
             import ast
             code = content or Path(file_path).read_text()
@@ -96,7 +95,7 @@ class Checkers:
             )
 
     @staticmethod
-    def _check_js_syntax(file_path: str, content: Optional[str] = None) -> VerifyResult:
+    def _check_js_syntax(file_path: str, content: str | None = None) -> VerifyResult:
         try:
             result = subprocess.run(
                 ["node", "--check", file_path], capture_output=True, text=True, timeout=10,
@@ -171,7 +170,7 @@ class Checkers:
             return VerifyResult(checker="tests", status=VerifyStatus.ERROR, message=f"Error running tests: {e}")
 
     @staticmethod
-    def check_lint(file_path: str, linter: Optional[str] = None) -> VerifyResult:
+    def check_lint(file_path: str, linter: str | None = None) -> VerifyResult:
         suffix = Path(file_path).suffix
         if linter is None:
             linter_map = {".py": "ruff", ".js": "eslint", ".ts": "eslint", ".rs": "clippy", ".go": "golint"}
@@ -191,7 +190,7 @@ class Checkers:
             output = (result.stdout + result.stderr)[:500]
             return VerifyResult(
                 checker="lint", status=VerifyStatus.FAIL,
-                message=f"Lint issues found", details=output,
+                message="Lint issues found", details=output,
                 file_path=file_path,
                 fixes=["Fix lint warnings", "Run with --fix to auto-fix"],
             )
@@ -222,16 +221,16 @@ class Checkers:
 
 
 class VerifyPipeline:
-    def __init__(self, config: Optional[Any] = None):
+    def __init__(self, config: Any | None = None):
         self.config = config
         self.checkers = Checkers()
 
     def verify(
         self,
         files: list[str],
-        test_command: Optional[str] = None,
+        test_command: str | None = None,
         working_dir: str = ".",
-        checks: Optional[list[str]] = None,
+        checks: list[str] | None = None,
     ) -> VerifyReport:
         report = VerifyReport()
         enabled = checks or ["syntax", "lint", "imports"]

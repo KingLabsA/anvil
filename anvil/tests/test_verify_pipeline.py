@@ -1,17 +1,14 @@
 """Tests for Anvil verification pipeline — syntax, tests, lint, imports, VerifyPipeline, VerifyReport."""
 
-import os
-import subprocess
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 
-import pytest
 
 from anvil.verify.pipeline import (
-    VerifyPipeline, VerifyReport, VerifyResult, VerifyStatus, Checkers,
+    Checkers,
+    VerifyPipeline,
+    VerifyReport,
+    VerifyResult,
+    VerifyStatus,
 )
-
 
 # ---------------------------------------------------------------------------
 # VerifyResult dataclass

@@ -1,8 +1,7 @@
 """Tests for Anvil context compaction system."""
 
-import pytest
 
-from anvil.compaction.compactor import ContextCompactor, CompactResult
+from anvil.compaction.compactor import CompactResult, ContextCompactor
 
 
 class TestContextCompactorInit:

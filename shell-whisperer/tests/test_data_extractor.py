@@ -1,7 +1,6 @@
 """Unit tests for shell_whisperer.data_extractor."""
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -20,7 +19,6 @@ from shell_whisperer.data_extractor import (
     extract_from_jsonl,
     load_training_data,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

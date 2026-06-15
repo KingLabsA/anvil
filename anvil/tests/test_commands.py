@@ -1,12 +1,8 @@
 """Tests for Anvil command system — built-in commands, custom commands, parsing, tab completion."""
 
-import tempfile
 from pathlib import Path
 
-import pytest
-
-from anvil.commands.command_manager import CommandManager, Command, BUILTIN_COMMANDS
-
+from anvil.commands.command_manager import BUILTIN_COMMANDS, Command, CommandManager
 
 # ---------------------------------------------------------------------------
 # Command dataclass

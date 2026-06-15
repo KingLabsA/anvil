@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from datetime import UTC, datetime
+from typing import Any
 
 from verifyloop.executor import Executor
 from verifyloop.memory import ConversationContext, InMemoryStore, MemoryStore
@@ -12,18 +13,14 @@ from verifyloop.models import (
     AgentRun,
     ExecuteStep,
     PipelineConfig,
-    PlanStep,
-    RecoverStep,
     RunStatus,
     Step,
     StepType,
     TokenUsage,
-    VerifyStep,
 )
 from verifyloop.planner import PlanGenerator
 from verifyloop.recoverer import Recoverer
 from verifyloop.verifier import Verifier, VerifierConfig
-
 
 CallbackFn = Callable[[str, dict[str, Any]], Coroutine[Any, Any, None]] | None
 
@@ -164,7 +161,7 @@ class AgentPipeline:
                 if verification.passed and verification.confidence >= self.config.confidence_threshold:
                     run.status = RunStatus.COMPLETED
                     run.duration_seconds = time.monotonic() - start_time
-                    run.completed_at = datetime.now(timezone.utc)
+                    run.completed_at = datetime.now(UTC)
                     run.token_usage = self.token_usage
                     await self._emit("run_complete", {"status": "completed", "iterations": iteration})
                     return run
@@ -205,7 +202,7 @@ class AgentPipeline:
                         if recheck.passed and recheck.confidence >= self.config.confidence_threshold:
                             run.status = RunStatus.COMPLETED
                             run.duration_seconds = time.monotonic() - start_time
-                            run.completed_at = datetime.now(timezone.utc)
+                            run.completed_at = datetime.now(UTC)
                             run.token_usage = self.token_usage
                             await self._emit("run_complete", {"status": "completed_after_recovery"})
                             return run
@@ -218,7 +215,7 @@ class AgentPipeline:
 
             run.status = RunStatus.FAILED
             run.duration_seconds = time.monotonic() - start_time
-            run.completed_at = datetime.now(timezone.utc)
+            run.completed_at = datetime.now(UTC)
             run.token_usage = self.token_usage
             await self._emit("run_complete", {"status": "failed", "iterations": max_iters})
             return run
@@ -226,7 +223,7 @@ class AgentPipeline:
         except Exception as exc:
             run.status = RunStatus.FAILED
             run.duration_seconds = time.monotonic() - start_time
-            run.completed_at = datetime.now(timezone.utc)
+            run.completed_at = datetime.now(UTC)
             run.metadata["error"] = str(exc)
             run.token_usage = self.token_usage
             await self._emit("run_error", {"error": str(exc)})

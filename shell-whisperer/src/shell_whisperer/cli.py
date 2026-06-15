@@ -10,14 +10,10 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import sys
-from pathlib import Path
-from typing import Any
 
 import click
 from rich.console import Console
-from rich.live import Live
 from rich.panel import Panel
 from rich.syntax import Syntax
 
@@ -208,12 +204,13 @@ def export_cmd(fmt: str, model: str, output: str) -> None:
 @click.option("--os-type", type=click.Choice(["linux", "macos", "windows"]), default="linux")
 def serve_cmd(model: str | None, backend: str, host: str, port: int, os_type: str) -> None:
     """Start the FastAPI inference server."""
-    from shell_whisperer.server import create_app
     import uvicorn
+
+    from shell_whisperer.server import create_app
 
     model_path = model or "./models/shell-whisperer-merged"
 
-    console.print(f"[bold]ShellWhisperer Server[/bold]")
+    console.print("[bold]ShellWhisperer Server[/bold]")
     console.print(f"Model: {model_path}")
     console.print(f"Backend: {backend}")
     console.print(f"OS: {os_type}")

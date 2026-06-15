@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 
 @dataclass
@@ -37,7 +37,7 @@ class TodoListManager:
         self._todos.append(item)
         return item
 
-    def update(self, item_id: str, status: Optional[str] = None, content: Optional[str] = None, priority: Optional[str] = None) -> Optional[TodoItem]:
+    def update(self, item_id: str, status: str | None = None, content: str | None = None, priority: str | None = None) -> TodoItem | None:
         for item in self._todos:
             if item.id == item_id:
                 if status:
@@ -60,14 +60,14 @@ class TodoListManager:
     def list_all(self) -> list[TodoItem]:
         return list(self._todos)
 
-    def get(self, item_id: str) -> Optional[TodoItem]:
+    def get(self, item_id: str) -> TodoItem | None:
         for item in self._todos:
             if item.id == item_id:
                 return item
         return None
 
 
-def apply_patch(args: dict[str, Any], working_dir: Path) -> "ToolResult":
+def apply_patch(args: dict[str, Any], working_dir: Path) -> ToolResult:
     """Apply a patch: add, update, delete, or move a file."""
     from anvil.tools.executor import ToolResult
 
@@ -120,7 +120,7 @@ def apply_patch(args: dict[str, Any], working_dir: Path) -> "ToolResult":
         return ToolResult(success=False, output="", error=f"Unknown patch action: {action}")
 
 
-def todowrite(args: dict[str, Any], manager: Optional[TodoListManager] = None) -> "ToolResult":
+def todowrite(args: dict[str, Any], manager: TodoListManager | None = None) -> ToolResult:
     """Manage a todo list."""
     from anvil.tools.executor import ToolResult
 
@@ -164,7 +164,7 @@ def todowrite(args: dict[str, Any], manager: Optional[TodoListManager] = None) -
         return ToolResult(success=False, output="", error=f"Unknown todowrite action: {action}")
 
 
-def webfetch(args: dict[str, Any]) -> "ToolResult":
+def webfetch(args: dict[str, Any]) -> ToolResult:
     """Fetch content from a URL."""
     from anvil.tools.executor import ToolResult
 
@@ -191,7 +191,7 @@ def webfetch(args: dict[str, Any]) -> "ToolResult":
         return ToolResult(success=False, output="", error="curl not available")
 
 
-def websearch(args: dict[str, Any]) -> "ToolResult":
+def websearch(args: dict[str, Any]) -> ToolResult:
     """Search the web."""
     from anvil.tools.executor import ToolResult
 
@@ -205,7 +205,7 @@ def websearch(args: dict[str, Any]) -> "ToolResult":
     )
 
 
-def question(args: dict[str, Any]) -> "ToolResult":
+def question(args: dict[str, Any]) -> ToolResult:
     """Ask the user a question."""
     from anvil.tools.executor import ToolResult
 
@@ -221,7 +221,7 @@ def question(args: dict[str, Any]) -> "ToolResult":
     return ToolResult(success=True, output=f"Question: {question_text}")
 
 
-def image(args: dict[str, Any], working_dir: Path = Path(".")) -> "ToolResult":
+def image(args: dict[str, Any], working_dir: Path = Path(".")) -> ToolResult:
     """Load and inspect an image file."""
     from anvil.tools.executor import ToolResult
 

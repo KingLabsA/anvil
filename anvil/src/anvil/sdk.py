@@ -59,21 +59,19 @@ import asyncio
 import json
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from collections.abc import AsyncGenerator, Generator
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Any, Generator, AsyncGenerator, Union
 
-from anvil.core.engine import AnvilEngine, EngineResult
-from anvil.core.config import AnvilConfig
-from anvil.core.session import Session, Step, StepStatus
-from anvil.verify.pipeline import VerifyPipeline, VerifyReport, VerifyResult, VerifyStatus
-from anvil.models.registry import ModelRegistry, BaseModel, Message
-from anvil.agents.agent_base import BaseAgent, AgentMode
+from anvil.agents.agent_base import BaseAgent
 from anvil.agents.agent_manager import AgentManager
 from anvil.agents.builtin_agents import BUILTIN_AGENTS
-from anvil.permissions.permissions import PermissionConfig, PermissionAction
-from anvil.core.snapshot import SnapshotManager, ShareManager
-
+from anvil.core.config import AnvilConfig
+from anvil.core.engine import AnvilEngine
+from anvil.core.session import Session
+from anvil.core.snapshot import SnapshotManager
+from anvil.models.registry import BaseModel, Message, ModelRegistry
+from anvil.verify.pipeline import VerifyPipeline, VerifyReport
 
 # ── Result types ──────────────────────────────────────────────────────────
 
@@ -82,8 +80,8 @@ class SDKResult:
     """Result of an anvil.run() call."""
     output: str
     success: bool
-    error: Optional[str] = None
-    verify_report: Optional[VerifyReport] = None
+    error: str | None = None
+    verify_report: VerifyReport | None = None
     agent_name: str = "build"
     session_id: str = ""
     tokens_used: int = 0
@@ -121,10 +119,10 @@ class SDKSession:
 
     def __init__(
         self,
-        config: Optional[AnvilConfig] = None,
-        agent: Optional[str] = None,
-        model: Optional[str] = None,
-        session_id: Optional[str] = None,
+        config: AnvilConfig | None = None,
+        agent: str | None = None,
+        model: str | None = None,
+        session_id: str | None = None,
     ):
         self.config = config or AnvilConfig()
         if model:
@@ -133,12 +131,12 @@ class SDKSession:
             self.config.default_agent = agent
 
         self._session_id = session_id or str(uuid.uuid4())[:8]
-        self._engine: Optional[AnvilEngine] = None
+        self._engine: AnvilEngine | None = None
         self._interactions: list[dict] = []
         self._total_tokens = 0
         self._total_cost = 0.0
         self._start_time = time.time()
-        self._snapshot_manager: Optional[SnapshotManager] = None
+        self._snapshot_manager: SnapshotManager | None = None
 
     @property
     def engine(self) -> AnvilEngine:
@@ -230,7 +228,7 @@ class SDKSession:
                 "timestamp": time.time(),
             })
 
-    def save(self, path: Optional[str] = None) -> str:
+    def save(self, path: str | None = None) -> str:
         """Save session to a JSON file."""
         save_path = Path(path) if path else Path.home() / ".anvil" / "sessions" / f"{self._session_id}.json"
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -247,7 +245,7 @@ class SDKSession:
         return str(save_path)
 
     @classmethod
-    def load(cls, path: str) -> "SDKSession":
+    def load(cls, path: str) -> SDKSession:
         """Load a session from a JSON file."""
         filepath = Path(path)
         data = json.loads(filepath.read_text(encoding="utf-8"))
@@ -289,7 +287,7 @@ class SDKSession:
 class SDKAgentManager:
     """Manage agents through the SDK."""
 
-    def __init__(self, config: Optional[AnvilConfig] = None):
+    def __init__(self, config: AnvilConfig | None = None):
         self.config = config or AnvilConfig()
         self._manager = AgentManager(
             config_dir=Path.home() / ".config" / "anvil",
@@ -323,7 +321,7 @@ class SDKAgentManager:
             "model": agent.model,
         }
 
-    def get(self, name: str) -> Optional[dict]:
+    def get(self, name: str) -> dict | None:
         """Get details for a specific agent."""
         agent = self._manager.get(name)
         if agent is None:
@@ -345,9 +343,9 @@ class SDKAgentManager:
         model: str = "local",
         temperature: float = 0.2,
         max_steps: int = 20,
-        tools_whitelist: Optional[list[str]] = None,
-        tools_blacklist: Optional[list[str]] = None,
-        permission: Optional[dict[str, str]] = None,
+        tools_whitelist: list[str] | None = None,
+        tools_blacklist: list[str] | None = None,
+        permission: dict[str, str] | None = None,
         prompt_template: str = "",
         hidden: bool = False,
         color: str = "white",
@@ -387,7 +385,7 @@ class SDKAgentManager:
             "max_steps": agent.max_steps,
         }
 
-    def invoke(self, name: str, task: str, model: Optional[BaseModel] = None) -> dict:
+    def invoke(self, name: str, task: str, model: BaseModel | None = None) -> dict:
         """Invoke a subagent directly."""
         invocation = self._manager.invoke_subagent(
             name=name,
@@ -406,8 +404,8 @@ class SDKAgentManager:
 
 # ── Top-level API ─────────────────────────────────────────────────────────
 
-_default_config: Optional[AnvilConfig] = None
-_default_agents: Optional[SDKAgentManager] = None
+_default_config: AnvilConfig | None = None
+_default_agents: SDKAgentManager | None = None
 
 
 def _get_config(**kwargs) -> AnvilConfig:
@@ -434,14 +432,14 @@ def _get_config(**kwargs) -> AnvilConfig:
 
 def run(
     task: str,
-    agent: Optional[str] = None,
-    model: Optional[str] = None,
+    agent: str | None = None,
+    model: str | None = None,
     verify: bool = True,
     max_iterations: int = 20,
     auto_recover: bool = True,
-    project_root: Optional[str] = None,
-    api_key: Optional[str] = None,
-    api_base: Optional[str] = None,
+    project_root: str | None = None,
+    api_key: str | None = None,
+    api_base: str | None = None,
     **kwargs,
 ) -> SDKResult:
     """Execute a task with self-verification.
@@ -502,8 +500,8 @@ def run(
 
 def stream(
     task: str,
-    agent: Optional[str] = None,
-    model: Optional[str] = None,
+    agent: str | None = None,
+    model: str | None = None,
     **kwargs,
 ) -> Generator[str, None, None]:
     """Stream output from a task execution.
@@ -532,7 +530,7 @@ def stream(
         api_base=config.model.api_base,
     )
 
-    from anvil.core.engine import SYSTEM_PROMPT, ALL_TOOL_NAMES
+    from anvil.core.engine import ALL_TOOL_NAMES, SYSTEM_PROMPT
     available_tools = agent_obj.available_tools(ALL_TOOL_NAMES)
     messages = [
         Message(role="system", content=SYSTEM_PROMPT.format(
@@ -548,8 +546,8 @@ def stream(
 
 async def arun(
     task: str,
-    agent: Optional[str] = None,
-    model: Optional[str] = None,
+    agent: str | None = None,
+    model: str | None = None,
     verify: bool = True,
     max_iterations: int = 20,
     **kwargs,
@@ -571,8 +569,8 @@ async def arun(
 
 async def astream(
     task: str,
-    agent: Optional[str] = None,
-    model: Optional[str] = None,
+    agent: str | None = None,
+    model: str | None = None,
     **kwargs,
 ) -> AsyncGenerator[str, None]:
     """Async version of stream().
@@ -593,9 +591,9 @@ async def astream(
 
 def verify(
     files: list[str],
-    checks: Optional[list[str]] = None,
-    test_command: Optional[str] = None,
-    working_dir: Optional[str] = None,
+    checks: list[str] | None = None,
+    test_command: str | None = None,
+    working_dir: str | None = None,
     **kwargs,
 ) -> SDKVerifyResult:
     """Verify files without making changes.
@@ -633,11 +631,11 @@ def verify(
     )
 
 
-def Session(
-    config: Optional[AnvilConfig] = None,
-    agent: Optional[str] = None,
-    model: Optional[str] = None,
-    session_id: Optional[str] = None,
+def create_session(
+    config: AnvilConfig | None = None,
+    agent: str | None = None,
+    model: str | None = None,
+    session_id: str | None = None,
 ) -> SDKSession:
     """Create a new session for multi-turn interaction.
 
@@ -683,7 +681,7 @@ class _AgentsProxy:
     """Proxy object for anvil.agents that delegates to SDKAgentManager."""
 
     def __init__(self):
-        self._manager: Optional[SDKAgentManager] = None
+        self._manager: SDKAgentManager | None = None
 
     @property
     def manager(self) -> SDKAgentManager:
@@ -697,7 +695,7 @@ class _AgentsProxy:
     def switch(self, name: str) -> dict:
         return self.manager.switch(name)
 
-    def get(self, name: str) -> Optional[dict]:
+    def get(self, name: str) -> dict | None:
         return self.manager.get(name)
 
     def create(self, **kwargs) -> dict:

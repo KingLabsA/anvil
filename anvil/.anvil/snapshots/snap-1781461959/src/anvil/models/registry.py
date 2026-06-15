@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Optional, Any, Generator
 
 import httpx
 
@@ -15,8 +15,8 @@ import httpx
 class Message:
     role: str
     content: str
-    tool_calls: Optional[list[dict]] = None
-    tool_call_id: Optional[str] = None
+    tool_calls: list[dict] | None = None
+    tool_call_id: str | None = None
 
 
 @dataclass
@@ -49,7 +49,7 @@ class BaseModel(ABC):
 class LocalModel(BaseModel):
     name = "local"
 
-    def __init__(self, model_path: Optional[str] = None, api_base: str = "http://localhost:11434"):
+    def __init__(self, model_path: str | None = None, api_base: str = "http://localhost:11434"):
         self.model_path = model_path
         self.api_base = (api_base or "http://localhost:11434").rstrip("/")
         self.model_name = model_path or "fableforge-14b"
@@ -123,7 +123,7 @@ class OpenAIModel(BaseModel):
         "o4-mini": (1.10 / 1_000_000, 4.40 / 1_000_000),
     }
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o", api_base: Optional[str] = None):
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o", api_base: str | None = None):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.model = model
         self.api_base = api_base or "https://api.openai.com/v1"
@@ -133,7 +133,6 @@ class OpenAIModel(BaseModel):
         })
 
     def complete(self, messages: list[Message], **kwargs) -> ModelResponse:
-        import os
         start = time.time()
         payload = {
             "model": self.model,
@@ -198,7 +197,7 @@ class AnthropicModel(BaseModel):
         "claude-3-opus": (15.00 / 1_000_000, 75.00 / 1_000_000),
     }
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "claude-3.5-sonnet"):
+    def __init__(self, api_key: str | None = None, model: str = "claude-3.5-sonnet"):
         import os
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.model = model

@@ -11,7 +11,6 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 from reason_critic.critic import VerificationResult
 
@@ -98,7 +97,7 @@ class GeneratorWrapper:
         self,
         task: str,
         language: str = "python",
-        issues: Optional[list[str]] = None,
+        issues: list[str] | None = None,
         max_tokens: int = 1024,
         temperature: float = 0.7,
     ) -> str:
@@ -195,8 +194,8 @@ class GenerateVerifyPipeline:
     def generate_and_verify(
         self,
         task: str,
-        max_attempts: Optional[int] = None,
-        language: Optional[str] = None,
+        max_attempts: int | None = None,
+        language: str | None = None,
         context: str = "",
     ) -> VerifiedResult:
         """Generate code and verify it, with re-generation on failures.
@@ -270,7 +269,7 @@ class GenerateVerifyPipeline:
     def generate_and_verify_trace(
         self,
         trace: dict,
-        max_attempts: Optional[int] = None,
+        max_attempts: int | None = None,
     ) -> dict:
         """Generate-verify pipeline applied to an agent trace.
 

@@ -1,23 +1,19 @@
 """Tests for Anvil new tools — apply_patch, todowrite, webfetch, websearch, question, image, TodoListManager."""
 
-import os
 import tempfile
-from pathlib import Path
 
 import pytest
 
-from anvil.tools.executor import ToolExecutor, ToolResult
+from anvil.tools.executor import ToolExecutor
 from anvil.tools.new_tools import (
+    TodoItem,
+    TodoListManager,
     apply_patch,
-    todowrite,
+    image,
+    question,
     webfetch,
     websearch,
-    question,
-    image,
-    TodoListManager,
-    TodoItem,
 )
-
 
 # ---------------------------------------------------------------------------
 # TodoItem / TodoListManager

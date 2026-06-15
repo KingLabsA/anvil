@@ -93,7 +93,7 @@ class ErrorPattern:
         self.verified = verified
 
     def to_training_example(self) -> dict[str, Any]:
-        content = f"I encountered the following error:\n\n"
+        content = "I encountered the following error:\n\n"
         if self.stack_trace:
             content += f"```\n{self.stack_trace}\n```\n\n"
         content += f"Error: {self.error_message}\n\nHere's the relevant code:\n\n```python\n{self.source_code}\n```"
@@ -209,8 +209,8 @@ def balance_error_types(examples: list[dict[str, Any]], target_per_type: int = 2
     Returns:
         Balanced dataset.
     """
-    from collections import Counter
     import random
+    from collections import Counter
 
     type_counts = Counter(ex.get("error_type", "unknown") for ex in examples)
     logger.info(f"Error type distribution: {dict(type_counts)}")

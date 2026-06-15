@@ -2,10 +2,6 @@
 
 import json
 import threading
-import time
-import http.client
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,7 +9,6 @@ from anvil.core.config import AnvilConfig, ModelConfig
 from anvil.core.engine import AnvilEngine, EngineResult
 from anvil.core.session import Session, Step, StepKind, StepStatus
 from anvil.daemon.server import AgentDaemon
-
 
 # ---------------------------------------------------------------------------
 # AgentDaemon initialization

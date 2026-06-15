@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import time
-import hashlib
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional, Any
 
 
 @dataclass
@@ -16,8 +12,8 @@ class CompactionConfig:
     prune: bool = True
     reserved: int = 8000  # tokens to keep free
     model_name: str = ""
-    model_api_key: Optional[str] = None
-    model_api_base: Optional[str] = None
+    model_api_key: str | None = None
+    model_api_base: str | None = None
 
 
 @dataclass
@@ -39,7 +35,7 @@ class Message:
 class ContextCompactor:
     """Compact conversation context by summarizing old messages and pruning tool outputs."""
 
-    def __init__(self, config: Optional[CompactionConfig] = None):
+    def __init__(self, config: CompactionConfig | None = None):
         self.config = config or CompactionConfig()
         self._model = None
 
@@ -173,7 +169,7 @@ class ContextCompactor:
             summary = summary[:4000] + "\n... [further truncated]"
         return summary
 
-    def _try_model_summarize(self, messages: list[Message]) -> Optional[str]:
+    def _try_model_summarize(self, messages: list[Message]) -> str | None:
         """Attempt to use an LLM for summarization."""
         try:
             from anvil.models.registry import ModelRegistry

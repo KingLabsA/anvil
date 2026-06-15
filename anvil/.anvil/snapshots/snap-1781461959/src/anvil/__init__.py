@@ -18,15 +18,15 @@ v2 adds multi-agent support (switching, @mention, custom agents)
 and a fine-grained permissions system.
 """
 
-from anvil.core.engine import AnvilEngine, EngineResult
-from anvil.core.config import AnvilConfig
-from anvil.core.session import Session
-from anvil.verify.pipeline import VerifyPipeline
-from anvil.models.registry import ModelRegistry
-from anvil.agents.agent_base import BaseAgent, AgentMode
+from anvil.agents.agent_base import AgentMode, BaseAgent
 from anvil.agents.agent_manager import AgentManager
 from anvil.agents.builtin_agents import BUILTIN_AGENTS
+from anvil.core.config import AnvilConfig
+from anvil.core.engine import AnvilEngine, EngineResult
+from anvil.core.session import Session
+from anvil.models.registry import ModelRegistry
 from anvil.permissions.permissions import PermissionAction, PermissionConfig, PermissionManager
+from anvil.verify.pipeline import VerifyPipeline
 
 __version__ = "0.2.0"
 __all__ = [

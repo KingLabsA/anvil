@@ -12,7 +12,6 @@ import random
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -138,7 +137,7 @@ def extract_verification_pairs(traces: list[dict]) -> list[VerificationExample]:
 def generate_incorrect_versions(
     code: str,
     num_versions: int = 3,
-    bug_types: Optional[list[str]] = None,
+    bug_types: list[str] | None = None,
 ) -> list[dict]:
     """Generate incorrect versions of code by introducing bugs.
 

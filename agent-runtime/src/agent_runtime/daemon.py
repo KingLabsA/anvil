@@ -6,10 +6,8 @@ import asyncio
 import logging
 import os
 import signal
-import sys
 import time
 from pathlib import Path
-from typing import Any
 
 from .memory_store import MemoryStore
 from .models import HealthResponse

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import click
@@ -13,7 +12,6 @@ from rich.panel import Panel
 
 from cost_optimizer.analyzer import TokenAnalyzer
 from cost_optimizer.optimizer import CostOptimizer
-from cost_optimizer.router import ModelRouter
 from cost_optimizer.pricing import PricingData
 
 console = Console()

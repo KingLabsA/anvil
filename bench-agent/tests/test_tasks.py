@@ -1,6 +1,5 @@
 """Unit tests for task definitions."""
 
-import pytest
 
 from bench_agent.models import Difficulty, Task, TaskCategory
 from bench_agent.tasks import (
@@ -15,7 +14,6 @@ from bench_agent.tasks import (
     TASKS_BY_ID,
     get_all_task_ids,
     get_task,
-    get_task_count,
     get_tasks_by_category,
 )
 

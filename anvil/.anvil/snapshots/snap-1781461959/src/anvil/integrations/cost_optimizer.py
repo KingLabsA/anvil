@@ -6,10 +6,7 @@ to optimize which model handles which task, reducing costs 50-80%.
 
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass, field
-from typing import Optional
-
+from dataclasses import dataclass
 
 MODEL_PRICING = {
     "local": {"input": 0.0, "output": 0.0, "name": "FableForge-14B (local)"},
@@ -141,7 +138,7 @@ class CostOptimizerIntegration:
                     suggestions.append(f"Switch {count} requests from {model} to {cheaper} to save ~${savings:.2f}")
         return suggestions
 
-    def _find_cheaper_alternative(self, model: str) -> Optional[str]:
+    def _find_cheaper_alternative(self, model: str) -> str | None:
         alternatives = {
             "gpt-4o": "gpt-4o-mini",
             "claude-3.5-sonnet": "claude-3.5-haiku",

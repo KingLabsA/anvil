@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import shutil
 import subprocess
 import threading
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 
 @dataclass
@@ -27,14 +26,14 @@ class Snapshot:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Snapshot":
+    def from_dict(cls, data: dict[str, Any]) -> Snapshot:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
 class SnapshotManager:
     """Track file changes for undo/redo. Uses git if available, falls back to file copies."""
 
-    def __init__(self, working_dir: str, state_dir: Optional[str] = None):
+    def __init__(self, working_dir: str, state_dir: str | None = None):
         self.working_dir = Path(working_dir).resolve()
         self.state_dir = Path(state_dir) if state_dir else self.working_dir / ".anvil" / "snapshots"
         self.state_dir.mkdir(parents=True, exist_ok=True)
@@ -61,7 +60,7 @@ class SnapshotManager:
             capture_output=True, text=True, cwd=str(self.working_dir),
         )
 
-    def snapshot(self, description: str = "", files: Optional[list[str]] = None) -> Snapshot:
+    def snapshot(self, description: str = "", files: list[str] | None = None) -> Snapshot:
         """Create a named snapshot of current state."""
         with self._lock:
             snap = Snapshot(name=f"snap-{int(time.time())}", description=description)
@@ -81,7 +80,7 @@ class SnapshotManager:
         """Auto-snapshot before a tool execution."""
         return self.snapshot(description=f"auto: {description}" if description else "auto")
 
-    def undo(self) -> Optional[Snapshot]:
+    def undo(self) -> Snapshot | None:
         """Revert to previous snapshot."""
         with self._lock:
             if not self._undo_stack:
@@ -101,7 +100,7 @@ class SnapshotManager:
             self._save_history()
             return snap
 
-    def redo(self) -> Optional[Snapshot]:
+    def redo(self) -> Snapshot | None:
         """Re-apply a reverted change."""
         with self._lock:
             if not self._redo_stack:
@@ -139,7 +138,7 @@ class SnapshotManager:
             rev_result = self._run_git("rev-parse", "HEAD")
             snap.commit_hash = rev_result.stdout.strip()
 
-    def _file_copy_snapshot(self, snap: Snapshot, files: Optional[list[str]] = None) -> None:
+    def _file_copy_snapshot(self, snap: Snapshot, files: list[str] | None = None) -> None:
         """Create a file-copy-based snapshot as fallback."""
         snap_dir = self.state_dir / snap.name
         snap_dir.mkdir(parents=True, exist_ok=True)
@@ -214,18 +213,18 @@ class ShareLink:
     session_id: str
     url: str
     created_at: float = field(default_factory=time.time)
-    expires_at: Optional[float] = None
+    expires_at: float | None = None
 
 
 class ShareManager:
     """Share session links — generates a local JSON export and a shareable URL."""
 
-    def __init__(self, state_dir: Optional[str] = None):
+    def __init__(self, state_dir: str | None = None):
         self.state_dir = Path(state_dir) if state_dir else Path.home() / ".anvil" / "shares"
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.base_url = "https://anvil.sh/s"
 
-    def share(self, session_id: str, session_data: Optional[dict] = None) -> ShareLink:
+    def share(self, session_id: str, session_data: dict | None = None) -> ShareLink:
         """Generate a shareable link for a session."""
         link_id = hashlib.sha256(f"{session_id}:{time.time()}".encode()).hexdigest()[:12]
         url = f"{self.base_url}/{link_id}"
@@ -248,7 +247,7 @@ class ShareManager:
             created_at=share_data["created_at"],
         )
 
-    def get_share(self, link_id: str) -> Optional[dict]:
+    def get_share(self, link_id: str) -> dict | None:
         """Retrieve shared session data."""
         share_file = self.state_dir / f"{link_id}.json"
         if not share_file.exists():
@@ -282,7 +281,7 @@ class ShareManager:
             return True
         return False
 
-    def export_session(self, session_id: str, export_path: Optional[str] = None) -> Path:
+    def export_session(self, session_id: str, export_path: str | None = None) -> Path:
         """Export a session as a portable JSON file."""
         sessions_dir = Path.home() / ".anvil" / "sessions" / session_id
         if not sessions_dir.exists():

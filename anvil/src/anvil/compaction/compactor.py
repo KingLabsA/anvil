@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -44,7 +42,7 @@ class ContextCompactor:
         total_chars = sum(len(m.get("content", "")) for m in messages)
         return total_chars // 4
 
-    def compact(self, messages: list[dict], threshold: Optional[int] = None) -> CompactResult:
+    def compact(self, messages: list[dict], threshold: int | None = None) -> CompactResult:
         """Compact messages to fit within the token budget.
 
         Returns a CompactResult with metadata about what was pruned.

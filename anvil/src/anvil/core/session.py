@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from pathlib import Path
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Optional, Any
+from pathlib import Path
+from typing import Any
 
 
 class StepStatus(str, Enum):
@@ -33,8 +33,8 @@ class StepKind(str, Enum):
 class ToolCall:
     tool: str
     args: dict[str, Any]
-    result: Optional[str] = None
-    error: Optional[str] = None
+    result: str | None = None
+    error: str | None = None
     duration_ms: float = 0.0
     timestamp: float = field(default_factory=time.time)
 
@@ -45,7 +45,7 @@ class Step:
     content: str
     tool_calls: list[ToolCall] = field(default_factory=list)
     status: StepStatus = StepStatus.PLANNED
-    verify_result: Optional[dict] = None
+    verify_result: dict | None = None
     recovery_attempts: int = 0
     duration_ms: float = 0.0
     timestamp: float = field(default_factory=time.time)
@@ -85,8 +85,8 @@ class Session:
     def __init__(
         self,
         task: str,
-        session_id: Optional[str] = None,
-        project_root: Optional[str] = None,
+        session_id: str | None = None,
+        project_root: str | None = None,
         persist: bool = True,
     ):
         self.id = session_id or str(uuid.uuid4())[:8]
@@ -96,7 +96,7 @@ class Session:
         self.stats = SessionStats()
         self.persist = persist
         self.started_at = time.time()
-        self.ended_at: Optional[float] = None
+        self.ended_at: float | None = None
 
     def add_step(self, step: Step) -> None:
         self.steps.append(step)
@@ -136,7 +136,7 @@ class Session:
         )
 
     @classmethod
-    def load(cls, session_id: str) -> Optional["Session"]:
+    def load(cls, session_id: str) -> Session | None:
         state_dir = Path.home() / ".anvil" / "sessions" / session_id
         if not state_dir.exists():
             return None

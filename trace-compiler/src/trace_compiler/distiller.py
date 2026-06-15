@@ -292,8 +292,8 @@ class Distiller:
         model, tokenizer = self._load_model()
         dataset = self._create_dataset(examples, skill_type)
 
-        from trl import SFTTrainer
         from transformers import TrainingArguments
+        from trl import SFTTrainer
 
         training_args = TrainingArguments(
             output_dir=str(output_path),
@@ -359,8 +359,8 @@ class Distiller:
         model, tokenizer = self._load_model()
         dataset = self._create_dataset_from_messages(all_messages, skill_type)
 
-        from trl import SFTTrainer
         from transformers import TrainingArguments
+        from trl import SFTTrainer
 
         training_args = TrainingArguments(
             output_dir=str(output_path),

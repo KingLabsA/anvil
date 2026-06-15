@@ -23,9 +23,7 @@ import logging
 import os
 import random
 import re
-import sys
 from pathlib import Path
-from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("convert_data")
@@ -60,7 +58,7 @@ def load_jsonl(path: Path) -> list[dict]:
     if not path.exists():
         log.warning("File not found: %s", path)
         return records
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
             if not line:
@@ -654,7 +652,7 @@ def convert_shell_whisperer(all_data: dict[str, list[dict]]) -> list[dict]:
                 prompt = str(prompt)[:1024]
 
                 results.append({
-                    "instruction": f"Generate a shell command for the following task",
+                    "instruction": "Generate a shell command for the following task",
                     "input": prompt[:512],
                     "output": cmd,
                     "category": "shell_command",

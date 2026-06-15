@@ -8,7 +8,6 @@ import sys
 import click
 
 from .daemon import AgentDaemon
-from .models import SessionCreate
 
 
 @click.group()

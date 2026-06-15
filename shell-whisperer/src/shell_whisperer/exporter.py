@@ -11,9 +11,7 @@ from __future__ import annotations
 
 import logging
 import shutil
-import struct
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -345,7 +343,6 @@ def quantize_8bit(
     Returns:
         Path to the quantized model directory.
     """
-    import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
     output_dir = Path(output_path)

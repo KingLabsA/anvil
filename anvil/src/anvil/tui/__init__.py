@@ -1,6 +1,6 @@
 """Anvil TUI package."""
+from anvil.tui.app import HAS_TEXTUAL, ChatMessage, FileChange, MessageRole, RichTUI, run_tui
 from anvil.tui.dashboard import AnvilTUI
-from anvil.tui.app import RichTUI, run_tui, ChatMessage, MessageRole, FileChange, HAS_TEXTUAL
 
 __all__ = [
     "AnvilTUI",
@@ -13,5 +13,5 @@ __all__ = [
 ]
 
 if HAS_TEXTUAL:
-    from anvil.tui.app import AnvilTUIApp, TUIHeader, StatusBar, AgentBar, MessageArea, InputBar
+    from anvil.tui.app import AgentBar, AnvilTUIApp, InputBar, MessageArea, StatusBar, TUIHeader
     __all__.extend(["AnvilTUIApp", "TUIHeader", "StatusBar", "AgentBar", "MessageArea", "InputBar"])

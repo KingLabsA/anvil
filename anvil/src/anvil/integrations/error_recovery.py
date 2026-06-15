@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -25,7 +24,7 @@ class ErrorCategory(str, Enum):
 class RecoveryResult:
     success: bool
     strategy: str
-    fix_applied: Optional[str] = None
+    fix_applied: str | None = None
     diagnosis: str = ""
     confidence: float = 0.0
     original_error: str = ""
@@ -133,7 +132,7 @@ class ErrorRecoveryIntegration:
     def available(self) -> bool:
         return self._available
 
-    def recover(self, error: str, context: Optional[dict] = None) -> RecoveryResult:
+    def recover(self, error: str, context: dict | None = None) -> RecoveryResult:
         category, pattern, strategy, confidence = self._classify_error(error)
         diagnosis = self._diagnose(error, category, pattern)
         fix_description = RECOVERY_STRATEGIES.get(strategy, "retry_with_different_approach")

@@ -13,21 +13,19 @@ v2 adds multi-agent support and permission-checked tool dispatch.
 from __future__ import annotations
 
 import re
-import time
+from dataclasses import dataclass
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Optional, Any
+from typing import Any
 
-from anvil.core.config import AnvilConfig, VerifyConfig
-from anvil.core.session import Session, Step, StepKind, StepStatus, ToolCall
-from anvil.tools.executor import ToolExecutor, ToolResult
-from anvil.verify.pipeline import VerifyPipeline, VerifyReport, VerifyStatus
-from anvil.models.registry import ModelRegistry, BaseModel, Message
-from anvil.agents.agent_base import BaseAgent, AgentMode
-from anvil.agents.builtin_agents import BuildAgent, BUILTIN_AGENTS
+from anvil.agents.agent_base import BaseAgent
 from anvil.agents.agent_manager import AgentManager
-from anvil.permissions.permissions import PermissionManager, PermissionAction, PermissionConfig
-
+from anvil.agents.builtin_agents import BuildAgent
+from anvil.core.config import AnvilConfig
+from anvil.core.session import Session, Step, StepKind, StepStatus, ToolCall
+from anvil.models.registry import Message, ModelRegistry
+from anvil.permissions.permissions import PermissionAction, PermissionConfig, PermissionManager
+from anvil.tools.executor import ToolExecutor, ToolResult
+from anvil.verify.pipeline import VerifyPipeline, VerifyReport
 
 TOOL_DEFINITIONS = [
     {"name": "bash", "description": "Run a shell command", "args": ["command"]},
@@ -98,8 +96,8 @@ class EngineResult:
     success: bool
     session: Session
     output: str
-    verify_report: Optional[VerifyReport] = None
-    error: Optional[str] = None
+    verify_report: VerifyReport | None = None
+    error: str | None = None
     agent_name: str = "build"
 
     def format_result(self) -> str:
@@ -121,8 +119,8 @@ class AnvilEngine:
 
     def __init__(
         self,
-        config: Optional[AnvilConfig] = None,
-        agent: Optional[BaseAgent] = None,
+        config: AnvilConfig | None = None,
+        agent: BaseAgent | None = None,
     ):
         self.config = config or AnvilConfig()
 
@@ -133,7 +131,6 @@ class AnvilEngine:
         )
         # Register any custom agents from config.
         for name, agent_def in self.config.agent.items():
-            from anvil.agents.agent_base import AgentMode as AM
             spec = {
                 "description": agent_def.description,
                 "mode": agent_def.mode,
@@ -174,15 +171,15 @@ class AnvilEngine:
         self.permissions = PermissionManager(self.config.get_global_permission_config())
 
         self.verify = VerifyPipeline(self.config.verify)
-        self.session: Optional[Session] = None
+        self.session: Session | None = None
         self._steps_taken: int = 0
         self._init_integrations()
 
     def _init_integrations(self) -> None:
-        from anvil.integrations.verifyloop import VerifyLoopIntegration
-        from anvil.integrations.error_recovery import ErrorRecoveryIntegration
         from anvil.integrations.agent_swarm import AgentSwarmIntegration
         from anvil.integrations.cost_optimizer import CostOptimizerIntegration
+        from anvil.integrations.error_recovery import ErrorRecoveryIntegration
+        from anvil.integrations.verifyloop import VerifyLoopIntegration
         self.verifyloop = VerifyLoopIntegration(self.config.verify)
         self.error_recovery = ErrorRecoveryIntegration()
         self.agent_swarm = AgentSwarmIntegration()
@@ -208,7 +205,7 @@ class AnvilEngine:
             )
         return agent
 
-    def invoke_subagent(self, name: str, task: str) -> "EngineResult":
+    def invoke_subagent(self, name: str, task: str) -> EngineResult:
         """Invoke a subagent via @mention-style dispatch.
 
         Returns an EngineResult wrapping the subagent's output.
@@ -490,7 +487,7 @@ class AnvilEngine:
                     calls.append(result)
         return calls
 
-    def _parse_code_block(self, match) -> Optional[dict]:
+    def _parse_code_block(self, match) -> dict | None:
         lang = (match.group(1) or "").lower()
         code = match.group(2).strip()
         if not code:
@@ -502,7 +499,7 @@ class AnvilEngine:
             return {"tool": "write", "args": {"path": filename, "content": code}}
         return {"tool": "bash", "args": {"command": code}}
 
-    def _find_test_command(self) -> Optional[str]:
+    def _find_test_command(self) -> str | None:
         root = Path(self.config.project_root)
         test_markers = [
             (root / "pytest.ini", "pytest -x"),

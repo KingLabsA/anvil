@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from agent_telemetry.models import CostReport, SessionMetrics, Span, ToolMetrics
+from agent_telemetry.models import SessionMetrics, Span, ToolMetrics
 
 
 DEFAULT_DB_PATH = Path.home() / ".agent_telemetry" / "telemetry.db"

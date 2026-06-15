@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import click
@@ -12,7 +11,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
-from agent_swarm.orchestrator import SwarmOrchestrator, SwarmStatus
+from agent_swarm.orchestrator import SwarmOrchestrator
 from agent_swarm.transition_matrix import TransitionMatrix
 
 console = Console()
@@ -60,7 +59,7 @@ def run(task: str, max_handoffs: int, trace_file: str | None, output: str | None
     # Show handoff chain
     tree = Tree("[bold]Handoff Chain[/bold]")
     prev_agent = "planner"
-    branch = tree.add(f"[cyan]planner[/cyan] → analyze task")
+    branch = tree.add("[cyan]planner[/cyan] → analyze task")
     for handoff in result.handoffs:
         prob_str = f" ({handoff.probability:.0%})" if handoff.probability > 0 else ""
         branch = branch.add(f"[cyan]{handoff.from_role.value}[/cyan] → [green]{handoff.to_role.value}[/green]{prob_str}")

@@ -7,10 +7,10 @@ from pathlib import Path
 import pytest
 
 from trace_compiler.parser import (
+    ToolCall,
     TraceFormat,
     TraceParser,
     TraceRecord,
-    ToolCall,
     _detect_format,
     _parse_armand0e_line,
     _parse_glint_line,

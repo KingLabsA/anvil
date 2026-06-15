@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
 
 from bench_agent.models import Task, TaskCategory, TaskResult
 from bench_agent.tasks import TASKS_BY_CATEGORY, ALL_TASKS
 
-import json
 
 class TaskRunner:
     def __init__(

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import re
-import time
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional, Any, Callable
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 
 class CommandScope(Enum):
@@ -22,8 +21,8 @@ class Command:
     name: str
     description: str = ""
     template: str = ""
-    agent: Optional[str] = None
-    model: Optional[str] = None
+    agent: str | None = None
+    model: str | None = None
     scope: CommandScope = CommandScope.BUILTIN
     source: str = ""
     examples: list[str] = field(default_factory=list)
@@ -50,7 +49,7 @@ class Command:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Command":
+    def from_dict(cls, data: dict[str, Any]) -> Command:
         scope = data.get("scope", "builtin")
         if isinstance(scope, str):
             scope = CommandScope(scope)
@@ -66,7 +65,7 @@ class Command:
         )
 
     @classmethod
-    def from_markdown(cls, content: str, source: str = "") -> list["Command"]:
+    def from_markdown(cls, content: str, source: str = "") -> list[Command]:
         """Parse commands from markdown with frontmatter.
 
         Format:
@@ -138,7 +137,7 @@ class Command:
 class CommandManager:
     """Manage built-in and custom slash commands."""
 
-    def __init__(self, project_root: Optional[str] = None):
+    def __init__(self, project_root: str | None = None):
         self.project_root = Path(project_root) if project_root else Path.cwd()
         self._commands: dict[str, Command] = {}
         self._load_builtin_commands()
@@ -199,7 +198,7 @@ class CommandManager:
             except OSError:
                 continue
 
-    def get(self, name: str) -> Optional[Command]:
+    def get(self, name: str) -> Command | None:
         """Get a command by name."""
         if not name.startswith("/"):
             name = "/" + name
@@ -224,7 +223,7 @@ class CommandManager:
             return False
         return self._commands.pop(name, None) is not None
 
-    def parse(self, input_str: str) -> tuple[Optional[Command], str]:
+    def parse(self, input_str: str) -> tuple[Command | None, str]:
         """Parse a slash command from user input.
 
         Returns (command, arguments) or (None, original_input) if not a command.

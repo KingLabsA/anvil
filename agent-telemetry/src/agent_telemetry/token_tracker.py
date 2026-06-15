@@ -161,7 +161,7 @@ class CostBreakdown:
             f"Output tokens:   {self.output_tokens:>10,}  (${self.output_cost:.6f})",
             f"Cache read:      {self.cache_read_tokens:>10,}  (${self.cache_read_cost:.6f})",
             f"Cache creation:  {self.cache_creation_tokens:>10,}  (${self.cache_creation_cost:.6f})",
-            f"─────────────────────────────────────",
+            "─────────────────────────────────────",
             f"Total:           ${self.total_cost:.6f}",
         ]
         return "\n".join(lines)

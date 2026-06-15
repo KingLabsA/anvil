@@ -3,19 +3,17 @@
 from __future__ import annotations
 
 import json
-import time
 import threading
-from pathlib import Path
-from typing import Optional
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse
 
 from anvil.core.config import AnvilConfig
 from anvil.core.engine import AnvilEngine, EngineResult
 
 
 class AgentDaemon:
-    def __init__(self, config: Optional[AnvilConfig] = None, port: int = 8765):
+    def __init__(self, config: AnvilConfig | None = None, port: int = 8765):
         self.config = config or AnvilConfig()
         self.port = port
         self.engine = AnvilEngine(self.config)
@@ -25,11 +23,11 @@ class AgentDaemon:
     def start(self) -> None:
         server = HTTPServer(("localhost", self.port), self._make_handler())
         print(f"Anvil daemon running on http://localhost:{self.port}")
-        print(f"  POST /run        — Execute a task")
-        print(f"  GET  /status     — Check daemon status")
-        print(f"  GET  /sessions   — List sessions")
-        print(f"  GET  /session/:id — Get session details")
-        print(f"  POST /stop       — Stop the daemon")
+        print("  POST /run        — Execute a task")
+        print("  GET  /status     — Check daemon status")
+        print("  GET  /sessions   — List sessions")
+        print("  GET  /session/:id — Get session details")
+        print("  POST /stop       — Stop the daemon")
         server.serve_forever()
 
     def _make_handler(self):
@@ -87,7 +85,7 @@ class AgentDaemon:
 
         return Handler
 
-    def run_task(self, task: str, model: Optional[str] = None) -> EngineResult:
+    def run_task(self, task: str, model: str | None = None) -> EngineResult:
         if model and model != self.config.model.model:
             self.config.model.model = model
             self.engine = AnvilEngine(self.config)

@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 from agent_telemetry.models import (
-    CostReport,
     SessionMetrics,
     Span,
     SpanStatus,

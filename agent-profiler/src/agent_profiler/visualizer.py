@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
-from agent_profiler.profiler import ProfileResult, AgentProfiler, ToolDistribution, TransitionAnalysis
+from agent_profiler.profiler import ProfileResult, AgentProfiler
 
 
 class ProfileVisualizer:

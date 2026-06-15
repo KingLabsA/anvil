@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from cost_optimizer.analyzer import TokenAnalyzer, TokenReport, WasteItem
+from cost_optimizer.analyzer import TokenAnalyzer, TokenReport
 from cost_optimizer.pricing import PricingData
 
 

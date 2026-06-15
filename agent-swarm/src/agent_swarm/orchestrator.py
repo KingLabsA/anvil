@@ -20,7 +20,6 @@ from agent_swarm.agents import (
 import numpy as np
 
 from agent_swarm.models import (
-    AgentConfig,
     HandoffEvent,
     SwarmResult,
 )

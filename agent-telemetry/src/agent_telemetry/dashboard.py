@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import html
-from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
-from agent_telemetry.collector import calculate_metrics, ingest_trace
 from agent_telemetry.error_tracker import detect_errors, generate_error_report
 from agent_telemetry.models import Span
 from agent_telemetry.storage import TelemetryStorage
@@ -193,7 +191,6 @@ def _make_cost_chart(spans: list[Span], div_id: str = "cost_chart") -> str:
 
 
 def _make_error_chart(session_id: str, div_id: str = "error_chart") -> str:
-    from agent_telemetry.models import Span as S
     spans = _load_spans(session_id)
     errors = detect_errors(spans)
 

@@ -13,7 +13,6 @@ from typing import Any
 from sqlalchemy import (
     Column,
     DateTime,
-    Float,
     Integer,
     LargeBinary,
     String,

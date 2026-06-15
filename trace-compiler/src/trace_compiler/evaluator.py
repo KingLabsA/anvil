@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from trace_compiler.skill_extractor import SkillExample, SkillType
+from trace_compiler.skill_extractor import SkillType
 
 logger = logging.getLogger(__name__)
 

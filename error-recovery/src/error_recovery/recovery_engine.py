@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from rich.console import Console
 
 from error_recovery.error_classifier import ErrorClassifier
-from error_recovery.models import ErrorCategory, ErrorRecoveryConfig, ErrorPattern, RecoveryResult
+from error_recovery.models import ErrorCategory, ErrorPattern, ErrorRecoveryConfig, RecoveryResult
 from error_recovery.pattern_matcher import PatternMatcher
 
 logger = logging.getLogger(__name__)

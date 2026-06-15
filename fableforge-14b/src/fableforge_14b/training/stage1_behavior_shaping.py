@@ -153,7 +153,6 @@ def _generate_synthetic_examples(count: int) -> list[dict[str, Any]]:
          [{"name": "read", "arguments": {"path": "{module}"}}]),
     ]
 
-    import random
     files = ["src/app.py", "lib/auth.py", "tests/test_api.py", "config/settings.py"]
     funcs = ["process_data", "validate_input", "handle_request", "parse_config"]
 

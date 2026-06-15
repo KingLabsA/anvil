@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.columns import Columns
 
 from agent_profiler.profiler import AgentProfiler
 from agent_profiler.classifier import BehaviorClassifier

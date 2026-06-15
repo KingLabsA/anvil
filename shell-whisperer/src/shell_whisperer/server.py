@@ -18,7 +18,7 @@ from typing import Any
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from shell_whisperer.inference import Backend
+from shell_whisperer.inference import ShellWhisperer
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +236,7 @@ async def stream_predict(websocket: WebSocket) -> None:
                 await websocket.send_json({"error": str(e)})
 
             # Send completion
-            from shell_whisperer.inference import _clean_output, _check_safety
+            from shell_whisperer.inference import _check_safety, _clean_output
 
             command = _clean_output(full_command)
             safety_warnings = _check_safety(command)

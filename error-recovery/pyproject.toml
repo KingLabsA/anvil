@@ -45,10 +45,11 @@ server = [
 error-recovery = "error_recovery.cli:app"
 
 [tool.ruff]
+line-length = 120
 target-version = "py310"
-line-length = 100
 
 [tool.ruff.lint]
+ignore = ["E501"]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]

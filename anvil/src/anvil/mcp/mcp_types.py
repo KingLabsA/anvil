@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from typing import Any
 
 
 @dataclass
@@ -13,7 +13,7 @@ class JSONRPCRequest:
     """JSON-RPC 2.0 request for MCP protocol."""
     method: str
     params: dict[str, Any] = field(default_factory=dict)
-    id: Optional[str] = None
+    id: str | None = None
     jsonrpc: str = "2.0"
 
     def __post_init__(self):
@@ -34,7 +34,7 @@ class JSONRPCRequest:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JSONRPCRequest":
+    def from_dict(cls, data: dict[str, Any]) -> JSONRPCRequest:
         return cls(
             method=data["method"],
             params=data.get("params", {}),
@@ -43,16 +43,16 @@ class JSONRPCRequest:
         )
 
     @classmethod
-    def from_json(cls, json_str: str) -> "JSONRPCRequest":
+    def from_json(cls, json_str: str) -> JSONRPCRequest:
         return cls.from_dict(json.loads(json_str))
 
 
 @dataclass
 class JSONRPCResponse:
     """JSON-RPC 2.0 response for MCP protocol."""
-    id: Optional[str] = None
-    result: Optional[Any] = None
-    error: Optional[dict[str, Any]] = None
+    id: str | None = None
+    result: Any | None = None
+    error: dict[str, Any] | None = None
     jsonrpc: str = "2.0"
 
     def to_dict(self) -> dict[str, Any]:
@@ -69,7 +69,7 @@ class JSONRPCResponse:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "JSONRPCResponse":
+    def from_dict(cls, data: dict[str, Any]) -> JSONRPCResponse:
         return cls(
             id=data.get("id"),
             result=data.get("result"),
@@ -78,7 +78,7 @@ class JSONRPCResponse:
         )
 
     @classmethod
-    def from_json(cls, json_str: str) -> "JSONRPCResponse":
+    def from_json(cls, json_str: str) -> JSONRPCResponse:
         return cls.from_dict(json.loads(json_str))
 
     @property
@@ -98,14 +98,14 @@ class JSONRPCResponse:
         return 0
 
     @staticmethod
-    def make_error(code: int, message: str, id: Optional[str] = None) -> "JSONRPCResponse":
+    def make_error(code: int, message: str, id: str | None = None) -> JSONRPCResponse:
         return JSONRPCResponse(
             id=id,
             error={"code": code, "message": message},
         )
 
     @staticmethod
-    def make_result(result: Any, id: Optional[str] = None) -> "JSONRPCResponse":
+    def make_result(result: Any, id: str | None = None) -> JSONRPCResponse:
         return JSONRPCResponse(id=id, result=result)
 
 
@@ -125,7 +125,7 @@ class MCPToolDefinition:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "MCPToolDefinition":
+    def from_dict(cls, data: dict[str, Any]) -> MCPToolDefinition:
         return cls(
             name=data["name"],
             description=data.get("description", ""),
@@ -146,7 +146,7 @@ class MCPCallResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "MCPCallResult":
+    def from_dict(cls, data: dict[str, Any]) -> MCPCallResult:
         return cls(
             content=data.get("content", []),
             is_error=data.get("isError", data.get("is_error", False)),
@@ -161,14 +161,14 @@ class MCPCallResult:
         return "\n".join(texts)
 
     @classmethod
-    def from_text(cls, text: str, is_error: bool = False) -> "MCPCallResult":
+    def from_text(cls, text: str, is_error: bool = False) -> MCPCallResult:
         return cls(
             content=[{"type": "text", "text": text}],
             is_error=is_error,
         )
 
     @classmethod
-    def from_error(cls, message: str) -> "MCPCallResult":
+    def from_error(cls, message: str) -> MCPCallResult:
         return cls(
             content=[{"type": "text", "text": f"Error: {message}"}],
             is_error=True,

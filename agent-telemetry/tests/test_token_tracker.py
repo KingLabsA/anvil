@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 
 from agent_telemetry.token_tracker import (
     CostBreakdown,
-    ModelPricing,
     PRICING,
     count_tokens,
     estimate_cost,

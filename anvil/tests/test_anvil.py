@@ -1,18 +1,15 @@
 """Tests for Anvil — the self-verified coding agent."""
 
 import os
-import json
 import tempfile
 from pathlib import Path
 
-import pytest
-
-from anvil.core.config import AnvilConfig, ModelConfig, VerifyConfig, ToolConfig, SafetyConfig
-from anvil.core.session import Session, Step, StepKind, StepStatus, ToolCall, SessionStats
-from anvil.core.engine import AnvilEngine, EngineResult, SYSTEM_PROMPT
-from anvil.tools.executor import ToolExecutor, ToolResult
-from anvil.verify.pipeline import VerifyPipeline, VerifyReport, VerifyResult, VerifyStatus, Checkers
-from anvil.models.registry import ModelRegistry, LocalModel, BaseModel, Message, ModelResponse
+from anvil.core.config import AnvilConfig, ModelConfig, SafetyConfig, ToolConfig, VerifyConfig
+from anvil.core.engine import AnvilEngine, EngineResult
+from anvil.core.session import Session, SessionStats, Step, StepKind, StepStatus
+from anvil.models.registry import BaseModel, LocalModel, Message, ModelRegistry, ModelResponse
+from anvil.tools.executor import ToolExecutor
+from anvil.verify.pipeline import Checkers, VerifyPipeline, VerifyReport, VerifyResult, VerifyStatus
 
 
 class TestConfig:

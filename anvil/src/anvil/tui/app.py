@@ -12,54 +12,40 @@ A beautiful terminal interface inspired by OpenCode, with:
 
 from __future__ import annotations
 
-import os
-import sys
 import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Any, Callable
 
-from rich.align import Align
-from rich.box import ROUNDED, HEAVY
-from rich.columns import Columns
-from rich.console import Console, Group
-from rich.highlighter import ReprHighlighter
-from rich.layout import Layout
-from rich.live import Live
+from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.progress_bar import ProgressBar
 from rich.rule import Rule
-from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
-from rich.text import TextType
 
 try:
+    from textual import events
     from textual.app import App, ComposeResult
     from textual.binding import Binding
     from textual.containers import Container, Horizontal, Vertical
     from textual.events import Key
+    from textual.message import Message
     from textual.reactive import reactive
     from textual.widget import Widget
-    from textual.widgets import Header, Footer, Input, Static, Button
+    from textual.widgets import Button, Footer, Header, Input, Static
     from textual.widgets._header import HeaderTitle
-    from textual.message import Message
-    from textual import events
     from textual.worker import get_current_worker
     HAS_TEXTUAL = True
 except ImportError:
     HAS_TEXTUAL = False
 
-from anvil.core.engine import AnvilEngine, EngineResult
-from anvil.core.config import AnvilConfig
-from anvil.core.session import Session, Step, StepKind, StepStatus
 from anvil.agents.agent_manager import AgentManager
-from anvil.agents.builtin_agents import BUILTIN_AGENTS
-from anvil.verify.pipeline import VerifyReport, VerifyStatus
 from anvil.commands.command_manager import CommandManager
-
+from anvil.core.config import AnvilConfig
+from anvil.core.engine import AnvilEngine, EngineResult
+from anvil.core.session import Session
+from anvil.verify.pipeline import VerifyReport
 
 # ── Message types for the TUI ───────────────────────────────────────────
 
@@ -120,11 +106,11 @@ class RichTUI:
     """Rich-based TUI that works without Textual. Full-featured terminal UI
     with header, scrollable messages, input, status bar, and agent tabs."""
 
-    def __init__(self, config: Optional[AnvilConfig] = None):
+    def __init__(self, config: AnvilConfig | None = None):
         self.config = config or AnvilConfig()
         self.console = Console()
-        self.engine: Optional[AnvilEngine] = None
-        self.session: Optional[Session] = None
+        self.engine: AnvilEngine | None = None
+        self.session: Session | None = None
         self.messages: list[ChatMessage] = []
         self.command_manager = CommandManager(project_root=self.config.project_root)
         self.agent_manager = AgentManager(
@@ -197,10 +183,10 @@ class RichTUI:
         agent_info = Text()
         agent = self._get_agent(self.current_agent)
         if agent:
-            agent_info.append(f"  agent: ", style="dim")
+            agent_info.append("  agent: ", style="dim")
             agent_info.append(f"[{agent.color}]{agent.name}[/{agent.color}]", style=agent.color)
             agent_info.append(f" — {agent.description}", style="dim")
-        agent_info.append(f"  |  session: ", style="dim")
+        agent_info.append("  |  session: ", style="dim")
         agent_info.append(self.session_id, style="cyan")
         self.console.print(agent_info)
 
@@ -448,7 +434,7 @@ class RichTUI:
                 padding=(0, 1),
             ))
         else:
-            self.console.print(f"[yellow]Engine not initialized. Start a task first.[/]")
+            self.console.print("[yellow]Engine not initialized. Start a task first.[/]")
 
     def _undo(self):
         if self.engine and self.engine.session:
@@ -462,7 +448,7 @@ class RichTUI:
     def _compact(self):
         self.console.print("[dim]Context compaction requested.[/]")
         if self.engine and self.engine.session:
-            from anvil.core.compaction import ContextCompactor, CompactionConfig
+            from anvil.core.compaction import CompactionConfig, ContextCompactor
             compactor = ContextCompactor(CompactionConfig())
             self.console.print("[green]Context compacted.[/]")
 
@@ -559,15 +545,11 @@ class RichTUI:
 # ── Textual-based TUI (requires textual) ─────────────────────────────────
 
 if HAS_TEXTUAL:
-    from textual import work
-    from textual.reactive import reactive
     from textual.app import App, ComposeResult
     from textual.binding import Binding
-    from textual.containers import Container, Horizontal, VerticalScroll
-    from textual.events import Key
-    from textual.widgets import Header, Footer, Input, Static, RichLog
-    from textual.message import Message
-    from textual.dom import DOMNode
+    from textual.containers import Horizontal, VerticalScroll
+    from textual.reactive import reactive
+    from textual.widgets import Footer, Input
 
     class TUIHeader(Widget):
         DEFAULT_CSS = """
@@ -690,7 +672,7 @@ if HAS_TEXTUAL:
             Binding("down", "history_forward", "History Forward", show=False),
         ]
 
-        def __init__(self, config: Optional[AnvilConfig] = None, **kwargs):
+        def __init__(self, config: AnvilConfig | None = None, **kwargs):
             super().__init__(**kwargs)
             self.config = config or AnvilConfig()
             self.rich_tui = RichTUI(self.config)
@@ -762,7 +744,7 @@ if HAS_TEXTUAL:
                 input_widget.value = ""
 
 
-def run_tui(config: Optional[AnvilConfig] = None):
+def run_tui(config: AnvilConfig | None = None):
     config = config or AnvilConfig()
 
     if HAS_TEXTUAL:

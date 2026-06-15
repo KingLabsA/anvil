@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .memory_store import MemoryStore
-from .models import SessionCreate, SessionState, SessionStatus
+from .models import SessionState, SessionStatus
 from .state_serializer import StateSerializer
 
 logger = logging.getLogger(__name__)

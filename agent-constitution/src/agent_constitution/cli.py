@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
 
 from agent_constitution.extractor import ExtractSafetyPatterns
 from agent_constitution.rules import ConstitutionalRules, RuleLevel

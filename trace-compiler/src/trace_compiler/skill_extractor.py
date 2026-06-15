@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from trace_compiler.parser import TraceFormat, TraceRecord, ToolCall
+from trace_compiler.parser import TraceRecord
 
 
 class SkillType(Enum):

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import time
 from typing import Any
 
@@ -121,7 +120,7 @@ def evaluate_with_retry(
                 num_tasks=num_tasks,
                 **kwargs,
             )
-        except Exception as e:
+        except Exception:
             if attempt == max_retries - 1:
                 raise
             time.sleep(retry_delay * (2**attempt))

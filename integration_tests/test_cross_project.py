@@ -10,12 +10,8 @@ Tests data flow between projects:
 - TrajectoryDistiller → Fable5Dataset
 """
 
-import json
-import os
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -84,7 +80,7 @@ class TestAnvilVerifyLoopIntegration:
         assert len(failures) >= 1
 
     def test_verifyloop_recover_syntax_error(self):
-        from anvil.integrations.verifyloop import VerifyLoopIntegration, VerifyLoopSession
+        from anvil.integrations.verifyloop import VerifyLoopIntegration
         integration = VerifyLoopIntegration()
         session = integration.create_session("test task")
         result = integration.recover_from_failure("execute", "SyntaxError: invalid syntax", session)
@@ -197,7 +193,7 @@ class TestAnvilErrorRecoveryIntegration:
         assert engine.error_recovery.available is False
 
     def test_error_recovery_fallback_without_package(self):
-        from anvil.integrations.error_recovery import ErrorRecoveryIntegration, RecoveryResult, ErrorCategory
+        from anvil.integrations.error_recovery import ErrorRecoveryIntegration, RecoveryResult
         er = ErrorRecoveryIntegration()
         result = er.recover("SyntaxError: invalid syntax")
         assert isinstance(result, RecoveryResult)
@@ -343,13 +339,13 @@ class TestVerifyLoopAgentConstitution:
         assert vl is not None
 
     def test_verifyloop_session_has_task_description(self):
-        from anvil.integrations.verifyloop import VerifyLoopIntegration, VerifyLoopSession
+        from anvil.integrations.verifyloop import VerifyLoopIntegration
         vl = VerifyLoopIntegration()
         session = vl.create_session("Ensure code follows style guidelines")
         assert "code" in session.task.lower() or "style" in session.task.lower()
 
     def test_verify_pipeline_constitutional_check(self, tmp_path):
-        from anvil.verify.pipeline import VerifyPipeline, VerifyStatus
+        from anvil.verify.pipeline import VerifyPipeline
         good_file = tmp_path / "constitutional.py"
         good_file.write_text("def process_data(items):\n    return [x for x in items if x > 0]\n")
         pipeline = VerifyPipeline()
@@ -475,8 +471,8 @@ class TestCrossProjectDataFlow:
         assert model == "local"
 
     def test_full_pipeline_verify_and_classify(self, tmp_path):
-        from anvil.verify.pipeline import VerifyPipeline, VerifyStatus
-        from anvil.integrations.error_recovery import ErrorRecoveryIntegration, ErrorCategory
+        from anvil.verify.pipeline import VerifyPipeline
+        from anvil.integrations.error_recovery import ErrorRecoveryIntegration
 
         bad_file = tmp_path / "broken.py"
         bad_file.write_text("def foo(\npass\n")

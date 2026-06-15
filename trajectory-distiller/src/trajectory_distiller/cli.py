@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 
 from trajectory_distiller.distiller import Distiller
-from trajectory_distiller.converter import FormatConverter
 from trajectory_distiller.filter import TraceFilter
 from trajectory_distiller.splitter import DataSplitter
 
@@ -52,7 +49,7 @@ def distill(input_file: str, output_format: str, input_format: str | None, outpu
 
     if not output:
         if result:
-            console.print(f"\n[dim]Sample record:[/dim]")
+            console.print("\n[dim]Sample record:[/dim]")
             console.print(json.dumps(result[0], indent=2)[:500] + "...")
 
 

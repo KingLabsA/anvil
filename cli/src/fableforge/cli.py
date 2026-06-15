@@ -1,8 +1,6 @@
 """FableForge CLI — 21 projects, one command."""
 
-import os
 import sys
-import json
 import subprocess
 import importlib
 from pathlib import Path
@@ -12,7 +10,6 @@ import click
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.columns import Columns
 
 console = Console()
 
@@ -333,7 +330,7 @@ def data(source, detail):
     if source == "all":
         console.print(Panel(
             "[bold]Fable-5 Dataset Collection[/]\n"
-            f"6 sources • ~234K total rows • 31 unique tools • 87.7% planning rate",
+            "6 sources • ~234K total rows • 31 unique tools • 87.7% planning rate",
             border_style="cyan",
         ))
         table = Table(title="Dataset Sources", show_lines=True)
@@ -362,10 +359,10 @@ def data(source, detail):
         console.print(table)
 
         console.print("\n[bold]Key Metrics:[/]")
-        console.print(f"  • 87.7% planning rate — agents plan before they act")
-        console.print(f"  • 39.5% error recovery rate — agents that hit errors and recover")
-        console.print(f"  • 31 unique tools mapped into transition matrices")
-        console.print(f"  • 1 Boeing 747 trace: 303 tool calls, 15-hour session")
+        console.print("  • 87.7% planning rate — agents plan before they act")
+        console.print("  • 39.5% error recovery rate — agents that hit errors and recover")
+        console.print("  • 31 unique tools mapped into transition matrices")
+        console.print("  • 1 Boeing 747 trace: 303 tool calls, 15-hour session")
     else:
         if source not in DATASETS:
             console.print(f"[red]Unknown source: {source}[/]")
@@ -431,10 +428,10 @@ def test(verbose, integration, unit):
             cmd = [sys.executable, "-m", "pytest", str(integration_path), "-v" if verbose else "-q", "--tb=short"]
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if result.returncode == 0:
-                console.print(f"  [green]✓[/] integration_tests")
+                console.print("  [green]✓[/] integration_tests")
                 passed += 1
             else:
-                console.print(f"  [red]✗[/] integration_tests")
+                console.print("  [red]✗[/] integration_tests")
                 if verbose and result.stderr:
                     console.print(f"    [dim]{result.stderr[:200]}[/]")
                 failed += 1

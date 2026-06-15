@@ -1,10 +1,6 @@
 """Tests for Anvil undo/redo snapshot system."""
 
-import os
-import tempfile
-from pathlib import Path
 
-import pytest
 
 from anvil.snapshot.snapshot_manager import Snapshot, SnapshotManager
 

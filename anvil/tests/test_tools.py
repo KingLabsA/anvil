@@ -1,13 +1,11 @@
 """Tests for Anvil tool executor — Bash, Read, Write, Edit, Grep, Glob, Ls."""
 
-import os
 import tempfile
 from pathlib import Path
 
 import pytest
 
 from anvil.tools.executor import ToolExecutor, ToolResult
-
 
 # ---------------------------------------------------------------------------
 # ToolResult dataclass

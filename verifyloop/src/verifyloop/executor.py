@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
-import subprocess
-import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -94,7 +91,7 @@ class Executor:
             result.duration_seconds = time.monotonic() - start
             return result
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return ExecuteStep(
                 tool="bash",
                 arguments={"command": command},

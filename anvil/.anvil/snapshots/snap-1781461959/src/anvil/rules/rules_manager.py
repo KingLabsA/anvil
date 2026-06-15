@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import re
+from dataclasses import dataclass
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -27,7 +25,7 @@ class RulesManager:
       5. Config 'instructions' option
     """
 
-    def __init__(self, project_root: Optional[str] = None) -> None:
+    def __init__(self, project_root: str | None = None) -> None:
         self.project_root = Path(project_root) if project_root else Path.cwd()
         self._rules: list[Rule] = []
 

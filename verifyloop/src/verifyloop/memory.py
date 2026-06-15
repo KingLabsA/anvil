@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import json
-import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -47,7 +46,7 @@ class InMemoryStore(MemoryStore):
         ns = self._ns(namespace)
         ns[key] = {
             "value": value,
-            "stored_at": datetime.now(timezone.utc).isoformat(),
+            "stored_at": datetime.now(UTC).isoformat(),
             "access_count": ns.get(key, {}).get("access_count", 0),
         }
 
@@ -94,7 +93,7 @@ class FileStore(MemoryStore):
             return self._cache[namespace]
         path = self._ns_path(namespace)
         if path.exists():
-            async with aiofiles.open(path, "r") as f:
+            async with aiofiles.open(path) as f:
                 data = json.loads(await f.read())
             self._cache[namespace] = data
             return data
@@ -112,7 +111,7 @@ class FileStore(MemoryStore):
         data = await self._load_ns(namespace)
         data[key] = {
             "value": value,
-            "stored_at": datetime.now(timezone.utc).isoformat(),
+            "stored_at": datetime.now(UTC).isoformat(),
             "access_count": data.get(key, {}).get("access_count", 0),
         }
         await self._save_ns(namespace, data)

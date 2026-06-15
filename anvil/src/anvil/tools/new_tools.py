@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from anvil.tools.executor import ToolResult
 
 
 @dataclass
@@ -37,7 +40,7 @@ class TodoListManager:
         self._todos.append(item)
         return item
 
-    def update(self, item_id: str, status: Optional[str] = None, content: Optional[str] = None, priority: Optional[str] = None) -> Optional[TodoItem]:
+    def update(self, item_id: str, status: str | None = None, content: str | None = None, priority: str | None = None) -> TodoItem | None:
         for item in self._todos:
             if item.id == item_id:
                 if status:
@@ -60,7 +63,7 @@ class TodoListManager:
     def list_all(self) -> list[TodoItem]:
         return list(self._todos)
 
-    def get(self, item_id: str) -> Optional[TodoItem]:
+    def get(self, item_id: str) -> TodoItem | None:
         for item in self._todos:
             if item.id == item_id:
                 return item
@@ -68,8 +71,9 @@ class TodoListManager:
 
 
 def apply_patch(args: dict[str, Any], working_dir: Path) -> "ToolResult":
-    """Apply a patch: add, update, delete, or move a file."""
     from anvil.tools.executor import ToolResult
+
+    """Apply a patch: add, update, delete, or move a file."""
 
     action = args.get("action", "")
     path_str = args.get("path", "")
@@ -124,9 +128,10 @@ def apply_patch(args: dict[str, Any], working_dir: Path) -> "ToolResult":
         return ToolResult(success=False, output="", error=f"Unknown patch action: {action}")
 
 
-def todowrite(args: dict[str, Any], manager: Optional[TodoListManager] = None) -> "ToolResult":
-    """Manage a todo list."""
+def todowrite(args: dict[str, Any], manager: TodoListManager | None = None) -> "ToolResult":
     from anvil.tools.executor import ToolResult
+
+    """Manage a todo list."""
 
     if manager is None:
         manager = TodoListManager()
@@ -169,8 +174,9 @@ def todowrite(args: dict[str, Any], manager: Optional[TodoListManager] = None) -
 
 
 def webfetch(args: dict[str, Any]) -> "ToolResult":
-    """Fetch content from a URL."""
     from anvil.tools.executor import ToolResult
+
+    """Fetch content from a URL."""
 
     url = args.get("url", "")
     if not url:
@@ -196,8 +202,9 @@ def webfetch(args: dict[str, Any]) -> "ToolResult":
 
 
 def websearch(args: dict[str, Any]) -> "ToolResult":
-    """Search the web."""
     from anvil.tools.executor import ToolResult
+
+    """Search the web."""
 
     query = args.get("query", "")
     if not query:
@@ -210,8 +217,9 @@ def websearch(args: dict[str, Any]) -> "ToolResult":
 
 
 def question(args: dict[str, Any]) -> "ToolResult":
-    """Ask the user a question."""
     from anvil.tools.executor import ToolResult
+
+    """Ask the user a question."""
 
     question_text = args.get("question", "")
     options = args.get("options", [])
@@ -226,8 +234,9 @@ def question(args: dict[str, Any]) -> "ToolResult":
 
 
 def image(args: dict[str, Any], working_dir: Path = Path(".")) -> "ToolResult":
-    """Load and inspect an image file."""
     from anvil.tools.executor import ToolResult
+
+    """Load and inspect an image file."""
 
     path_str = args.get("path", "")
     path = working_dir / path_str if path_str else Path("")

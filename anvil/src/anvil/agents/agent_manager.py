@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import re
 import json
-from pathlib import Path
+import re
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from pathlib import Path
+from typing import Any
 
-from anvil.agents.agent_base import BaseAgent, AgentMode
+from anvil.agents.agent_base import BaseAgent
 from anvil.agents.builtin_agents import BUILTIN_AGENTS
-from anvil.models.registry import ModelRegistry, Message, ModelResponse
+from anvil.models.registry import Message, ModelRegistry, ModelResponse
 
 
 @dataclass
@@ -38,8 +38,8 @@ class AgentManager:
 
     def __init__(
         self,
-        config_dir: Optional[Path] = None,
-        project_dir: Optional[Path] = None,
+        config_dir: Path | None = None,
+        project_dir: Path | None = None,
     ):
         self._agents: dict[str, BaseAgent] = {}
         self._active_agent: str = "build"
@@ -61,7 +61,7 @@ class AgentManager:
         """Register (or replace) an agent by name."""
         self._agents[agent.name] = agent
 
-    def get(self, name: str) -> Optional[BaseAgent]:
+    def get(self, name: str) -> BaseAgent | None:
         """Look up an agent by name."""
         return self._agents.get(name)
 
@@ -95,7 +95,7 @@ class AgentManager:
 
     _MENTION_RE = re.compile(r"@(\w+)\s+(.*)", re.DOTALL)
 
-    def parse_mention(self, text: str) -> Optional[tuple[str, str]]:
+    def parse_mention(self, text: str) -> tuple[str, str] | None:
         """Extract ``@agent task`` from *text*.
 
         Returns ``(agent_name, task)`` or ``None`` if no @mention found.
@@ -161,7 +161,6 @@ class AgentManager:
             )
 
         # Build the tool list available to this agent.
-        from anvil.tools.executor import ToolExecutor
         all_tool_names = [t["name"] for t in _all_tool_definitions()]
         available = agent.available_tools(all_tool_names)
         system_prompt = agent.get_system_prompt(available)
@@ -228,7 +227,7 @@ class AgentManager:
         self.register(agent)
         return agent
 
-    def create_agent_from_markdown(self, text: str, name: Optional[str] = None) -> BaseAgent:
+    def create_agent_from_markdown(self, text: str, name: str | None = None) -> BaseAgent:
         """Parse an agent from markdown with YAML-like front matter.
 
         Format::
@@ -318,7 +317,7 @@ class AgentManager:
                     for agent_name, spec in data.items():
                         if isinstance(spec, dict):
                             self.create_agent_from_dict(agent_name, spec)
-                except (json.JSONDecodeError, TypeError, KeyError) as exc:
+                except (json.JSONDecodeError, TypeError, KeyError):
                     # Silently skip malformed files — they'll be logged elsewhere.
                     pass
 

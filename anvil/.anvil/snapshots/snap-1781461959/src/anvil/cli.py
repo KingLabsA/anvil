@@ -2,26 +2,20 @@
 
 from __future__ import annotations
 
-import sys
 import json
-import time
+import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.markdown import Markdown
-from rich.syntax import Syntax
+from rich.table import Table
 
+from anvil.agents.agent_manager import AgentManager
+from anvil.agents.builtin_agents import BUILTIN_AGENTS
 from anvil.core.config import AnvilConfig
 from anvil.core.engine import AnvilEngine, EngineResult
-from anvil.agents.agent_base import BaseAgent, AgentMode
-from anvil.agents.builtin_agents import BUILTIN_AGENTS
-from anvil.agents.agent_manager import AgentManager
-from anvil.permissions.permissions import PermissionAction
 from anvil.daemon.server import AgentDaemon
 
 console = Console()
@@ -223,7 +217,7 @@ def chat(ctx, task, max_iterations):
         result = engine.run(user_input, max_iterations=max_iterations)
         format_result(result)
         if result.error:
-            console.print(f"[yellow]Recovery: auto-fixing...[/]")
+            console.print("[yellow]Recovery: auto-fixing...[/]")
 
 
 @main.command()
@@ -250,7 +244,6 @@ def daemon(ctx, port):
 @main.command()
 def models():
     """List available models."""
-    from anvil.models.registry import ModelRegistry
     console.print("[bold]Available Models:[/]\n")
     table = Table(show_header=True)
     table.add_column("Name", style="cyan")

@@ -7,16 +7,15 @@ import os
 import subprocess
 import threading
 import time
-import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 from anvil.mcp.mcp_types import (
     JSONRPCRequest,
     JSONRPCResponse,
-    MCPToolDefinition,
     MCPCallResult,
+    MCPToolDefinition,
 )
 
 try:
@@ -39,9 +38,9 @@ class MCPServer:
     enabled: bool = True
     timeout: int = 5
 
-    _process: Optional[Any] = field(default=None, repr=False, compare=False)
-    _stdin: Optional[Any] = field(default=None, repr=False, compare=False)
-    _stdout: Optional[Any] = field(default=None, repr=False, compare=False)
+    _process: Any | None = field(default=None, repr=False, compare=False)
+    _stdin: Any | None = field(default=None, repr=False, compare=False)
+    _stdout: Any | None = field(default=None, repr=False, compare=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     def to_dict(self) -> dict[str, Any]:
@@ -58,7 +57,7 @@ class MCPServer:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "MCPServer":
+    def from_dict(cls, data: dict[str, Any]) -> MCPServer:
         return cls(
             name=data["name"],
             type=data.get("type", "local"),
@@ -75,7 +74,7 @@ class MCPServer:
 class MCPManager:
     """Manages MCP server lifecycle and communication."""
 
-    def __init__(self, config_dir: Optional[Path] = None):
+    def __init__(self, config_dir: Path | None = None):
         self._servers: dict[str, MCPServer] = {}
         self._discovered_tools: dict[str, list[MCPToolDefinition]] = {}
         self._request_id_counter = 0
@@ -102,7 +101,7 @@ class MCPManager:
         """List all registered MCP servers."""
         return list(self._servers.values())
 
-    def get_server(self, name: str) -> Optional[MCPServer]:
+    def get_server(self, name: str) -> MCPServer | None:
         """Get a server by name."""
         return self._servers.get(name)
 
@@ -316,7 +315,7 @@ class MCPManager:
 
     def _send_local_request(
         self, server: MCPServer, request: JSONRPCRequest, timeout: int = 5
-    ) -> Optional[JSONRPCResponse]:
+    ) -> JSONRPCResponse | None:
         """Send a JSON-RPC request to a local server via stdin/stdout."""
         if server._stdin is None or server._stdout is None:
             return None

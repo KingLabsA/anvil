@@ -2,26 +2,22 @@
 
 import json
 import os
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from anvil.config_v2.config_v2 import (
-    ConfigV2,
-    VariableSubstitution,
-    ModelSection,
     AgentSection,
+    ConfigV2,
+    MCPSection,
+    ModelSection,
     PermissionSection,
     ToolsSection,
-    MCPSection,
+    VariableSubstitution,
+    _load_from_env,
     _load_from_json,
     _load_from_toml,
-    _load_from_env,
     _parse_toml_simple,
 )
-
 
 # ---------------------------------------------------------------------------
 # VariableSubstitution
@@ -49,7 +45,7 @@ class TestVariableSubstitution:
 
     def test_substitute_dict(self):
         data = {
-            "model": "{env:MODEL}", 
+            "model": "{env:MODEL}",
             "nested": {"key": "{env:NESTED_KEY}"},
             "list": ["{env:LIST_ITEM}", "plain"],
         }

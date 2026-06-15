@@ -1,4 +1,3 @@
-import pytest
 from click.testing import CliRunner
 from fableforge_cli.main import cli, list_projects, status
 

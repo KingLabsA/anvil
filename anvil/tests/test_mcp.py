@@ -1,14 +1,9 @@
 """Tests for Anvil MCP server management — MCPServer, MCPManager, types."""
 
 import json
-import tempfile
-from pathlib import Path
 
-import pytest
-
-from anvil.mcp.mcp_manager import MCPServer, MCPManager
-from anvil.mcp.mcp_types import JSONRPCRequest, JSONRPCResponse, MCPToolDefinition, MCPCallResult
-
+from anvil.mcp.mcp_manager import MCPManager, MCPServer
+from anvil.mcp.mcp_types import JSONRPCRequest, JSONRPCResponse, MCPCallResult, MCPToolDefinition
 
 # ---------------------------------------------------------------------------
 # MCPServer creation: local and remote

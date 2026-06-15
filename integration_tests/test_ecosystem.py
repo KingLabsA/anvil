@@ -5,12 +5,10 @@ AgentSwarm, and CostOptimizer — and that fallbacks work when those
 packages are not installed.
 """
 
-import os
 import sys
 import json
-import textwrap
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -107,7 +105,7 @@ class TestVerifyLoopIntegration:
         assert len(failures) >= 1
 
     def test_recover_from_failure_builtin_strategies(self):
-        from anvil.integrations.verifyloop import VerifyLoopIntegration, VerifyLoopSession
+        from anvil.integrations.verifyloop import VerifyLoopIntegration
         integration = VerifyLoopIntegration()
         session = integration.create_session("test task")
 
@@ -142,7 +140,7 @@ class TestVerifyLoopIntegration:
                 assert integration.available is True
 
     def test_recover_from_import_error(self):
-        from anvil.integrations.verifyloop import VerifyLoopIntegration, VerifyLoopSession
+        from anvil.integrations.verifyloop import VerifyLoopIntegration
         integration = VerifyLoopIntegration()
         session = integration.create_session("test")
 
@@ -503,7 +501,7 @@ class TestCostOptimizerIntegration:
         assert model == "local"
 
     def test_calculate_cost_gpt4o(self):
-        from anvil.integrations.cost_optimizer import CostOptimizerIntegration, MODEL_PRICING
+        from anvil.integrations.cost_optimizer import CostOptimizerIntegration
         co = CostOptimizerIntegration()
         # gpt-4o: $2.50/1M input, $10.00/1M output
         cost = co.calculate_cost(input_tokens=1_000_000, output_tokens=0, model="gpt-4o")
@@ -747,7 +745,6 @@ class TestAnvilEngineFullLoop:
     def test_engine_result_format(self):
         from anvil.core.engine import EngineResult
         from anvil.core.session import Session, Step, StepKind, StepStatus
-        from anvil.verify.pipeline import VerifyReport
 
         session = Session(task="test", persist=False)
         session.add_step(Step(kind=StepKind.PLAN, content="Plan", status=StepStatus.SUCCESS))
@@ -849,7 +846,6 @@ class TestFableForgeCLI:
 
     def test_status_command_returns_installed_for_anvil(self):
         """Status command should detect anvil as importable via sys.path."""
-        from fableforge.cli import PROJECTS
         # Anvil is importable via our sys.path setup
         import importlib
         try:

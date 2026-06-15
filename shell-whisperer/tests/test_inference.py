@@ -162,7 +162,7 @@ class TestShellWhispererInit:
             sw.load_model()
 
 
-class TestShellWhis ContextAwarePrediction:
+class TestShellWhispererContextAwarePrediction:
     """Test context-aware prediction features."""
 
     def test_predict_with_working_directory(self):

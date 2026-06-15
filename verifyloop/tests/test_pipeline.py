@@ -1,7 +1,5 @@
 """Tests for the VerifyLoop pipeline."""
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -11,16 +9,11 @@ from verifyloop.models import (
     AgentRun,
     ExecuteStep,
     PipelineConfig,
-    PlanStep,
     RecoverStep,
-    RunStatus,
     Step,
     StepType,
-    Substep,
     TokenUsage,
-    VerifyStep,
 )
-from verifyloop.pipeline import AgentPipeline
 from verifyloop.planner import PlanGenerator
 from verifyloop.recoverer import Recoverer
 from verifyloop.verifier import Verifier, VerifierConfig

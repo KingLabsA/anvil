@@ -12,12 +12,12 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Generator
 
-from shell_whisperer.prompts import OPERATING_SYSTEMS, get_prompt
+from shell_whisperer.prompts import get_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,6 @@ class ShellWhisperer:
 
     def _load_onnx(self, model_path: str) -> None:
         """Load model via ONNX Runtime."""
-        import numpy as np
         import onnxruntime as ort
         from transformers import AutoTokenizer
 
@@ -468,9 +467,9 @@ class ShellWhisperer:
         self, messages: list[dict]
     ) -> Generator[str, None, None]:
         """Stream tokens from transformers model."""
-        import torch
-        from transformers import TextIteratorStreamer
         from threading import Thread
+
+        from transformers import TextIteratorStreamer
 
         text = self.tokenizer.apply_chat_template(
             messages,

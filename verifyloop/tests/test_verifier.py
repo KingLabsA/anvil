@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from verifyloop.models import ExecuteStep, PlanStep, VerifyStep, VerifyCheckResult
+from verifyloop.models import ExecuteStep, PlanStep
 from verifyloop.verifier import Verifier, VerifierConfig
 
 

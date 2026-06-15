@@ -161,7 +161,6 @@ def train_lora(
 ) -> str:
     """Fine-tune using LoRA (Low-Rank Adaptation)."""
     import torch
-    from peft import LoraConfig, TaskType, get_peft_model
     from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
 
     if config is None:

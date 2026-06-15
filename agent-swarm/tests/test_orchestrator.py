@@ -2,27 +2,22 @@
 
 import json
 import tempfile
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 from agent_swarm import (
     AgentRole,
-    BaseAgent,
-    BashAgent,
     EditorAgent,
     HandoffEvent,
-    PlannerAgent,
     ReaderAgent,
     SwarmOrchestrator,
     SwarmResult,
     SwarmStatus,
     TransitionMatrix,
-    VerifierAgent,
     create_agent,
 )
-from agent_swarm.models import AgentConfig, SwarmResult as SwarmResultPydantic
+from agent_swarm.models import AgentConfig
 
 
 # ---------------------------------------------------------------------------

@@ -196,13 +196,7 @@ class BaseAgent:
         return AgentConfig(
             role=PydanticAgentRole(self.role.value),
             system_prompt=self.system_prompt,
-            tools=[
-                AgentConfig.model_fields["tools"].annotation.__args__[0](  # type: ignore[attr-defined]
-                    name=t.name,
-                    description=t.description,
-                    parameters=t.parameters,
-                )
-            ] if False else [],  # Handled by for_role
+            tools=[],  # Handled by for_role
             can_handoff_to=[PydanticAgentRole(r.value) for r in self.can_handoff_to],
         )
 

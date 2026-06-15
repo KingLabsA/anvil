@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -15,7 +13,7 @@ from agent_telemetry.collector import (
     calculate_metrics,
     ingest_trace,
 )
-from agent_telemetry.error_tracker import classify_error, generate_error_report
+from agent_telemetry.error_tracker import generate_error_report
 from agent_telemetry.models import Span
 from agent_telemetry.storage import TelemetryStorage
 from agent_telemetry.token_tracker import estimate_cost, format_cost_table

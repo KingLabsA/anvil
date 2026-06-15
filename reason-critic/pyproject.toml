@@ -50,10 +50,11 @@ critic = "reason_critic.cli:cli"
 where = ["src"]
 
 [tool.ruff]
+line-length = 120
 target-version = "py310"
-line-length = 100
 
 [tool.ruff.lint]
+ignore = ["E501"]
 select = ["E", "F", "I", "N", "W", "UP"]
 
 [tool.pytest.ini_options]

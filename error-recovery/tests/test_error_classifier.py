@@ -1,8 +1,7 @@
 """Tests for error_classifier module."""
 
-import pytest
 
-from error_recovery.error_classifier import ErrorClassifier, ClassificationRule, _CLASSIFICATION_RULES
+from error_recovery.error_classifier import ClassificationRule, ErrorClassifier
 from error_recovery.models import ErrorCategory
 
 

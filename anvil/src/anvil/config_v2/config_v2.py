@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 import os
 import re
-from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from pathlib import Path
 
 
 class VariableSubstitution:
@@ -42,7 +41,7 @@ class VariableSubstitution:
     def _read_file(path: str) -> str:
         try:
             return Path(path).read_text(encoding="utf-8").strip()
-        except (OSError, IOError):
+        except OSError:
             return ""
 
 
@@ -98,7 +97,7 @@ class ConfigV2:
     _sources: list[str] = field(default_factory=list)
 
     @classmethod
-    def load(cls, project_root: Optional[str] = None) -> "ConfigV2":
+    def load(cls, project_root: str | None = None) -> ConfigV2:
         """Load config with precedence: env > project > global > defaults."""
         config = cls()
         roots = _find_config_roots(project_root)
@@ -168,7 +167,7 @@ class ConfigV2:
         return issues
 
 
-def _find_config_roots(project_root: Optional[str] = None) -> list[Path]:
+def _find_config_roots(project_root: str | None = None) -> list[Path]:
     """Find config file locations in precedence order."""
     roots = []
     cwd = Path(project_root) if project_root else Path.cwd()
@@ -178,7 +177,7 @@ def _find_config_roots(project_root: Optional[str] = None) -> list[Path]:
     return [r for r in roots if r.exists()]
 
 
-def _load_from_json(root: Path) -> Optional[dict]:
+def _load_from_json(root: Path) -> dict | None:
     """Load config from anvil.json or .anvil/config.json."""
     for name in ["anvil.json", ".anvil/config.json"]:
         path = root / name
@@ -190,7 +189,7 @@ def _load_from_json(root: Path) -> Optional[dict]:
     return None
 
 
-def _load_from_toml(root: Path) -> Optional[dict]:
+def _load_from_toml(root: Path) -> dict | None:
     """Load config from anvil.toml."""
     path = root / "anvil.toml"
     if not path.exists():
@@ -205,7 +204,7 @@ def _load_from_toml(root: Path) -> Optional[dict]:
 def _parse_toml_simple(content: str) -> dict:
     """Minimal TOML parser for flat and one-level-nested configs."""
     result: dict = {}
-    current_section: Optional[str] = None
+    current_section: str | None = None
 
     for line in content.splitlines():
         line = line.strip()

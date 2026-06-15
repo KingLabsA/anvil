@@ -1,17 +1,21 @@
 """Tests for Anvil multi-agent system — BaseAgent, builtins, AgentManager."""
 
+
 import pytest
-from unittest.mock import MagicMock, patch
 
-from anvil.agents.agent_base import BaseAgent, AgentMode
-from anvil.agents.builtin_agents import (
-    BuildAgent, PlanAgent, ExploreAgent, GeneralAgent,
-    ScoutAgent, CompactionAgent, TitleAgent, BUILTIN_AGENTS,
-    ALL_TOOLS, READ_ONLY_TOOLS, SUBAGENT_TOOLS,
-)
+from anvil.agents.agent_base import AgentMode, BaseAgent
 from anvil.agents.agent_manager import AgentManager
-from anvil.permissions.permissions import PermissionConfig
-
+from anvil.agents.builtin_agents import (
+    ALL_TOOLS,
+    BUILTIN_AGENTS,
+    BuildAgent,
+    CompactionAgent,
+    ExploreAgent,
+    GeneralAgent,
+    PlanAgent,
+    ScoutAgent,
+    TitleAgent,
+)
 
 # ---------------------------------------------------------------------------
 # AgentMode enum

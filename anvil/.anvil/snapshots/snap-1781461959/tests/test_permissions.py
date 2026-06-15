@@ -6,11 +6,10 @@ from anvil.permissions.permissions import (
     PermissionAction,
     PermissionConfig,
     PermissionManager,
-    _parse_action,
     _action_priority,
+    _parse_action,
     _pattern_specificity,
 )
-
 
 # ---------------------------------------------------------------------------
 # PermissionAction enum

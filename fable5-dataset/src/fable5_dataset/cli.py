@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import click
@@ -12,7 +11,6 @@ from rich.table import Table
 from rich.panel import Panel
 
 from fable5_dataset.loader import DatasetLoader
-from fable5_dataset.preprocessor import Preprocessor
 from fable5_dataset.benchmark import BenchmarkGenerator
 from fable5_dataset.stats import DatasetStats
 

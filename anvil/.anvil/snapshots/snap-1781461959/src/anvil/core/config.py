@@ -3,22 +3,22 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from pathlib import Path
+from typing import Any
 
-from anvil.permissions.permissions import PermissionConfig, PermissionAction
+from anvil.permissions.permissions import PermissionConfig
 
 
 @dataclass
 class ModelConfig:
     model: str = "local"
-    api_base: Optional[str] = None
-    api_key: Optional[str] = None
+    api_base: str | None = None
+    api_key: str | None = None
     max_tokens: int = 4096
     temperature: float = 0.2
     context_window: int = 8192
-    system_prompt: Optional[str] = None
+    system_prompt: str | None = None
 
 
 @dataclass
@@ -58,7 +58,7 @@ class TelemetryConfig:
     track_tokens: bool = True
     track_errors: bool = True
     track_recoveries: bool = True
-    export_path: Optional[str] = None
+    export_path: str | None = None
 
 
 @dataclass
@@ -105,7 +105,7 @@ class AgentDefinition:
     extra: dict = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AgentDefinition":
+    def from_dict(cls, data: dict[str, Any]) -> AgentDefinition:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
     def to_dict(self) -> dict[str, Any]:
@@ -151,13 +151,13 @@ class AnvilConfig:
     project_root: str = field(default_factory=lambda: os.getcwd())
 
     @classmethod
-    def from_file(cls, path: Path) -> "AnvilConfig":
+    def from_file(cls, path: Path) -> AnvilConfig:
         import json
         data = json.loads(path.read_text())
         return cls._from_dict(data)
 
     @classmethod
-    def _from_dict(cls, data: dict[str, Any]) -> "AnvilConfig":
+    def _from_dict(cls, data: dict[str, Any]) -> AnvilConfig:
         agents_raw = data.pop("agent", {})
         agents = {
             name: AgentDefinition.from_dict(spec) if isinstance(spec, dict) else spec
@@ -208,7 +208,7 @@ class AnvilConfig:
         path.write_text(json.dumps(self.to_dict(), indent=2))
 
     @classmethod
-    def find_config(cls) -> "AnvilConfig":
+    def find_config(cls) -> AnvilConfig:
         candidates = [
             Path(".anvil.json"),
             Path("anvil.json"),

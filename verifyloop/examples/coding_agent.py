@@ -2,7 +2,7 @@
 
 import asyncio
 
-from verifyloop import AgentPipeline, PipelineConfig, Executor, Verifier, VerifierConfig
+from verifyloop import AgentPipeline, Executor, PipelineConfig, Verifier, VerifierConfig
 from verifyloop.models import ExecuteStep
 
 

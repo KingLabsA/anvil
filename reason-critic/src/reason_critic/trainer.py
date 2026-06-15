@@ -7,19 +7,15 @@ Stage 3: DPO alignment for preference optimization
 
 from __future__ import annotations
 
-import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from reason_critic.data_prep import (
-    VerificationExample,
     ContrastivePair,
-    generate_incorrect_versions,
-    create_contrastive_pairs,
-    format_training_prompt,
+    VerificationExample,
     format_contrastive_prompt,
+    generate_incorrect_versions,
 )
 
 logger = logging.getLogger(__name__)
@@ -131,12 +127,11 @@ def _tokenize_examples(examples, tokenizer, max_seq_length):
 def train_contrastive(
     pairs: list[ContrastivePair],
     output_dir: str,
-    config: Optional[TrainingConfig] = None,
+    config: TrainingConfig | None = None,
     model=None,
     tokenizer=None,
 ) -> str:
     """Stage 1: Contrastive learning on correct/incorrect pairs."""
-    import torch
     from datasets import Dataset
     from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
 
@@ -209,13 +204,12 @@ def train_contrastive(
 def train_lora(
     pairs: list[ContrastivePair],
     output_dir: str,
-    config: Optional[TrainingConfig] = None,
+    config: TrainingConfig | None = None,
     model=None,
     tokenizer=None,
-    stage1_dir: Optional[str] = None,
+    stage1_dir: str | None = None,
 ) -> str:
     """Stage 2: LoRA fine-tuning on verification data."""
-    import torch
     from datasets import Dataset
     from peft import LoraConfig, TaskType, get_peft_model
     from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
@@ -306,15 +300,15 @@ def train_dpo(
     preferred: list[str],
     dispreferred: list[str],
     output_dir: str,
-    config: Optional[TrainingConfig] = None,
+    config: TrainingConfig | None = None,
     model=None,
     tokenizer=None,
-    stage2_dir: Optional[str] = None,
+    stage2_dir: str | None = None,
 ) -> str:
     """Stage 3: DPO alignment for preference optimization."""
     import torch
     from datasets import Dataset
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM
 
     config = config or TrainingConfig()
     stage3_dir = str(Path(output_dir) / "stage3-dpo")
@@ -323,7 +317,7 @@ def train_dpo(
         raise ValueError("preferred and dispreferred must be same length")
 
     try:
-        from trl import DPOTrainer, DPOConfig
+        from trl import DPOConfig, DPOTrainer
     except ImportError:
         logger.warning("trl not installed. DPO training requires: pip install reason-critic[dpo]")
         raise
@@ -382,7 +376,7 @@ def run_three_stage_pipeline(
     examples: list[VerificationExample],
     pairs: list[ContrastivePair],
     output_dir: str = "./reason-critic-output",
-    config: Optional[TrainingConfig] = None,
+    config: TrainingConfig | None = None,
 ) -> dict[str, str]:
     """Run the complete three-stage training pipeline."""
     config = config or TrainingConfig()

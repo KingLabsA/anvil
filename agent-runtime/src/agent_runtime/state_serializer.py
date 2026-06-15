@@ -7,13 +7,11 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from sqlalchemy import (
     Column,
     DateTime,
     Index,
-    LargeBinary,
     String,
     Text,
     create_engine,

@@ -6,7 +6,7 @@ root causes, and fix the code so that all tests pass.
 """
 
 import pytest
-from calculator import add, subtract, multiply, divide, power, modulo, negate, absolute
+from calculator import add, subtract, multiply, divide, power, negate, absolute
 
 
 class TestAdd:

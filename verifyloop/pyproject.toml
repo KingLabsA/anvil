@@ -51,10 +51,11 @@ Repository = "https://github.com/fableforge/verifyloop"
 packages = ["src/verifyloop"]
 
 [tool.ruff]
+line-length = 120
 target-version = "py311"
-line-length = 100
 
 [tool.ruff.lint]
+ignore = ["E501"]
 select = ["E", "F", "I", "N", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]

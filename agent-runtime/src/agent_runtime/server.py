@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +11,6 @@ from .models import (
     CheckpointInfo,
     HealthResponse,
     MemoryRetrieveResponse,
-    MemorySearchResult,
     MemoryStoreRequest,
     SessionCreate,
     SessionResume,

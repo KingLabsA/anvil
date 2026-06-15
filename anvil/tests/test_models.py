@@ -1,17 +1,19 @@
 """Tests for Anvil model backends — Message, ModelResponse, LocalModel, OpenAI, Anthropic, Registry."""
 
 import os
-from unittest.mock import MagicMock, patch
-import json
+from unittest.mock import patch
 
 import pytest
-import httpx
 
 from anvil.models.registry import (
-    Message, ModelResponse, BaseModel, LocalModel, OpenAIModel,
-    AnthropicModel, ModelRegistry,
+    AnthropicModel,
+    BaseModel,
+    LocalModel,
+    Message,
+    ModelRegistry,
+    ModelResponse,
+    OpenAIModel,
 )
-
 
 # ---------------------------------------------------------------------------
 # Message dataclass

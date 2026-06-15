@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from enum import Enum
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from enum import Enum
+from typing import Any
 
 from anvil.permissions.permissions import PermissionConfig
 
@@ -117,7 +117,7 @@ class BaseAgent:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BaseAgent":
+    def from_dict(cls, data: dict[str, Any]) -> BaseAgent:
         perm_data = data.pop("permission", {})
         mode_val = data.pop("mode", "primary")
         return cls(

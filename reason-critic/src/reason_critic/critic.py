@@ -11,10 +11,8 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,18 @@
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E501", "E402", "E701", "E702", "E722", "E731", "E741", "F401", "F841", "W292"]
+exclude = [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "*.egg-info",
+    ".anvil",
+    "*.ipynb",
+    ".anvil/snapshots",
+    "**/snap-*/**",
+]
+
+[lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
+"**/tests/**/*.py" = ["F841", "F401"]

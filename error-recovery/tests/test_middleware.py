@@ -1,10 +1,10 @@
 """Tests for middleware module."""
 
-import pytest
-from unittest.mock import MagicMock, patch
 
-from error_recovery.middleware import ErrorRecoveryMiddleware, ErrorRecovery, ToolCallError
-from error_recovery.models import ErrorRecoveryConfig, ErrorCategory, RecoveryResult
+import pytest
+
+from error_recovery.middleware import ErrorRecovery, ErrorRecoveryMiddleware, ToolCallError
+from error_recovery.models import ErrorCategory, ErrorRecoveryConfig, RecoveryResult
 
 
 class MockAgent:

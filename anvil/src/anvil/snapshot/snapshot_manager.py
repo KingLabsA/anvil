@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import time
-from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Optional
+from pathlib import Path
 
 
 @dataclass
@@ -39,9 +38,9 @@ class SnapshotManager:
     def create_snapshot(
         self,
         description: str = "",
-        files: Optional[dict[str, str]] = None,
+        files: dict[str, str] | None = None,
         tool_name: str = "",
-        tool_args: Optional[dict] = None,
+        tool_args: dict | None = None,
     ) -> Snapshot:
         """Create a new snapshot of file state."""
         self._snapshot_id_counter += 1
@@ -61,7 +60,7 @@ class SnapshotManager:
 
         return snapshot
 
-    def auto_snapshot(self, tool_name: str, tool_args: dict, files: Optional[dict[str, str]] = None) -> Snapshot:
+    def auto_snapshot(self, tool_name: str, tool_args: dict, files: dict[str, str] | None = None) -> Snapshot:
         """Auto-create a snapshot before a tool execution."""
         return self.create_snapshot(
             description=f"Auto-snapshot before {tool_name}",
@@ -70,7 +69,7 @@ class SnapshotManager:
             tool_args=tool_args,
         )
 
-    def undo(self) -> Optional[Snapshot]:
+    def undo(self) -> Snapshot | None:
         """Pop the last snapshot from the undo stack and push to redo."""
         if not self._undo_stack:
             return None
@@ -78,7 +77,7 @@ class SnapshotManager:
         self._redo_stack.append(snapshot)
         return snapshot
 
-    def redo(self) -> Optional[Snapshot]:
+    def redo(self) -> Snapshot | None:
         """Pop the last snapshot from the redo stack and push to undo."""
         if not self._redo_stack:
             return None
@@ -90,7 +89,7 @@ class SnapshotManager:
         """Return all snapshots in the undo stack (most recent last)."""
         return list(self._undo_stack)
 
-    def get_snapshot(self, snapshot_id: str) -> Optional[Snapshot]:
+    def get_snapshot(self, snapshot_id: str) -> Snapshot | None:
         """Get a snapshot by ID."""
         for snapshot in self._undo_stack:
             if snapshot.id == snapshot_id:
@@ -100,7 +99,7 @@ class SnapshotManager:
                 return snapshot
         return None
 
-    def apply_snapshot(self, snapshot: Snapshot, project_root: Optional[Path] = None) -> dict:
+    def apply_snapshot(self, snapshot: Snapshot, project_root: Path | None = None) -> dict:
         """Apply a snapshot, restoring files. Returns a dict with restored file info."""
         root = project_root or self.project_root
         restored = {}
@@ -132,7 +131,7 @@ class SnapshotManager:
     def redo_count(self) -> int:
         return len(self._redo_stack)
 
-    def share(self, snapshot: Optional[Snapshot] = None) -> str:
+    def share(self, snapshot: Snapshot | None = None) -> str:
         """Generate a shareable link/token for a snapshot."""
         target = snapshot or (self._undo_stack[-1] if self._undo_stack else None)
         if not target:

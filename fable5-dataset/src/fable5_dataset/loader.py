@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from fable5_dataset.preprocessor import Preprocessor
 
@@ -92,7 +92,7 @@ class DatasetLoader:
                     if min_quality > 0:
                         records = self.preprocessor.filter_quality(records, min_quality=min_quality)
                     results[name] = records
-                except Exception as e:
+                except Exception:
                     results[name] = []
             return results
 
@@ -139,7 +139,7 @@ class DatasetLoader:
                 record = dict(item)
                 records.append(record)
             return records
-        except (ImportError, Exception) as e:
+        except (ImportError, Exception):
             return self._load_synthetic(source)
 
     def _load_synthetic(self, source: str) -> list[dict[str, Any]]:
@@ -154,7 +154,7 @@ class DatasetLoader:
                         {"role": "assistant", "content": f"I'll help you with task {i}. Let me check the code.", "tool_use": [{"name": "read", "input": {"file_path": f"src/module_{i}.py"}}]},
                         {"role": "assistant", "content": f"Here's what I found. The issue is in line {i * 10}."},
                         {"role": "user", "content": "Can you fix it?"},
-                        {"role": "assistant", "content": f"I'll fix it now.", "tool_use": [{"name": "edit", "input": {"file_path": f"src/module_{i}.py", "old": "buggy", "new": "fixed"}}]},
+                        {"role": "assistant", "content": "I'll fix it now.", "tool_use": [{"name": "edit", "input": {"file_path": f"src/module_{i}.py", "old": "buggy", "new": "fixed"}}]},
                     ],
                     "metadata": {"source": "glint", "quality_score": 0.7 + (i * 0.02)},
                 })
@@ -175,7 +175,7 @@ class DatasetLoader:
                     "trajectory": [
                         {"role": "user", "content": f"Debug issue {i}"},
                         {"role": "assistant", "content": f"Let me investigate issue {i}.", "tool_use": {"name": "bash", "input": {"command": f"grep -r 'error_{i}' src/"}}},
-                        {"role": "assistant", "content": f"Found the error. Fixing now."},
+                        {"role": "assistant", "content": "Found the error. Fixing now."},
                     ],
                     "metadata": {"source": "vfable", "quality_score": 0.8},
                 })
@@ -186,9 +186,9 @@ class DatasetLoader:
                     "turns": [
                         {"role": "user", "content": f"Implement feature {i} with tests"},
                         {"role": "assistant", "content": f"I'll implement feature {i} following TDD."},
-                        {"role": "assistant", "content": f"First, let me write the test.", "tool_use": [{"name": "write", "input": {"path": f"tests/test_feature_{i}.py"}}]},
-                        {"role": "assistant", "content": f"Now the implementation.", "tool_use": [{"name": "write", "input": {"path": f"src/feature_{i}.py"}}]},
-                        {"role": "assistant", "content": f"Running tests.", "tool_use": [{"name": "bash", "input": {"command": "pytest"}}]},
+                        {"role": "assistant", "content": "First, let me write the test.", "tool_use": [{"name": "write", "input": {"path": f"tests/test_feature_{i}.py"}}]},
+                        {"role": "assistant", "content": "Now the implementation.", "tool_use": [{"name": "write", "input": {"path": f"src/feature_{i}.py"}}]},
+                        {"role": "assistant", "content": "Running tests.", "tool_use": [{"name": "bash", "input": {"command": "pytest"}}]},
                     ],
                     "quality_score": 0.9 + (i * 0.005),
                     "metadata": {"source": "coding_excellence"},

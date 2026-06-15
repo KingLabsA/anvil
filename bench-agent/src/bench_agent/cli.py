@@ -10,7 +10,8 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from bench_agent.evaluator import ModelProvider, evaluate_model, evaluate_with_retry
+from bench_agent.evaluator import evaluate_with_retry
+from bench_agent.models import ScoreReport
 from bench_agent.leaderboard import (
     export_leaderboard,
     export_markdown,
@@ -18,9 +19,9 @@ from bench_agent.leaderboard import (
     save_leaderboard,
     update_leaderboard,
 )
-from bench_agent.models import Leaderboard, TaskCategory
+from bench_agent.models import TaskCategory
 from bench_agent.runner import TaskRunner
-from bench_agent.tasks import ALL_TASKS, TASKS_BY_CATEGORY, get_task_count
+from bench_agent.tasks import ALL_TASKS, get_task_count
 
 
 console = Console()

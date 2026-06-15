@@ -14,15 +14,13 @@ import argparse
 import json
 import os
 import shutil
-import tempfile
-from pathlib import Path
 
 
 def export_to_onnx(model_path: str, output_dir: str, max_seq_length: int = 256):
     """Export HuggingFace model to ONNX format."""
     try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
     except ImportError:
         print("[ERROR] Install: pip install transformers torch")
         return False
@@ -99,7 +97,7 @@ def export_to_onnx(model_path: str, output_dir: str, max_seq_length: int = 256):
 def quantize_onnx_int8(onnx_path: str, output_dir: str):
     """Quantize ONNX model to INT8 for edge deployment."""
     try:
-        from onnxruntime.quantization import quantize_dynamic, QuantType
+        from onnxruntime.quantization import QuantType, quantize_dynamic
     except ImportError:
         print("[ERROR] Install: pip install onnxruntime")
         return None
@@ -138,14 +136,15 @@ def create_tokenizer_files(output_dir: str, tokenizer):
 def benchmark_onnx(onnx_path: str, tokenizer_path: str, max_seq_length: int = 64):
     """Benchmark ONNX model inference latency."""
     try:
-        import onnxruntime as ort
-        import numpy as np
         import time
+
+        import numpy as np
+        import onnxruntime as ort
     except ImportError:
         print("[WARN] onnxruntime not available for benchmarking")
         return
 
-    print(f"\n=== ONNX Inference Benchmark ===")
+    print("\n=== ONNX Inference Benchmark ===")
     print(f"  Model: {onnx_path}")
 
     sess_options = ort.SessionOptions()

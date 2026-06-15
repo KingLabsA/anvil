@@ -5,7 +5,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -77,7 +76,6 @@ class ErrorRecoveryConfig(BaseModel):
     track_success_rates: bool = True
 
     def backoff_seconds(self, attempt: int) -> float:
-        import math
 
         delay = min(self.backoff_base**attempt, self.backoff_max)
         jitter = delay * 0.1 * (hash(str(attempt)) % 10) / 10

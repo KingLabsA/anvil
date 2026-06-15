@@ -3,7 +3,6 @@
 import pytest
 
 from bench_agent.models import Difficulty, Task, TaskCategory, TaskResult
-from bench_agent.tasks import TASKS_BY_ID
 from bench_agent.scorer import (
     calculate_category_scores,
     calculate_overall_score,

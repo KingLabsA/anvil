@@ -60,7 +60,7 @@ jobs:
           if [ -f pyproject.toml ]; then pip install -e ".[dev]"; fi
 
       - name: Lint with ruff
-        run: ruff check . --output-format=github
+        run: ruff check . --config ruff.toml --output-format=github
 
       - name: Test with pytest
         run: pytest --tb=short -q --cov --cov-report=xml

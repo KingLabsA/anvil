@@ -1,42 +1,38 @@
 """Unit tests for ReasonCritic."""
 
 import json
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from reason_critic.critic import (
-    ReasonCritic,
-    VerificationResult,
-    StepVerification,
-    RunVerification,
-    Verdict,
     LocalBackend,
-    APIBackend,
-    HybridBackend,
-    _parse_output,
+    ReasonCritic,
+    RunVerification,
+    StepVerification,
+    Verdict,
+    VerificationResult,
     _build_prompt,
     _detect_language,
+    _parse_output,
 )
 from reason_critic.data_prep import (
-    VerificationExample,
     ContrastivePair,
-    extract_verification_pairs,
-    generate_incorrect_versions,
-    create_contrastive_pairs,
-    format_training_prompt,
-    format_contrastive_prompt,
-    examples_to_dataset,
-    pairs_to_dataset,
+    VerificationExample,
     _apply_bug,
+    create_contrastive_pairs,
+    examples_to_dataset,
+    extract_verification_pairs,
+    format_contrastive_prompt,
+    format_training_prompt,
+    generate_incorrect_versions,
+    pairs_to_dataset,
 )
 from reason_critic.pipeline import (
-    GenerateVerifyPipeline,
-    GeneratorWrapper,
-    VerifiedResult,
     GenerationAttempt,
+    VerifiedResult,
     _extract_code,
 )
-
 
 # ===== VerificationResult =====
 

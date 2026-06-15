@@ -12,9 +12,9 @@ Resolution order (most specific wins, last match takes precedence):
 from __future__ import annotations
 
 import fnmatch
-from enum import Enum
 from dataclasses import dataclass, field
-from typing import Optional, Any, Union
+from enum import Enum
+from typing import Any, Union
 
 
 class PermissionAction(str, Enum):
@@ -69,17 +69,17 @@ class PermissionConfig:
                separated by a space: ``"bash rm *": "deny"``.
     """
 
-    rules: dict[str, Union[str, PermissionAction]] = field(default_factory=dict)
+    rules: dict[str, str | PermissionAction] = field(default_factory=dict)
 
     # ── convenience constructors ──────────────────────────────────────
 
     @classmethod
-    def permissive(cls) -> "PermissionConfig":
+    def permissive(cls) -> PermissionConfig:
         """Allow everything."""
         return cls(rules={"*": PermissionAction.ALLOW})
 
     @classmethod
-    def readonly(cls) -> "PermissionConfig":
+    def readonly(cls) -> PermissionConfig:
         """Read-only: allow read/grep/glob/ls, deny write/edit/bash."""
         return cls(rules={
             "read": PermissionAction.ALLOW,
@@ -95,7 +95,7 @@ class PermissionConfig:
         })
 
     @classmethod
-    def strict(cls) -> "PermissionConfig":
+    def strict(cls) -> PermissionConfig:
         """Ask before anything destructive, allow reads."""
         return cls(rules={
             "read": PermissionAction.ALLOW,
@@ -116,8 +116,8 @@ class PermissionConfig:
         return {k: v.value if isinstance(v, PermissionAction) else v for k, v in self.rules.items()}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PermissionConfig":
-        rules: dict[str, Union[str, PermissionAction]] = {}
+    def from_dict(cls, data: dict[str, Any]) -> PermissionConfig:
+        rules: dict[str, str | PermissionAction] = {}
         for key, value in data.items():
             if isinstance(value, PermissionAction):
                 rules[key] = value
@@ -145,7 +145,7 @@ class PermissionManager:
         The project-wide default permission set.
     """
 
-    def __init__(self, global_config: Optional[PermissionConfig] = None):
+    def __init__(self, global_config: PermissionConfig | None = None):
         self.global_config = global_config or PermissionConfig.permissive()
 
     # ── public API ────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ class PermissionManager:
         self,
         tool: str,
         args: dict[str, Any],
-        agent_config: Optional[PermissionConfig] = None,
+        agent_config: PermissionConfig | None = None,
     ) -> PermissionAction:
         """Return the effective action for a tool call.
 
@@ -192,7 +192,7 @@ class PermissionManager:
 
         # Scan all rules and collect matches with specificity.
         # Among matches with equal specificity, later entries win.
-        best_action: Optional[PermissionAction] = None
+        best_action: PermissionAction | None = None
         best_specificity = -1
 
         for pattern, raw_action in merged.items():
@@ -210,7 +210,7 @@ class PermissionManager:
         self,
         tool: str,
         args: dict[str, Any],
-        agent_config: Optional[PermissionConfig] = None,
+        agent_config: PermissionConfig | None = None,
     ) -> bool:
         """Convenience: True if the action is ALLOW (no user confirmation needed)."""
         return self.check_permission(tool, args, agent_config) == PermissionAction.ALLOW
@@ -219,7 +219,7 @@ class PermissionManager:
         self,
         tool: str,
         args: dict[str, Any],
-        agent_config: Optional[PermissionConfig] = None,
+        agent_config: PermissionConfig | None = None,
     ) -> bool:
         """Convenience: True if the action is ASK (user must confirm)."""
         return self.check_permission(tool, args, agent_config) == PermissionAction.ASK
@@ -228,7 +228,7 @@ class PermissionManager:
         self,
         tool: str,
         args: dict[str, Any],
-        agent_config: Optional[PermissionConfig] = None,
+        agent_config: PermissionConfig | None = None,
     ) -> bool:
         """Convenience: True if the action is DENY (tool call rejected)."""
         return self.check_permission(tool, args, agent_config) == PermissionAction.DENY
@@ -251,12 +251,12 @@ class PermissionManager:
                 return True
         return False
 
-    def _merge_rules(self, agent_config: Optional[PermissionConfig]) -> dict[str, Union[str, PermissionAction]]:
+    def _merge_rules(self, agent_config: PermissionConfig | None) -> dict[str, str | PermissionAction]:
         """Merge global rules with agent-specific overrides.
 
         Agent rules come **after** global rules so they win on ties.
         """
-        merged: dict[str, Union[str, PermissionAction]] = {}
+        merged: dict[str, str | PermissionAction] = {}
         merged.update(self.global_config.rules)
         if agent_config:
             merged.update(agent_config.rules)

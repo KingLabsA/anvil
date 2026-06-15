@@ -2,23 +2,22 @@
 
 from __future__ import annotations
 
-import os
-import re
-import subprocess
 import difflib
 import fnmatch
+import re
+import subprocess
+from dataclasses import dataclass
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Optional, Any
+from typing import Any
 
 from anvil.tools.new_tools import (
+    TodoListManager,
     apply_patch,
+    image,
+    question,
     todowrite,
     webfetch,
     websearch,
-    question,
-    image,
-    TodoListManager,
 )
 
 
@@ -26,10 +25,10 @@ from anvil.tools.new_tools import (
 class ToolResult:
     success: bool
     output: str
-    error: Optional[str] = None
+    error: str | None = None
     exit_code: int = 0
-    file_path: Optional[str] = None
-    diff: Optional[str] = None
+    file_path: str | None = None
+    diff: str | None = None
     duration_ms: float = 0.0
 
 

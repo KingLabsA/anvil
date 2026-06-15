@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import os
-import re
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Optional, Callable, Any
 
 
 @dataclass
@@ -14,7 +12,7 @@ class Command:
     """A slash command definition."""
     name: str
     description: str
-    handler: Optional[Callable] = None
+    handler: Callable | None = None
     template: str = ""
     hidden: bool = False
 
@@ -34,7 +32,7 @@ BUILTIN_COMMANDS: dict[str, Command] = {
 class CommandManager:
     """Manage built-in and custom slash commands."""
 
-    def __init__(self, project_root: Optional[str] = None) -> None:
+    def __init__(self, project_root: str | None = None) -> None:
         self.project_root = Path(project_root) if project_root else Path.cwd()
         self._commands: dict[str, Command] = dict(BUILTIN_COMMANDS)
         self._custom_templates: dict[str, str] = {}
@@ -43,7 +41,7 @@ class CommandManager:
         """Register a command (built-in or custom)."""
         self._commands[command.name] = command
 
-    def get(self, name: str) -> Optional[Command]:
+    def get(self, name: str) -> Command | None:
         """Get a command by name."""
         return self._commands.get(name)
 

@@ -2,20 +2,12 @@
 
 from __future__ import annotations
 
-import time
-from typing import Optional
-from rich.live import Live
 from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
 from rich.layout import Layout
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
-from rich.text import Text
-from rich.columns import Columns
+from rich.panel import Panel
 
-from anvil.core.session import Session, Step, StepStatus, StepKind
-from anvil.verify.pipeline import VerifyReport, VerifyStatus
-
+from anvil.core.session import Session, StepKind, StepStatus
+from anvil.verify.pipeline import VerifyReport
 
 STATUS_ICONS = {
     StepStatus.SUCCESS: "[green]✓[/]",
@@ -37,7 +29,7 @@ KIND_COLORS = {
 
 
 class AnvilTUI:
-    def __init__(self, console: Optional[Console] = None):
+    def __init__(self, console: Console | None = None):
         self.console = console or Console()
 
     def render_session(self, session: Session) -> Panel:
@@ -82,7 +74,7 @@ class AnvilTUI:
             title="[bold]Progress[/]", border_style="cyan",
         )
 
-    def render_dashboard(self, session: Session, verify_report: Optional[VerifyReport] = None) -> Layout:
+    def render_dashboard(self, session: Session, verify_report: VerifyReport | None = None) -> Layout:
         layout = Layout()
         layout.split_column(
             Layout(name="header", size=3),

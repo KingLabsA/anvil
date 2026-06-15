@@ -18,7 +18,6 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.syntax import Syntax
 
 console = Console()
 
@@ -82,16 +81,16 @@ def verify(code, file, trace, model, backend, api_endpoint, language, context, o
 def train(data, output, model, stage, epochs, batch_size, learning_rate):
     """Train the ReasonCritic model."""
     from reason_critic.data_prep import (
-        VerificationExample,
         ContrastivePair,
+        VerificationExample,
         create_contrastive_pairs,
     )
     from reason_critic.trainer import (
         TrainingConfig,
         run_three_stage_pipeline,
         train_contrastive,
-        train_lora,
         train_dpo,
+        train_lora,
     )
 
     config = TrainingConfig(model_name=model, output_dir=output)
@@ -174,6 +173,7 @@ def train(data, output, model, stage, epochs, batch_size, learning_rate):
 def serve(port, host, model, backend, api_endpoint):
     """Start the ReasonCritic FastAPI server."""
     import uvicorn
+
     import reason_critic.server as server_module
 
     console.print(Panel.fit(

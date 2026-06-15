@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 import os
 import re
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Any
+from typing import Any
 
 
 def _substitute_vars(value: Any) -> Any:
@@ -51,18 +51,18 @@ def _deep_substitute(data: Any) -> Any:
 @dataclass
 class ModelConfigV2:
     name: str = "local"
-    api_key: Optional[str] = None
-    api_base: Optional[str] = None
+    api_key: str | None = None
+    api_base: str | None = None
     max_tokens: int = 4096
     temperature: float = 0.2
     context_window: int = 128000
-    system_prompt: Optional[str] = None
+    system_prompt: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ModelConfigV2":
+    def from_dict(cls, data: dict[str, Any]) -> ModelConfigV2:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
@@ -71,7 +71,7 @@ class AgentConfig:
     name: str = "anvil"
     description: str = ""
     model: str = ""
-    system_prompt: Optional[str] = None
+    system_prompt: str | None = None
     tools: list[str] = field(default_factory=list)
     max_iterations: int = 20
     auto_snapshot: bool = True
@@ -80,7 +80,7 @@ class AgentConfig:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AgentConfig":
+    def from_dict(cls, data: dict[str, Any]) -> AgentConfig:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
@@ -138,7 +138,7 @@ class ServerConfig:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ServerConfig":
+    def from_dict(cls, data: dict[str, Any]) -> ServerConfig:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
@@ -295,7 +295,7 @@ class AnvilConfigV2:
         return json.dumps(opencode_data, indent=2, default=str)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AnvilConfigV2":
+    def from_dict(cls, data: dict[str, Any]) -> AnvilConfigV2:
         config = cls()
         if "model" in data:
             config.model = ModelConfigV2.from_dict(data["model"])
@@ -333,7 +333,7 @@ class AnvilConfigV2:
         return config
 
     @classmethod
-    def load(cls, project_dir: Optional[str] = None) -> "AnvilConfigV2":
+    def load(cls, project_dir: str | None = None) -> AnvilConfigV2:
         """Load config from multiple sources with precedence.
 
         Precedence: env vars > project config > global config > defaults
@@ -364,7 +364,7 @@ class AnvilConfigV2:
         return config
 
     @classmethod
-    def _load_global_config(cls) -> Optional[dict[str, Any]]:
+    def _load_global_config(cls) -> dict[str, Any] | None:
         """Load global config from ~/.config/anvil/config.json."""
         global_path = Path.home() / ".config" / "anvil" / "config.json"
         if global_path.exists():
@@ -375,7 +375,7 @@ class AnvilConfigV2:
         return None
 
     @classmethod
-    def _load_project_config(cls, project_root: Path) -> Optional[dict[str, Any]]:
+    def _load_project_config(cls, project_root: Path) -> dict[str, Any] | None:
         """Load project config from opencode.json, anvil.json, or .anvil/config.json."""
         candidates = [
             project_root / "opencode.json",
@@ -398,7 +398,7 @@ class AnvilConfigV2:
         return None
 
     @classmethod
-    def _load_toml(cls, path: Path) -> Optional[dict[str, Any]]:
+    def _load_toml(cls, path: Path) -> dict[str, Any] | None:
         """Load legacy anvil.toml format (simple key=value parser)."""
         try:
             import tomllib
@@ -409,7 +409,7 @@ class AnvilConfigV2:
             pass
 
         data: dict[str, Any] = {}
-        current_section: Optional[str] = None
+        current_section: str | None = None
         for line in path.read_text().splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
@@ -430,7 +430,7 @@ class AnvilConfigV2:
         return data
 
     @classmethod
-    def _apply_env_overrides(cls, config: "AnvilConfigV2") -> "AnvilConfigV2":
+    def _apply_env_overrides(cls, config: AnvilConfigV2) -> AnvilConfigV2:
         """Apply environment variable overrides."""
         env_map = {
             "ANVIL_MODEL": ("model", "name"),
@@ -457,14 +457,14 @@ class AnvilConfigV2:
         return config
 
     @classmethod
-    def _apply_variable_substitution(cls, config: "AnvilConfigV2") -> "AnvilConfigV2":
+    def _apply_variable_substitution(cls, config: AnvilConfigV2) -> AnvilConfigV2:
         """Apply {env:VAR} and {file:path} substitution to all string fields."""
         data = config.to_dict()
         substituted = _deep_substitute(data)
         return cls.from_dict(substituted)
 
     @classmethod
-    def _merge_configs(cls, base: "AnvilConfigV2", override: dict[str, Any]) -> "AnvilConfigV2":
+    def _merge_configs(cls, base: AnvilConfigV2, override: dict[str, Any]) -> AnvilConfigV2:
         """Merge a base config with an override dict."""
         base_dict = base.to_dict()
         merged = cls._deep_merge(base_dict, override)
@@ -481,13 +481,13 @@ class AnvilConfigV2:
                 result[key] = value
         return result
 
-    def save(self, path: Optional[str] = None) -> None:
+    def save(self, path: str | None = None) -> None:
         """Save config to a file."""
         target = Path(path) if path else Path(self.project_root) / "anvil.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(self.to_json())
 
-    def migrate_from_v1(self, v1_config: "Any") -> None:
+    def migrate_from_v1(self, v1_config: Any) -> None:
         """Migrate from legacy AnvilConfig (v1) to V2."""
         from anvil.core.config import AnvilConfig as V1Config
         if isinstance(v1_config, V1Config):

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import fnmatch
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Any
 
 
 @dataclass
@@ -30,7 +29,7 @@ class RulesManager:
     Rules are prepended to the system prompt to guide agent behavior.
     """
 
-    def __init__(self, project_root: Optional[str] = None, instructions: Optional[list[str]] = None):
+    def __init__(self, project_root: str | None = None, instructions: list[str] | None = None):
         self.project_root = Path(project_root) if project_root else Path.cwd()
         self.instructions = instructions or []
         self._rules: list[Rule] = []
@@ -174,7 +173,7 @@ class RulesManager:
             rule.priority += 10
         self._rules.extend(new_rules)
 
-    def _make_rule(self, lines: list[str], section: str, source: str) -> Optional[Rule]:
+    def _make_rule(self, lines: list[str], section: str, source: str) -> Rule | None:
         """Create a Rule from accumulated lines and section header."""
         content = "\n".join(lines).strip()
         if not content:

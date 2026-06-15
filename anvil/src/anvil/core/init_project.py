@@ -12,15 +12,14 @@ from __future__ import annotations
 import json
 import os
 import re
-import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Confirm
 from rich.table import Table
-from rich.prompt import Confirm, Prompt
 
 console = Console()
 
@@ -132,7 +131,7 @@ class ProjectAnalysis:
 class ProjectAnalyzer:
     """Scan a project directory and detect language, framework, and tooling."""
 
-    def __init__(self, project_dir: Optional[str] = None):
+    def __init__(self, project_dir: str | None = None):
         self.project_dir = Path(project_dir or os.getcwd()).resolve()
 
     def analyze(self) -> ProjectAnalysis:
@@ -397,7 +396,7 @@ class ProjectAnalyzer:
 class AgentsMdGenerator:
     """Generate AGENTS.md from project analysis."""
 
-    def __init__(self, analysis: ProjectAnalysis, project_dir: Optional[str] = None):
+    def __init__(self, analysis: ProjectAnalysis, project_dir: str | None = None):
         self.analysis = analysis
         self.project_dir = Path(project_dir or os.getcwd()).resolve()
 
@@ -590,7 +589,7 @@ class AgentsMdGenerator:
 class ProjectInitializer:
     """Initialize an Anvil project by detecting the tech stack and creating config."""
 
-    def __init__(self, project_dir: Optional[str] = None, interactive: bool = True):
+    def __init__(self, project_dir: str | None = None, interactive: bool = True):
         self.project_dir = Path(project_dir or os.getcwd()).resolve()
         self.interactive = interactive
         self.analyzer = ProjectAnalyzer(str(self.project_dir))
@@ -622,17 +621,17 @@ class ProjectInitializer:
         console.print()
         console.print(Panel(
             "[bold green]✓ Project initialized![/]\n\n"
-            f"Created:\n"
-            f"  • [cyan].anvil/config.json[/]\n"
-            f"  • [cyan].anvil/agents/[/]\n"
-            f"  • [cyan].anvil/commands/[/]\n"
-            f"  • [cyan].anvil/rules/[/]\n"
-            f"  • [cyan]AGENTS.md[/]\n\n"
-            f"Next steps:\n"
-            f"  1. Review [bold]AGENTS.md[/] and customize\n"
-            f"  2. Add custom agents to [bold].anvil/agents/[/]\n"
-            f"  3. Add custom commands to [bold].anvil/commands/[/]\n"
-            f"  4. Run [bold]anvil chat[/] to start coding",
+            "Created:\n"
+            "  • [cyan].anvil/config.json[/]\n"
+            "  • [cyan].anvil/agents/[/]\n"
+            "  • [cyan].anvil/commands/[/]\n"
+            "  • [cyan].anvil/rules/[/]\n"
+            "  • [cyan]AGENTS.md[/]\n\n"
+            "Next steps:\n"
+            "  1. Review [bold]AGENTS.md[/] and customize\n"
+            "  2. Add custom agents to [bold].anvil/agents/[/]\n"
+            "  3. Add custom commands to [bold].anvil/commands/[/]\n"
+            "  4. Run [bold]anvil chat[/] to start coding",
             border_style="green",
         ))
 
@@ -754,7 +753,7 @@ class ProjectInitializer:
         filepath = self.project_dir / ".anvil" / "config.json"
         filepath.write_text(json.dumps(config, indent=2, default=str), encoding="utf-8")
 
-    def _detect_test_command(self, analysis: ProjectAnalysis) -> Optional[str]:
+    def _detect_test_command(self, analysis: ProjectAnalysis) -> str | None:
         lang = analysis.language
         fw = analysis.framework
 
@@ -774,7 +773,7 @@ class ProjectInitializer:
             return "./gradlew test"
         return None
 
-    def _detect_lint_command(self, analysis: ProjectAnalysis) -> Optional[str]:
+    def _detect_lint_command(self, analysis: ProjectAnalysis) -> str | None:
         linter = analysis.linter
 
         if linter == "ruff":

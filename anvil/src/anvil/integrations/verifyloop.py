@@ -14,9 +14,8 @@ When VerifyLoop is not installed, Anvil falls back to built-in verification.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from typing import Any
 
 from anvil.verify.pipeline import VerifyPipeline, VerifyReport, VerifyResult, VerifyStatus
 
@@ -26,7 +25,7 @@ class VerifyLoopStep:
     step_type: str  # plan, execute, verify, recover
     content: str
     status: str = "pending"
-    result: Optional[str] = None
+    result: str | None = None
     recovery_attempts: int = 0
 
 
@@ -46,7 +45,7 @@ class VerifyLoopIntegration:
     Anvil's built-in verification otherwise.
     """
 
-    def __init__(self, verify_config: Optional[Any] = None):
+    def __init__(self, verify_config: Any | None = None):
         self.verify_config = verify_config
         self._verifyloop = None
         self._built_in = VerifyPipeline(verify_config)
@@ -72,16 +71,16 @@ class VerifyLoopIntegration:
     def verify(
         self,
         files: list[str],
-        test_command: Optional[str] = None,
+        test_command: str | None = None,
         working_dir: str = ".",
-        checks: Optional[list[str]] = None,
+        checks: list[str] | None = None,
     ) -> VerifyReport:
         if self._available:
             return self._verify_with_verifyloop(files, test_command, working_dir)
         return self._built_in.verify(files, test_command, working_dir, checks)
 
     def _verify_with_verifyloop(
-        self, files: list[str], test_command: Optional[str], working_dir: str,
+        self, files: list[str], test_command: str | None, working_dir: str,
     ) -> VerifyReport:
         report = VerifyReport()
         try:

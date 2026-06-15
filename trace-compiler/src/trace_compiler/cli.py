@@ -11,19 +11,17 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 
-from trace_compiler.parser import TraceParser, TraceRecord
-from trace_compiler.skill_extractor import SkillExtractor, SkillType, SkillExample
 from trace_compiler.distiller import Distiller, TrainingConfig
-from trace_compiler.evaluator import Evaluator, EvaluationReport
+from trace_compiler.evaluator import Evaluator
+from trace_compiler.parser import TraceParser
+from trace_compiler.skill_extractor import SkillExtractor, SkillType
 
 console = Console()
 
@@ -60,7 +58,7 @@ def cli() -> None:
 @click.option("--format", "trace_format", type=click.Choice(["auto", "glint", "armand0e", "vfable"]), default="auto", help="Trace format")
 @click.option("--output", "-o", type=click.Path(path_type=Path), default=None, help="Output file (JSON)")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
-def parse(input_file: Path, trace_format: str, output: Optional[Path], verbose: bool) -> None:
+def parse(input_file: Path, trace_format: str, output: Path | None, verbose: bool) -> None:
     """Parse JSONL traces into unified TraceRecord format."""
     console.print(f"[bold blue]Parsing:[/bold blue] {input_file}")
 
@@ -99,7 +97,7 @@ def parse(input_file: Path, trace_format: str, output: Optional[Path], verbose: 
 @click.option("--min-confidence", type=float, default=0.5, help="Minimum confidence threshold")
 @click.option("--output", "-o", type=click.Path(path_type=Path), default=None, help="Output file (JSON)")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
-def extract(input_file: Path, skill: str, min_confidence: float, output: Optional[Path], verbose: bool) -> None:
+def extract(input_file: Path, skill: str, min_confidence: float, output: Path | None, verbose: bool) -> None:
     """Extract skill examples from parsed traces."""
     skill_type = _resolve_skill(skill)
     console.print(f"[bold blue]Extracting[/bold blue] {skill_type.value} examples from {input_file}")
@@ -140,7 +138,7 @@ def compile(
     input_file: Path,
     skill: str,
     model: str,
-    config: Optional[Path],
+    config: Path | None,
     output: Path,
     min_confidence: float,
 ) -> None:
@@ -178,7 +176,7 @@ def compile(
 
     console.print("[bold]Starting LoRA training...[/bold]")
     adapter_path = distiller.train(examples, skill_type)
-    console.print(f"[bold green]Training complete![/bold green]")
+    console.print("[bold green]Training complete![/bold green]")
     console.print(f"  Adapter saved to: {adapter_path}")
 
 
@@ -191,7 +189,7 @@ def evaluate(
     skill: str,
     adapter: Path,
     model: str,
-    output: Optional[Path],
+    output: Path | None,
 ) -> None:
     """Evaluate distilled skill adapter against base model."""
     skill_type = _resolve_skill(skill)
@@ -232,7 +230,7 @@ def evaluate(
 
     console.print(table)
 
-    console.print(f"\n[bold]Overall:[/bold]")
+    console.print("\n[bold]Overall:[/bold]")
     console.print(f"  Base score:     {report.overall_base_score:.3f}")
     console.print(f"  Adapted score:  {report.overall_adapted_score:.3f}")
     console.print(f"  Improvement:    {report.overall_improvement:+.3f}")
@@ -267,7 +265,7 @@ def inspect(input_file: Path, verbose: bool) -> None:
 
     console.print(f"  Total lines: {len(lines)}")
     console.print(f"  Valid JSON: {total_records}")
-    console.print(f"  Format distribution:")
+    console.print("  Format distribution:")
     for fmt_name, count in format_counts.items():
         pct = (count / total_records * 100) if total_records > 0 else 0
         console.print(f"    {fmt_name}: {count} ({pct:.1f}%)")
@@ -288,7 +286,7 @@ def inspect(input_file: Path, verbose: bool) -> None:
                 thinking_count += 1
 
         console.print(f"\n  [bold]Parsed records:[/bold] {len(records)}")
-        console.print(f"  Role distribution:")
+        console.print("  Role distribution:")
         for role, count in role_counts.items():
             console.print(f"    {role}: {count}")
         console.print(f"  Records with tool calls: {tool_call_count}")

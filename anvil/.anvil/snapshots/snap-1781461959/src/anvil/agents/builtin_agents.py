@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from anvil.agents.agent_base import BaseAgent, AgentMode
+from anvil.agents.agent_base import AgentMode, BaseAgent
 from anvil.permissions.permissions import PermissionConfig
-
 
 ALL_TOOLS = [
     "bash", "read", "write", "edit", "grep", "glob", "ls",

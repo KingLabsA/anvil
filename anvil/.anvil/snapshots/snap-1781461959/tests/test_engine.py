@@ -1,20 +1,14 @@
 """Tests for Anvil engine — initialization, plan, execute, verify, recover, config, session tracking."""
 
 import json
-import os
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
-import pytest
-
-from anvil.core.config import AnvilConfig, ModelConfig, VerifyConfig, ToolConfig, CostConfig
-from anvil.core.session import Session, Step, StepKind, StepStatus, ToolCall, SessionStats
-from anvil.core.engine import AnvilEngine, EngineResult, TOOL_DEFINITIONS, SYSTEM_PROMPT
-from anvil.tools.executor import ToolExecutor, ToolResult
+from anvil.core.config import AnvilConfig, CostConfig, ModelConfig, ToolConfig, VerifyConfig
+from anvil.core.engine import SYSTEM_PROMPT, TOOL_DEFINITIONS, AnvilEngine, EngineResult
+from anvil.core.session import Session, Step, StepKind, StepStatus
+from anvil.tools.executor import ToolExecutor
 from anvil.verify.pipeline import VerifyPipeline, VerifyReport, VerifyResult, VerifyStatus
-from anvil.models.registry import ModelRegistry, BaseModel, Message, ModelResponse
-
 
 # ---------------------------------------------------------------------------
 # AnvilEngine initialization
