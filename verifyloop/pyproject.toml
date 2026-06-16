@@ -44,8 +44,8 @@ dev = [
 vl = "verifyloop.cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/fableforge/verifyloop"
-Repository = "https://github.com/fableforge/verifyloop"
+Homepage = "https://github.com/KingLabsA/verifyloop"
+Repository = "https://github.com/KingLabsA/verifyloop"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/verifyloop"]

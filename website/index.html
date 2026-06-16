@@ -741,6 +741,18 @@ a:hover { color: var(--accent-hover); }
   border: 1px solid var(--border);
 }
 
+.eco-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  transition: color 0.2s;
+}
+
+.eco-card-link:hover { color: var(--accent); }
+
 .eco-card-tag {
   display: inline-block;
   font-size: 0.65rem;
@@ -1227,7 +1239,7 @@ footer {
         <a href="/fableforge/download.html" class="btn btn-primary">
           <i class="fas fa-download"></i> Download Desktop App
         </a>
-        <a href="https://github.com/KingLabsA/anvil" class="btn btn-secondary" target="_blank">
+        <a href="https://github.com/KingLabsA/anvil" class="btn btn-secondary" target="_blank" rel="noopener">
           <i class="fab fa-github"></i> View on GitHub
         </a>
       </div>
@@ -1424,6 +1436,7 @@ footer {
         </div>
         <p class="eco-card-desc">The self-verified coding agent. Plans, executes, verifies, recovers — until tests pass.</p>
         <div class="eco-card-install">pip install anvil-agent</div>
+        <a href="https://github.com/KingLabsA/anvil" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="core">
         <div class="eco-card-header">
@@ -1433,6 +1446,7 @@ footer {
         </div>
         <p class="eco-card-desc">The verification loop engine. Runs tests, parses failures, feeds signals back to recovery.</p>
         <div class="eco-card-install">pip install verifyloop</div>
+        <a href="https://github.com/KingLabsA/verifyloop" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="core">
         <div class="eco-card-header">
@@ -1442,6 +1456,7 @@ footer {
         </div>
         <p class="eco-card-desc">Structured error diagnosis and targeted fix generation from test failure signals.</p>
         <div class="eco-card-install">pip install errorrecovery</div>
+        <a href="https://github.com/KingLabsA/error-recovery" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="core">
         <div class="eco-card-header">
@@ -1451,6 +1466,7 @@ footer {
         </div>
         <p class="eco-card-desc">Multi-agent orchestration for parallel task execution with shared context.</p>
         <div class="eco-card-install">pip install agentswarm</div>
+        <a href="https://github.com/KingLabsA/agent-swarm" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="models">
         <div class="eco-card-header">
@@ -1460,6 +1476,7 @@ footer {
         </div>
         <p class="eco-card-desc">14B parameter coding model fine-tuned on verified agent traces. Full code understanding.</p>
         <div class="eco-card-install">pip install fableforge-14b</div>
+        <a href="https://github.com/KingLabsA/fableforge-14b" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="models">
         <div class="eco-card-header">
@@ -1469,6 +1486,7 @@ footer {
         </div>
         <p class="eco-card-desc">Lightweight shell command model for terminal interaction and environment execution.</p>
         <div class="eco-card-install">pip install shellwhisperer</div>
+        <a href="https://github.com/KingLabsA/shell-whisperer" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="models">
         <div class="eco-card-header">
@@ -1478,6 +1496,7 @@ footer {
         </div>
         <p class="eco-card-desc">Reasoning critic model for verifying logic, catching edge cases, and detecting hallucinations.</p>
         <div class="eco-card-install">pip install reasoncritic</div>
+        <a href="https://github.com/KingLabsA/reason-critic" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="data">
         <div class="eco-card-header">
@@ -1487,6 +1506,7 @@ footer {
         </div>
         <p class="eco-card-desc">210K+ verified agent traces across Python, JS, Rust, Go — the training fuel for Anvil models.</p>
         <div class="eco-card-install">pip install fableforge-dataset</div>
+        <a href="https://github.com/KingLabsA/fable5-dataset" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="data">
         <div class="eco-card-header">
@@ -1496,6 +1516,7 @@ footer {
         </div>
         <p class="eco-card-desc">Filters, cleans, and distills raw agent traces into high-quality training examples.</p>
         <div class="eco-card-install">pip install trajectory-distiller</div>
+        <a href="https://github.com/KingLabsA/trajectory-distiller" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="data">
         <div class="eco-card-header">
@@ -1505,6 +1526,7 @@ footer {
         </div>
         <p class="eco-card-desc">Compiles multi-step agent traces into structured, tokenized training data for fine-tuning.</p>
         <div class="eco-card-install">pip install trace-compiler</div>
+        <a href="https://github.com/KingLabsA/trace-compiler" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="infra">
         <div class="eco-card-header">
@@ -1514,6 +1536,7 @@ footer {
         </div>
         <p class="eco-card-desc">Production runtime for deploying Anvil agents with sandboxed execution and monitoring.</p>
         <div class="eco-card-install">pip install anvil-runtime</div>
+        <a href="https://github.com/KingLabsA/agent-runtime" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="infra">
         <div class="eco-card-header">
@@ -1523,6 +1546,7 @@ footer {
         </div>
         <p class="eco-card-desc">Observability for agent loops — trace every verify-recover cycle, token usage, and latency.</p>
         <div class="eco-card-install">pip install anvil-telemetry</div>
+        <a href="https://github.com/KingLabsA/agent-telemetry" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
       <div class="eco-card" data-category="infra">
         <div class="eco-card-header">
@@ -1532,6 +1556,7 @@ footer {
         </div>
         <p class="eco-card-desc">Automated benchmarking framework for evaluating agent performance across coding tasks.</p>
         <div class="eco-card-install">pip install benchagent</div>
+        <a href="https://github.com/KingLabsA/bench-agent" class="eco-card-link" target="_blank" rel="noopener"><i class="fab fa-github"></i> View on GitHub</a>
       </div>
     </div>
   </div>
@@ -1582,7 +1607,8 @@ footer {
             <text x="240" y="55" text-anchor="middle" fill="var(--success)" font-size="10" font-family="var(--font-mono)">Output</text>
           </svg>
         </div>
-        <a href="https://github.com/KingLabsA/anvil" class="btn btn-primary">Get FableForge-14B</a>
+        <a href="https://github.com/KingLabsA/fableforge-14b" class="btn btn-primary">Get FableForge-14B</a>
+        <a href="https://github.com/KingLabsA/fableforge-14b" class="btn btn-primary">Get FableForge-14B</a>
       </div>
       <div class="model-card">
         <span class="model-card-badge">Train Free on Colab</span>
@@ -1619,7 +1645,8 @@ footer {
             <text x="235" y="55" text-anchor="middle" fill="var(--success)" font-size="10" font-family="var(--font-mono)">Exec</text>
           </svg>
         </div>
-        <a href="https://github.com/KingLabsA/anvil" class="btn btn-secondary">Get ShellWhisperer</a>
+        <a href="https://github.com/KingLabsA/shell-whisperer" class="btn btn-secondary">Get ShellWhisperer</a>
+        <a href="https://github.com/KingLabsA/shell-whisperer" class="btn btn-secondary">Get ShellWhisperer</a>
       </div>
       <div class="model-card">
         <span class="model-card-badge">Train Free on Colab</span>
@@ -1659,7 +1686,8 @@ footer {
             <text x="245" y="55" text-anchor="middle" fill="var(--success)" font-size="9" font-family="var(--font-mono)">Pass/Fail</text>
           </svg>
         </div>
-        <a href="https://github.com/KingLabsA/anvil" class="btn btn-secondary">Get ReasonCritic</a>
+        <a href="https://github.com/KingLabsA/reason-critic" class="btn btn-secondary">Get ReasonCritic</a>
+        <a href="https://github.com/KingLabsA/reason-critic" class="btn btn-secondary">Get ReasonCritic</a>
       </div>
     </div>
   </div>
@@ -1813,7 +1841,7 @@ footer {
         <i class="fab fa-github"></i>
         <h3>GitHub</h3>
         <p>Star, fork, and contribute to all 21 projects in the FableForge ecosystem.</p>
-        <a href="https://github.com/KingLabsA/anvil" class="btn btn-secondary" target="_blank">
+        <a href="https://github.com/KingLabsA" class="btn btn-secondary" target="_blank" rel="noopener">
           <i class="fab fa-github"></i> View on GitHub
         </a>
       </div>
@@ -1858,11 +1886,11 @@ footer {
       <div class="footer-col">
         <h4>Projects</h4>
         <ul>
-          <li><a href="#">Anvil</a></li>
-          <li><a href="#">VerifyLoop</a></li>
-          <li><a href="#">ErrorRecovery</a></li>
-          <li><a href="#">FableForge-14B</a></li>
-          <li><a href="#">ShellWhisperer</a></li>
+          <li><a href="https://github.com/KingLabsA/anvil" target="_blank" rel="noopener">Anvil</a></li>
+          <li><a href="https://github.com/KingLabsA/verifyloop" target="_blank" rel="noopener">VerifyLoop</a></li>
+          <li><a href="https://github.com/KingLabsA/error-recovery" target="_blank" rel="noopener">ErrorRecovery</a></li>
+          <li><a href="https://github.com/KingLabsA/fableforge-14b" target="_blank" rel="noopener">FableForge-14B</a></li>
+          <li><a href="https://github.com/KingLabsA/shell-whisperer" target="_blank" rel="noopener">ShellWhisperer</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -1871,8 +1899,11 @@ footer {
           <li><a href="/fableforge/docs.html">Documentation</a></li>
           <li><a href="#">API Reference</a></li>
           <li><a href="#">Tutorials</a></li>
+          <li><a href="https://github.com/KingLabsA/anvil#readme" target="_blank" rel="noopener">Documentation</a></li>
+          <li><a href="https://github.com/KingLabsA/anvil" target="_blank" rel="noopener">API Reference</a></li>
+          <li><a href="https://github.com/KingLabsA/anvil/tree/main/examples" target="_blank" rel="noopener">Tutorials</a></li>
           <li><a href="#">Blog</a></li>
-          <li><a href="#">Changelog</a></li>
+          <li><a href="https://github.com/KingLabsA/anvil/releases" target="_blank" rel="noopener">Changelog</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -1883,6 +1914,11 @@ footer {
           <li><a href="https://twitter.com/fableforge" target="_blank">Twitter/X</a></li>
           <li><a href="#">Contributing</a></li>
           <li><a href="#">Code of Conduct</a></li>
+          <li><a href="https://github.com/KingLabsA" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="https://discord.gg/fableforge" target="_blank" rel="noopener">Discord</a></li>
+          <li><a href="#">Twitter/X</a></li>
+          <li><a href="https://github.com/KingLabsA/anvil/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a></li>
+          <li><a href="https://github.com/KingLabsA/anvil/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener">Code of Conduct</a></li>
         </ul>
       </div>
     </div>

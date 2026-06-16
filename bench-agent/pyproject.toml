@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "bench-agent"
+name = "fableforge-bench-agent"
 version = "0.1.0"
 description = "HumanEval for tool use — a standardized benchmark for evaluating LLM tool-use capabilities"
 readme = "README.md"

@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "trace-compiler"
+name = "fableforge-trace-compiler"
 version = "0.1.0"
 description = "Compile agent traces into distilled LoRA weights for specific coding behaviors"
 readme = "README.md"

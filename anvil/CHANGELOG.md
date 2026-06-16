@@ -84,5 +84,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sandbox path resolution for file operations. (#2)
 
-[0.2.0]: https://github.com/fableforge/fableforge/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/fableforge/fableforge/releases/tag/v0.1.0
+[0.2.0]: https://github.com/KingLabsA/anvil/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/KingLabsA/anvil/releases/tag/v0.1.0

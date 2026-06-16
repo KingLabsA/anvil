@@ -29,7 +29,7 @@ Instead, report them through one of these channels:
 
 ### GitHub Security Advisories (Preferred)
 
-1. Navigate to [github.com/fableforge/fableforge/security/advisories/new](https://github.com/fableforge/fableforge/security/advisories/new)
+1. Navigate to [github.com/KingLabsA/anvil/security/advisories/new](https://github.com/KingLabsA/anvil/security/advisories/new)
 2. Fill in the advisory form with:
    - A clear description of the vulnerability
    - Steps to reproduce

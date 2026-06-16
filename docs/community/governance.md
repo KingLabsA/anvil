@@ -285,7 +285,7 @@ FableForge takes security seriously. If you discover a security vulnerability, p
 
 ### Reporting Process
 
-1. **Report privately** via [GitHub Security Advisories](https://github.com/fableforge/fableforge/security/advisories/new)
+1. **Report privately** via [GitHub Security Advisories](https://github.com/KingLabsA/anvil/security/advisories/new)
    - Include: description of the vulnerability, steps to reproduce, affected versions, potential impact
    - You can also email: security@fableforge.ai (encrypted with our PGP key, available in the repository)
 
@@ -483,4 +483,4 @@ Removal is never taken lightly. The goal is always to support and retain Maintai
 
 ---
 
-*This governance document is maintained by the FableForge BDFL and Maintainer team. For questions or proposed changes, open an issue on the [fableforge/fableforge](https://github.com/fableforge/fableforge) repository or start a Discussion. Last updated: 2025-01-15.*
+*This governance document is maintained by the FableForge BDFL and Maintainer team. For questions or proposed changes, open an issue on the [fableforge/fableforge](https://github.com/KingLabsA/anvil) repository or start a Discussion. Last updated: 2025-01-15.*

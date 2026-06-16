@@ -378,7 +378,7 @@ Every model in the FableForge ecosystem can be trained on your own data, for fre
 
 ```
 ★ Star us on GitHub
-→ github.com/fableforge
+→ github.com/KingLabsA
 
 Every issue, every PR, every trace makes Anvil stronger.
 ```
@@ -410,7 +410,7 @@ Join two thousand builders on Discord. Share your traces, get help, and shape th
 ANVIL
 Where Code Gets Forged, Hammered, and Tested Until It Holds
 
-github.com/fableforge
+github.com/KingLabsA
 ```
 
 **VOICEOVER:**

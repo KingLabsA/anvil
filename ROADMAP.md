@@ -67,7 +67,7 @@ We have **21 open-source projects**, **278 tests**, and **3 model training pipel
   - `// SPDX-License-Identifier: MIT` at top of every `.ts`/`.js` file
   - Use `addlicense` or a simple script to batch-apply
 - [ ] **README badges**: Add CI, coverage, PyPI, license, and Discord badges to every project README
-  - `[![CI](https://github.com/fableforge/{project}/actions/workflows/ci.yml/badge.svg)]`
+  - `[![CI](https://github.com/KingLabsA/{project}/actions/workflows/ci.yml/badge.svg)]`
   - `[![PyPI](https://img.shields.io/pypi/v/{package})]`
   - `[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)]`
 - [ ] **CONTRIBUTING.md**: Create a consistent contributing guide referenced from all repos

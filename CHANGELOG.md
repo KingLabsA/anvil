@@ -181,5 +181,5 @@ for building, training, evaluating, and deploying self-verified coding agents.
 | AgentDev         | 0.1.0   | VS Code extension                            |
 | CLI              | 0.1.0   | Ecosystem command-line interface             |
 
-[0.2.0]: https://github.com/fableforge/fableforge/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/fableforge/fableforge/releases/tag/v0.1.0
+[0.2.0]: https://github.com/KingLabsA/anvil/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/KingLabsA/anvil/releases/tag/v0.1.0

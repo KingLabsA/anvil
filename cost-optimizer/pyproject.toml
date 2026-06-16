@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cost-optimizer"
+name = "fableforge-cost-optimizer"
 version = "0.1.0"
 description = "Analyze token waste and optimize LLM routing for cost savings"
 readme = "README.md"

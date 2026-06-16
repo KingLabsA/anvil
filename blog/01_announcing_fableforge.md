@@ -927,7 +927,7 @@ result = optimizer.run("Refactor the authentication system")  # → 14B
 
 ## Join the Community
 
-- **GitHub**: [github.com/fableforge](https://github.com/fableforge) — Star us, file issues, contribute
+- **GitHub**: [github.com/KingLabsA](https://github.com/KingLabsA) — Star us, file issues, contribute
 - **Discord**: [discord.gg/fableforge](https://discord.gg/fableforge) — 2,400+ members, active daily
 - **Documentation**: [docs.fableforge.ai](https://docs.fableforge.ai) — Full API docs, guides, tutorials
 - **Hugging Face**: [huggingface.co/fableforge](https://huggingface.co/fableforge) — Models and datasets
@@ -942,7 +942,7 @@ If you use FableForge in your research:
   title={FableForge: A Self-Verified Coding Agent and Ecosystem},
   author={FableForge Team},
   year={2026},
-  url={https://github.com/fableforge},
+  url={https://github.com/KingLabsA},
   note={Built on analysis of 210,437 agent traces from the Fable-5 dataset}
 }
 ```

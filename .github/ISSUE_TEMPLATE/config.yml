@@ -14,14 +14,14 @@ contact_links:
       Covers installation, configuration, training guides, API reference,
       and ecosystem integration. Most common questions are answered here.
   - name: "💬 GitHub Discussions"
-    url: "https://github.com/fableforge/fableforge/discussions"
+    url: "https://github.com/KingLabsA/anvil/discussions"
     about: |
       Start or join a discussion for ideas, Q&A, show & tell, and
       announcements. Use Discussions for open-ended questions that don't
       fit the bug/feature template, or to share what you've built with
       FableForge.
   - name: "🔒 Security Vulnerability"
-    url: "https://github.com/fableforge/fableforge/security/advisories/new"
+    url: "https://github.com/KingLabsA/anvil/security/advisories/new"
     about: |
       Report security vulnerabilities privately through GitHub Security
       Advisories. Do NOT open a public issue for security vulnerabilities.

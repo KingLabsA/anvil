@@ -49,7 +49,7 @@ Each project is a standalone Python package under its own directory. To set up a
 
 ```bash
 # Clone the repo
-git clone https://github.com/fableforge/fableforge.git
+git clone https://github.com/KingLabsA/anvil.git
 cd fableforge
 
 # Pick a project, e.g. anvil
@@ -258,7 +258,7 @@ select = ["E", "F", "I", "N", "W", "UP"]
 
 ### Bug Reports
 
-Open a [GitHub Issue](https://github.com/fableforge/fableforge/issues) with:
+Open a [GitHub Issue](https://github.com/KingLabsA/anvil/issues) with:
 
 1. **Project name** — Which of the 21 projects is affected?
 2. **Version** — What version are you running?

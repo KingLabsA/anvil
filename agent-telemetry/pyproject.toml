@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-telemetry"
+name = "fableforge-agent-telemetry"
 version = "0.1.0"
 description = "Datadog for AI agents — real-time observability, token tracking, cost estimation, error rates"
 requires-python = ">=3.10"

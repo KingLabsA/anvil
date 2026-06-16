@@ -17,7 +17,7 @@ This installs the `anvil` CLI and Python library with all core dependencies.
 ### From source
 
 ```bash
-git clone https://github.com/fableforge/anvil.git
+git clone https://github.com/KingLabsA/anvil.git
 cd anvil
 pip install -e ".[dev]"
 ```

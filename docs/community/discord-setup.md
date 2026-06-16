@@ -328,9 +328,9 @@ Here's how to get started:
 
 Quick links:
 📜 Docs:    https://fableforge.readthedocs.io
-💻 GitHub:  https://github.com/fableforge
-🐛 Issues:  https://github.com/fableforge/fableforge/issues
-💬 Discuss: https://github.com/fableforge/fableforge/discussions
+💻 GitHub:  https://github.com/KingLabsA
+🐛 Issues:  https://github.com/KingLabsA/anvil/issues
+💬 Discuss: https://github.com/KingLabsA/anvil/discussions
 
 Need help? Drop a question in #anvil-help or #training-help.
 Want to contribute? Check #contributing.
@@ -374,7 +374,7 @@ Zero tolerance for slurs, hate speech, targeted harassment, doxxing, or threats.
 Do not share anyone's personal information without consent. This includes real names, addresses, employer info, or private communications.
 
 **7. Security Vulnerabilities**
-Do NOT post security vulnerabilities publicly. Report them through [GitHub Security Advisories](https://github.com/fableforge/fableforge/security/advisories/new). Public disclosure before a fix is available harms users.
+Do NOT post security vulnerabilities publicly. Report them through [GitHub Security Advisories](https://github.com/KingLabsA/anvil/security/advisories/new). Public disclosure before a fix is available harms users.
 
 **8. English Only in Help Channels**
 Keep help channels in English so the maximum number of people can benefit. Use #random for other languages.
@@ -534,4 +534,4 @@ If a channel has been inactive for 90+ days:
 
 ---
 
-*This guide is maintained by the FableForge maintainers. Last updated: 2025-01-15. For questions, reach out in #contributing or open an issue on the [fableforge/fableforge](https://github.com/fableforge/fableforge) repository.*
+*This guide is maintained by the FableForge maintainers. Last updated: 2025-01-15. For questions, reach out in #contributing or open an issue on the [fableforge/fableforge](https://github.com/KingLabsA/anvil) repository.*
