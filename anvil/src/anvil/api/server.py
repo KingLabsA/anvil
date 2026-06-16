@@ -23,6 +23,7 @@ from anvil.api.auth import (
 )
 from anvil.api.database import db, DBUser, DBSession
 from anvil.api.websocket import connection_manager, websocket_handler
+from anvil.monitoring import get_metrics
 
 
 # ============================================================================
@@ -193,9 +194,18 @@ async def get_status():
             "/api/fix",
             "/api/generate-tests",
             "/api/sessions",
+            "/api/metrics",
             "/ws",
         ],
     }
+
+
+@app.get("/api/metrics")
+async def get_prometheus_metrics():
+    """Get Prometheus metrics."""
+    from fastapi.responses import Response
+    metrics_data, content_type = get_metrics()
+    return Response(content=metrics_data, media_type=content_type)
 
 
 # ============================================================================
