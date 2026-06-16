@@ -15,8 +15,10 @@ from pydantic import BaseModel
 # Database Configuration
 # ============================================================================
 
-DATABASE_URL = "sqlite:///./anvil.db"  # TODO: Use environment variable
-DB_PATH = Path("./anvil.db")
+import os
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./anvil.db")
+DB_PATH = Path(os.environ.get("DB_PATH", "./anvil.db"))
 
 
 # ============================================================================

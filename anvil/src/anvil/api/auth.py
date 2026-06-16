@@ -18,10 +18,12 @@ from pydantic import BaseModel, EmailStr, Field
 # Configuration
 # ============================================================================
 
-SECRET_KEY = "your-secret-key-change-in-production"  # TODO: Use environment variable
+import os
+
+SECRET_KEY = os.environ.get("ANVIL_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
-REFRESH_TOKEN_EXPIRE_DAYS = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
 
 # ============================================================================
@@ -227,8 +229,8 @@ class OAuth2Provider:
 # GitHub OAuth2
 github_oauth = OAuth2Provider(
     name="github",
-    client_id="your-github-client-id",  # TODO: Use environment variable
-    client_secret="your-github-client-secret",  # TODO: Use environment variable
+    client_id=os.environ.get("GITHUB_CLIENT_ID", ""),
+    client_secret=os.environ.get("GITHUB_CLIENT_SECRET", ""),
     auth_url="https://github.com/login/oauth/authorize",
     token_url="https://github.com/login/oauth/access_token",
 )
@@ -236,8 +238,8 @@ github_oauth = OAuth2Provider(
 # Google OAuth2
 google_oauth = OAuth2Provider(
     name="google",
-    client_id="your-google-client-id",  # TODO: Use environment variable
-    client_secret="your-google-client-secret",  # TODO: Use environment variable
+    client_id=os.environ.get("GOOGLE_CLIENT_ID", ""),
+    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", ""),
     auth_url="https://accounts.google.com/o/oauth2/v2/auth",
     token_url="https://oauth2.googleapis.com/token",
 )

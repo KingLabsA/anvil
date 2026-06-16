@@ -1,18 +1,80 @@
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-.eggs/
-*.egg
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.venv/
-venv/
-*.so
+# Environment variables
 .env
+.env.local
+.env.production
+.env.*.local
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Uploads
+uploads/
+
+# Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Node modules (for integrations)
 node_modules/
-.next/
-.git/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+desktop/anvil-desktop/src-tauri/target/
+integrations/vscode-extension/out/
+integrations/vscode-extension/*.vsix
+integrations/jetbrains-plugin/build/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Secrets and keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
