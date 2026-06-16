@@ -1,0 +1,119 @@
+<idea-plugin>
+    <id>com.fableforge.anvil</id>
+    <name>Anvil - Self-Verified Coding Agent</name>
+    <vendor email="team@fableforge.ai" url="https://github.com/KingLabsA/anvil">FableForge</vendor>
+
+    <description><![CDATA[
+        <h2>Anvil - AI-Powered Coding Assistant</h2>
+        <p>Self-verified coding agent with verification and error recovery, integrated directly into your JetBrains IDE.</p>
+        
+        <h3>Features</h3>
+        <ul>
+            <li>Run coding tasks with AI assistance</li>
+            <li>Verify code for syntax, lint, and type errors</li>
+            <li>Explain code with AI-powered explanations</li>
+            <li>Refactor code with AI suggestions</li>
+            <li>Fix errors automatically</li>
+            <li>Generate comprehensive test suites</li>
+            <li>Integrated debugging support</li>
+            <li>Real-time collaboration</li>
+        </ul>
+        
+        <h3>Requirements</h3>
+        <ul>
+            <li>Anvil server running locally or remotely</li>
+            <li>Python 3.10 or higher</li>
+        </ul>
+        
+        <h3>Configuration</h3>
+        <p>Configure the Anvil server URL in Settings > Tools > Anvil</p>
+    ]]></description>
+
+    <change-notes><![CDATA[
+        <h3>0.3.0</h3>
+        <ul>
+            <li>Initial release</li>
+            <li>Task execution with AI</li>
+            <li>Code verification</li>
+            <li>Code explanation</li>
+            <li>Code refactoring</li>
+            <li>Error fixing</li>
+            <li>Test generation</li>
+            <li>Integrated debugging</li>
+        </ul>
+    ]]></change-notes>
+
+    <idea-version since-build="221.0"/>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Tool Window -->
+        <toolWindow id="Anvil" secondary="true" anchor="right" icon="/icons/anvil.svg"
+                    factoryClass="com.fableforge.anvil.toolwindow.AnvilToolWindowFactory"/>
+
+        <!-- Settings -->
+        <applicationConfigurable parentId="tools" instance="com.fableforge.anvil.settings.AnvilSettingsConfigurable"
+                                id="com.fableforge.anvil.settings.AnvilSettingsConfigurable"
+                                displayName="Anvil"/>
+
+        <applicationService serviceImplementation="com.fableforge.anvil.settings.AnvilSettingsState"/>
+
+        <!-- Notifications -->
+        <notificationGroup id="Anvil Notifications" displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <!-- Main Action Group -->
+        <group id="Anvil.MainMenu" text="Anvil" description="Anvil AI Assistant" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            
+            <action id="Anvil.RunTask" class="com.fableforge.anvil.actions.RunTaskAction"
+                    text="Run Task" description="Run a coding task with Anvil">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift A"/>
+            </action>
+            
+            <action id="Anvil.VerifyCode" class="com.fableforge.anvil.actions.VerifyCodeAction"
+                    text="Verify Code" description="Verify code for errors">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift V"/>
+            </action>
+            
+            <separator/>
+            
+            <action id="Anvil.ExplainCode" class="com.fableforge.anvil.actions.ExplainCodeAction"
+                    text="Explain Code" description="Explain selected code">
+            </action>
+            
+            <action id="Anvil.RefactorCode" class="com.fableforge.anvil.actions.RefactorCodeAction"
+                    text="Refactor Code" description="Refactor selected code">
+            </action>
+            
+            <action id="Anvil.FixErrors" class="com.fableforge.anvil.actions.FixErrorsAction"
+                    text="Fix Errors" description="Fix errors in selected code">
+            </action>
+            
+            <action id="Anvil.GenerateTests" class="com.fableforge.anvil.actions.GenerateTestsAction"
+                    text="Generate Tests" description="Generate tests for selected code">
+            </action>
+            
+            <separator/>
+            
+            <action id="Anvil.Debug" class="com.fableforge.anvil.actions.DebugAction"
+                    text="Debug with Anvil" description="Debug selected code with Anvil">
+            </action>
+        </group>
+
+        <!-- Editor Context Menu -->
+        <group id="Anvil.EditorPopup" text="Anvil" popup="true">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <reference ref="Anvil.RunTask"/>
+            <reference ref="Anvil.VerifyCode"/>
+            <reference ref="Anvil.ExplainCode"/>
+            <reference ref="Anvil.RefactorCode"/>
+            <reference ref="Anvil.FixErrors"/>
+            <reference ref="Anvil.GenerateTests"/>
+            <reference ref="Anvil.Debug"/>
+        </group>
+    </actions>
+</idea-plugin>

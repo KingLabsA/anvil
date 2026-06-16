@@ -1,0 +1,110 @@
+# Anvil GitHub Actions Workflow Template
+# This workflow automatically reviews code using Anvil on pull requests
+
+name: Anvil Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  anvil-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Anvil
+        run: |
+          pip install fableforge-anvil-agent[all]
+      
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v40
+        with:
+          files: |
+            **/*.py
+            **/*.js
+            **/*.ts
+            **/*.jsx
+            **/*.tsx
+      
+      - name: Run Anvil verification
+        if: steps.changed-files.outputs.any_changed == 'true'
+        id: verify
+        run: |
+          echo "## Anvil Verification Results" > verification.md
+          echo "" >> verification.md
+          
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "### Verifying: $file" >> verification.md
+            echo '```' >> verification.md
+            anvil verify "$file" >> verification.md 2>&1 || true
+            echo '```' >> verification.md
+            echo "" >> verification.md
+          done
+      
+      - name: Run Anvil code review
+        if: steps.changed-files.outputs.any_changed == 'true'
+        id: review
+        run: |
+          echo "## Anvil Code Review" > review.md
+          echo "" >> review.md
+          
+          # Get the diff
+          git diff origin/${{ github.base_ref }}...HEAD > changes.diff
+          
+          # Run Anvil to review the changes
+          anvil run "Review this code diff and provide feedback on code quality, potential bugs, and improvements: $(cat changes.diff)" > review_output.txt 2>&1 || true
+          
+          echo '```' >> review.md
+          cat review_output.txt >> review.md
+          echo '```' >> review.md
+      
+      - name: Comment on PR
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let comment = '';
+            
+            if (fs.existsSync('verification.md')) {
+              comment += fs.readFileSync('verification.md', 'utf8');
+            }
+            
+            if (fs.existsSync('review.md')) {
+              comment += '\n\n' + fs.readFileSync('review.md', 'utf8');
+            }
+            
+            if (comment) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+      
+      - name: Upload verification results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anvil-verification
+          path: |
+            verification.md
+            review.md
+            review_output.txt
+            changes.diff
