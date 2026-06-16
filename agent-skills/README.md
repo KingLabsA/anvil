@@ -1,5 +1,8 @@
 # AgentSkills.org
 
+[![FableForge Ecosystem](https://img.shields.io/badge/FableForge-Ecosystem-purple?style=flat-square)](https://github.com/KingLabsA?q=fableforge) [![PyPI](https://img.shields.io/pypi/v/fableforge-agent-skills?style=flat-square)](https://pypi.org/project/fableforge-agent-skills/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/) [![Tests](https://img.shields.io/badge/tests-0-yellow.svg)](tests/)
 
 
@@ -122,3 +125,38 @@ Part of the [FableForge](../) ecosystem — 21 open-source projects built from 2
 | **[AgentProfiler](../agent-profiler)** | Behavioral fingerprinting |
 | **[TrajectoryDistiller](../trajectory-distiller)** | Trace→training data pipeline |
 | **[Fable5-Dataset](../fable5-dataset)** | HuggingFace dataset release |
+
+---
+
+## 🌐 FableForge Ecosystem
+
+This project is part of **FableForge** — 21 open-source tools for building reliable AI agents.
+
+| Component | Purpose |
+|-----------|---------|
+| [Anvil](https://github.com/KingLabsA/anvil) | 🔨 Flagship self-verifying agent |
+| [VerifyLoop](https://github.com/KingLabsA/verifyloop) | Plan → Execute → Verify loop |
+| [Error Recovery](https://github.com/KingLabsA/error-recovery) | Failure classification & recovery |
+| [ReasonCritic](https://github.com/KingLabsA/reason-critic) | Trained verification model |
+| [Agent Swarm](https://github.com/KingLabsA/agent-swarm) | Multi-agent orchestration |
+| [Agent Telemetry](https://github.com/KingLabsA/agent-telemetry) | Observability & tracing |
+| [Agent Profiler](https://github.com/KingLabsA/agent-profiler) | Performance profiling |
+| [Agent Constitution](https://github.com/KingLabsA/agent-constitution) | Safety guardrails |
+| [Agent Curriculum](https://github.com/KingLabsA/agent-curriculum) | Learning progression |
+| [Agent Fuzzer](https://github.com/KingLabsA/agent-fuzzer) | Adversarial testing |
+| [Agent Runtime](https://github.com/KingLabsA/agent-runtime) | Execution sandbox |
+| [Agent Skills](https://github.com/KingLabsA/agent-skills) | Tool definitions |
+| [Cost Optimizer](https://github.com/KingLabsA/cost-optimizer) | Token cost management |
+| [Trajectory Distiller](https://github.com/KingLabsA/trajectory-distiller) | Pattern extraction |
+| [Trace Compiler](https://github.com/KingLabsA/trace-compiler) | Trace-to-pipeline |
+| [Bench Agent](https://github.com/KingLabsA/bench-agent) | Benchmarking |
+| [Shell Whisperer](https://github.com/KingLabsA/shell-whisperer) | Shell/bash model |
+| [FableForge-14B](https://github.com/KingLabsA/fableforge-14b) | Code gen model |
+| [Fable5 Dataset](https://github.com/KingLabsA/fable5-dataset) | Training dataset |
+| [Trace Viz](https://github.com/KingLabsA/trace-viz) | Trace visualization |
+
+<p align="center">
+  <a href="https://kinglabsa.github.io/fableforge/">🌐 Website</a> · 
+  <a href="https://pypi.org/project/fableforge/">📦 PyPI</a> · 
+  <a href="https://huggingface.co/fableforge-ai">🤗 HuggingFace</a>
+</p>
