@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download Anvil Desktop</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --accent: #f59e0b;
+    --text-primary: #fafafa;
+    --text-secondary: #a0a0a0;
+    --border: #262626;
+  }
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 40px 20px;
+  }
+  
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 3rem;
+    font-size: 1.1rem;
+  }
+  
+  .download-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  .download-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  
+  .download-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+  }
+  
+  .download-card i {
+    font-size: 3rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  
+  .download-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .download-card p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+  
+  .download-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  
+  .download-btn:hover {
+    background: #d97706;
+    transform: scale(1.05);
+  }
+  
+  .note {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .note h3 {
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  
+  .back-link {
+    text-align: center;
+    margin-top: 2rem;
+  }
+  
+  .back-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  
+  .back-link a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1><i class="fas fa-hammer"></i> Download Anvil Desktop</h1>
+    <p class="subtitle">The self-verified coding agent — where code gets forged, hammered, and tested until it holds.</p>
+    
+    <div class="note">
+      <h3><i class="fas fa-info-circle"></i> No Login Required!</h3>
+      <p>Anvil works fully offline. Authentication is only needed if you want cloud features or device sync.</p>
+    </div>
+    
+    <div class="download-grid">
+      <div class="download-card">
+        <i class="fab fa-apple"></i>
+        <h3>macOS</h3>
+        <p>For Apple Silicon (M1/M2/M3) and Intel Macs</p>
+        <a href="https://github.com/KingLabsA/anvil/releases/latest/download/Anvil-Desktop-aarch64.dmg" class="download-btn">
+          <i class="fas fa-download"></i> Download .dmg
+        </a>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">~80 MB</p>
+      </div>
+      
+      <div class="download-card">
+        <i class="fab fa-windows"></i>
+        <h3>Windows</h3>
+        <p>For Windows 10/11 (64-bit)</p>
+        <a href="https://github.com/KingLabsA/anvil/releases/latest/download/Anvil-Desktop-x64.msi" class="download-btn">
+          <i class="fas fa-download"></i> Download .msi
+        </a>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">~70 MB</p>
+      </div>
+      
+      <div class="download-card">
+        <i class="fab fa-linux"></i>
+        <h3>Linux</h3>
+        <p>For Ubuntu, Debian, Fedora, and other distros</p>
+        <a href="https://github.com/KingLabsA/anvil/releases/latest/download/Anvil-Desktop-x86_64.AppImage" class="download-btn">
+          <i class="fas fa-download"></i> Download .AppImage
+        </a>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">~75 MB</p>
+      </div>
+    </div>
+    
+    <div class="note">
+      <h3><i class="fas fa-terminal"></i> Alternative: CLI Installation</h3>
+      <p>Prefer the command line? Install Anvil CLI instead:</p>
+      <pre style="background: var(--bg-primary); padding: 1rem; border-radius: 8px; margin-top: 1rem; overflow-x: auto;">
+<code># One-liner install
+curl -fsSL https://raw.githubusercontent.com/KingLabsA/anvil/main/install.sh | bash
+
+# Or with pip
+pip install fableforge-anvil-agent[all]</code></pre>
+    </div>
+    
+    <div class="back-link">
+      <a href="/fableforge/"><i class="fas fa-arrow-left"></i> Back to Home</a>
+    </div>
+  </div>
+</body>
+</html>

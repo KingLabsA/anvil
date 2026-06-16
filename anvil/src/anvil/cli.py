@@ -1036,9 +1036,16 @@ def auth():
 @click.option("--email", prompt=True, help="Email address")
 @click.option("--password", prompt=True, hide_input=True, help="Password")
 def auth_login(email, password):
-    """Login to Anvil API."""
+    """Login to Anvil API (OPTIONAL - only needed for cloud features).
+    
+    Note: Anvil works fully offline without login. Login is only needed if you
+    want to use cloud API features or sync across devices.
+    """
     import requests
     from pathlib import Path
+    
+    console.print("[yellow]Note: Login is OPTIONAL. Anvil works fully offline without login.[/]")
+    console.print("[dim]Login is only needed for cloud API features or device sync.[/]\n")
     
     try:
         response = requests.post(
@@ -1065,6 +1072,7 @@ def auth_login(email, password):
             sys.exit(1)
     except requests.exceptions.ConnectionError:
         console.print("[red]✗ Cannot connect to Anvil server. Is it running? (anvil serve)[/]")
+        console.print("[yellow]Note: You can still use Anvil offline without login.[/]")
         sys.exit(1)
     except Exception as e:
         console.print(f"[red]✗ Login failed: {e}[/]")

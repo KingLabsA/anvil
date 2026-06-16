@@ -559,6 +559,41 @@
         .diff-overlay.show {
             display: block;
         }
+
+        /* Autocomplete ghost text */
+        .autocomplete-ghost {
+            opacity: 0.5;
+            font-style: italic;
+        }
+
+        /* Inline edit widget */
+        .inline-edit-widget {
+            position: absolute;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Slash command menu */
+        #slash-command-menu {
+            z-index: 1000;
+        }
+
+        #slash-command-menu > div:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* @-mention menu */
+        #at-mention-menu {
+            z-index: 1000;
+        }
+
+        #at-mention-menu > div:hover {
+            background: var(--bg-tertiary);
+        }
     </style>
 </head>
 <body>
@@ -963,7 +998,451 @@ if __name__ == "__main__":
 
                 // Apply settings
                 applyEditorSettings();
+                
+                // Setup inline edit (cmd/ctrl+K)
+                setupInlineEdit();
+                
+                // Setup tab autocomplete
+                setupTabAutocomplete();
+                
+                // Setup slash commands
+                setupSlashCommands();
+                
+                // Setup @-mentions
+                setupAtMentions();
             });
+        }
+        
+        // Inline Edit (cmd/ctrl+K)
+        let inlineEditWidget = null;
+        let inlineEditOriginalContent = '';
+        
+        function setupInlineEdit() {
+            monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+                showInlineEdit();
+            });
+        }
+        
+        function showInlineEdit() {
+            const selection = monacoEditor.getSelection();
+            if (!selection || selection.isEmpty()) {
+                // No selection - edit current line
+                const position = monacoEditor.getPosition();
+                const line = monacoEditor.getModel().getLineContent(position.lineNumber);
+                inlineEditOriginalContent = line;
+                
+                // Create inline edit widget
+                showInlineEditWidget(position, line, false);
+            } else {
+                // Has selection - edit selection
+                const selectedText = monacoEditor.getModel().getValueInRange(selection);
+                inlineEditOriginalContent = selectedText;
+                
+                showInlineEditWidget(selection.getStartPosition(), selectedText, true);
+            }
+        }
+        
+        function showInlineEditWidget(position, text, isSelection) {
+            // Remove existing widget if any
+            if (inlineEditWidget) {
+                inlineEditWidget.dispose();
+            }
+            
+            // Create widget
+            inlineEditWidget = monaco.editor.createWidget(
+                monacoEditor,
+                {
+                    id: 'inline-edit',
+                    position: position,
+                    content: `
+                        <div style="background: var(--bg-secondary); border: 2px solid var(--accent); border-radius: 8px; padding: 12px; min-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                            <div style="margin-bottom: 8px; color: var(--accent); font-weight: 600;">
+                                ${isSelection ? 'Edit Selection' : 'Edit Line'}
+                            </div>
+                            <input type="text" id="inline-edit-input" placeholder="Describe the edit..." 
+                                   style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); font-size: 14px;"
+                                   value="${text}">
+                            <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end;">
+                                <button onclick="cancelInlineEdit()" style="padding: 6px 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); cursor: pointer;">Cancel</button>
+                                <button onclick="applyInlineEdit()" style="padding: 6px 12px; background: var(--accent); border: none; border-radius: 4px; color: white; cursor: pointer;">Apply</button>
+                            </div>
+                        </div>
+                    `
+                }
+            );
+            
+            // Focus input
+            setTimeout(() => {
+                const input = document.getElementById('inline-edit-input');
+                if (input) {
+                    input.focus();
+                    input.select();
+                    
+                    // Handle Enter key
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            applyInlineEdit();
+                        } else if (e.key === 'Escape') {
+                            cancelInlineEdit();
+                        }
+                    });
+                }
+            }, 100);
+        }
+        
+        async function applyInlineEdit() {
+            const input = document.getElementById('inline-edit-input');
+            if (!input) return;
+            
+            const instruction = input.value;
+            if (!instruction.trim()) {
+                cancelInlineEdit();
+                return;
+            }
+            
+            // Show loading
+            input.value = 'Processing...';
+            input.disabled = true;
+            
+            try {
+                // Call API to get edit
+                const response = await fetch('/api/inline-edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        instruction: instruction,
+                        original: inlineEditOriginalContent,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.edited) {
+                    // Apply edit
+                    const selection = monacoEditor.getSelection();
+                    if (selection && !selection.isEmpty()) {
+                        monacoEditor.executeEdits('inline-edit', [{
+                            range: selection,
+                            text: data.edited,
+                        }]);
+                    } else {
+                        const position = monacoEditor.getPosition();
+                        const line = position.lineNumber;
+                        monacoEditor.executeEdits('inline-edit', [{
+                            range: new monaco.Range(line, 1, line, monacoEditor.getModel().getLineMaxColumn(line)),
+                            text: data.edited,
+                        }]);
+                    }
+                    
+                    addTerminalLine('✓ Inline edit applied', 'success');
+                } else {
+                    addTerminalLine('✗ Failed to apply edit: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                addTerminalLine('✗ Inline edit failed: ' + error.message, 'error');
+            }
+            
+            // Close widget
+            if (inlineEditWidget) {
+                inlineEditWidget.dispose();
+                inlineEditWidget = null;
+            }
+        }
+        
+        function cancelInlineEdit() {
+            if (inlineEditWidget) {
+                inlineEditWidget.dispose();
+                inlineEditWidget = null;
+            }
+        }
+        
+        // Tab Autocomplete
+        let autocompleteTimeout = null;
+        let currentSuggestion = null;
+        
+        function setupTabAutocomplete() {
+            monacoEditor.onDidChangeModelContent(() => {
+                // Clear previous timeout
+                if (autocompleteTimeout) {
+                    clearTimeout(autocompleteTimeout);
+                }
+                
+                // Set new timeout for autocomplete
+                autocompleteTimeout = setTimeout(() => {
+                    requestAutocomplete();
+                }, 300); // 300ms delay
+            });
+            
+            // Handle Tab key for accepting suggestions
+            monacoEditor.addCommand(monaco.KeyCode.Tab, () => {
+                if (currentSuggestion) {
+                    acceptAutocomplete();
+                } else {
+                    // Default tab behavior
+                    monacoEditor.trigger('keyboard', 'type', { text: '\t' });
+                }
+            });
+            
+            // Handle Escape for dismissing suggestions
+            monacoEditor.addCommand(monaco.KeyCode.Escape, () => {
+                if (currentSuggestion) {
+                    dismissAutocomplete();
+                }
+            });
+        }
+        
+        async function requestAutocomplete() {
+            const position = monacoEditor.getPosition();
+            const model = monacoEditor.getModel();
+            
+            // Get context (previous lines)
+            const lineNumber = position.lineNumber;
+            const context = [];
+            for (let i = Math.max(1, lineNumber - 5); i <= lineNumber; i++) {
+                context.push(model.getLineContent(i));
+            }
+            
+            try {
+                const response = await fetch('/api/autocomplete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        context: context.join('\n'),
+                        language: model.getLanguageId(),
+                        position: { line: lineNumber, column: position.column },
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.suggestion && data.suggestion.trim()) {
+                    showAutocompleteSuggestion(data.suggestion, position);
+                }
+            } catch (error) {
+                console.error('Autocomplete failed:', error);
+            }
+        }
+        
+        function showAutocompleteSuggestion(suggestion, position) {
+            // Remove existing suggestion
+            dismissAutocomplete();
+            
+            currentSuggestion = {
+                text: suggestion,
+                position: position,
+            };
+            
+            // Create ghost text decoration
+            const decoration = {
+                range: new monaco.Range(
+                    position.lineNumber,
+                    position.column,
+                    position.lineNumber,
+                    position.column + suggestion.length
+                ),
+                options: {
+                    after: {
+                        content: suggestion,
+                        inlineClassName: 'autocomplete-ghost',
+                    },
+                },
+            };
+            
+            monacoEditor.deltaDecorations([], [decoration]);
+        }
+        
+        function acceptAutocomplete() {
+            if (!currentSuggestion) return;
+            
+            const position = currentSuggestion.position;
+            monacoEditor.executeEdits('autocomplete', [{
+                range: new monaco.Range(
+                    position.lineNumber,
+                    position.column,
+                    position.lineNumber,
+                    position.column
+                ),
+                text: currentSuggestion.text,
+            }]);
+            
+            dismissAutocomplete();
+        }
+        
+        function dismissAutocomplete() {
+            currentSuggestion = null;
+            monacoEditor.deltaDecorations([], []);
+        }
+        
+        // Slash Commands
+        function setupSlashCommands() {
+            const chatInput = document.getElementById('chat-input');
+            
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === '/' && chatInput.value === '') {
+                    showSlashCommandMenu();
+                }
+            });
+        }
+        
+        function showSlashCommandMenu() {
+            const commands = [
+                { command: '/test', description: 'Generate tests for current file' },
+                { command: '/fix', description: 'Fix errors in current file' },
+                { command: '/explain', description: 'Explain selected code' },
+                { command: '/refactor', description: 'Refactor selected code' },
+                { command: '/verify', description: 'Verify current file' },
+                { command: '/debug', description: 'Debug current file' },
+            ];
+            
+            const menu = document.createElement('div');
+            menu.id = 'slash-command-menu';
+            menu.style.cssText = `
+                position: absolute;
+                bottom: 100%;
+                left: 0;
+                right: 0;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 8px;
+                margin-bottom: 8px;
+                max-height: 300px;
+                overflow-y: auto;
+            `;
+            
+            commands.forEach(cmd => {
+                const item = document.createElement('div');
+                item.style.cssText = `
+                    padding: 8px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                `;
+                item.innerHTML = `
+                    <div style="color: var(--accent); font-weight: 600;">${cmd.command}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem;">${cmd.description}</div>
+                `;
+                item.onclick = () => {
+                    document.getElementById('chat-input').value = cmd.command + ' ';
+                    menu.remove();
+                    document.getElementById('chat-input').focus();
+                };
+                menu.appendChild(item);
+            });
+            
+            document.querySelector('.chat-input-container').style.position = 'relative';
+            document.querySelector('.chat-input-container').appendChild(menu);
+            
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+        
+        // @-mentions
+        function setupAtMentions() {
+            const chatInput = document.getElementById('chat-input');
+            
+            chatInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                const atIndex = value.lastIndexOf('@');
+                
+                if (atIndex !== -1) {
+                    const query = value.substring(atIndex + 1);
+                    if (query.length > 0 && !query.includes(' ')) {
+                        showAtMentionMenu(query, atIndex);
+                    } else {
+                        hideAtMentionMenu();
+                    }
+                } else {
+                    hideAtMentionMenu();
+                }
+            });
+        }
+        
+        function showAtMentionMenu(query, atIndex) {
+            // Get available files and symbols
+            const items = [
+                { type: 'file', name: 'main.py', path: '/main.py' },
+                { type: 'file', name: 'utils.py', path: '/utils.py' },
+                { type: 'symbol', name: 'main', type_label: 'function' },
+                { type: 'symbol', name: 'calculate_sum', type_label: 'function' },
+                { type: 'doc', name: 'Python Docs', url: 'https://docs.python.org' },
+            ];
+            
+            // Filter by query
+            const filtered = items.filter(item => 
+                item.name.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (filtered.length === 0) {
+                hideAtMentionMenu();
+                return;
+            }
+            
+            // Show or create menu
+            let menu = document.getElementById('at-mention-menu');
+            if (!menu) {
+                menu = document.createElement('div');
+                menu.id = 'at-mention-menu';
+                menu.style.cssText = `
+                    position: absolute;
+                    bottom: 100%;
+                    left: 0;
+                    right: 0;
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    padding: 8px;
+                    margin-bottom: 8px;
+                    max-height: 300px;
+                    overflow-y: auto;
+                `;
+                document.querySelector('.chat-input-container').style.position = 'relative';
+                document.querySelector('.chat-input-container').appendChild(menu);
+            }
+            
+            menu.innerHTML = '';
+            filtered.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.style.cssText = `
+                    padding: 8px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                `;
+                
+                const icon = item.type === 'file' ? '📄' : item.type === 'symbol' ? 'ƒ' : '📚';
+                const label = item.type === 'symbol' ? `${item.name} (${item.type_label})` : item.name;
+                
+                itemEl.innerHTML = `
+                    <span style="font-size: 1.2rem;">${icon}</span>
+                    <span>${label}</span>
+                `;
+                
+                itemEl.onclick = () => {
+                    const chatInput = document.getElementById('chat-input');
+                    const value = chatInput.value;
+                    chatInput.value = value.substring(0, atIndex) + `@${item.name} `;
+                    hideAtMentionMenu();
+                    chatInput.focus();
+                };
+                
+                menu.appendChild(itemEl);
+            });
+        }
+        
+        function hideAtMentionMenu() {
+            const menu = document.getElementById('at-mention-menu');
+            if (menu) {
+                menu.remove();
+            }
         }
 
         function applyEditorSettings() {
@@ -1855,7 +2334,17 @@ https://github.com/KingLabsA/anvil
 
         // Show welcome modal
         function showOnboardingWelcome() {
-            document.getElementById('onboarding-welcome').style.display = 'block';
+            const welcomeModal = document.getElementById('onboarding-welcome');
+            welcomeModal.style.display = 'block';
+            
+            // Add note about auth being optional
+            const note = document.createElement('div');
+            note.style.cssText = 'margin-top: 20px; padding: 12px; background: rgba(0, 122, 204, 0.1); border-left: 3px solid var(--accent); border-radius: 4px; font-size: 0.9rem;';
+            note.innerHTML = `
+                <strong>Note:</strong> Anvil works fully offline without login. 
+                Authentication is only needed if you want to use cloud features or sync across devices.
+            `;
+            welcomeModal.querySelector('div').appendChild(note);
         }
 
         // Start quick start tour

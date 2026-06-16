@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anvil Documentation</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --accent: #f59e0b;
+    --text-primary: #fafafa;
+    --text-secondary: #a0a0a0;
+    --border: #262626;
+  }
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 40px 20px;
+  }
+  
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 3rem;
+    font-size: 1.1rem;
+  }
+  
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  .doc-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    transition: all 0.3s;
+  }
+  
+  .doc-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+  }
+  
+  .doc-card i {
+    font-size: 2.5rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  
+  .doc-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .doc-card p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+  
+  .doc-card a {
+    display: inline-block;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .doc-card a:hover {
+    text-decoration: underline;
+  }
+  
+  .back-link {
+    text-align: center;
+    margin-top: 2rem;
+  }
+  
+  .back-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  
+  .back-link a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1><i class="fas fa-book"></i> Anvil Documentation</h1>
+    <p class="subtitle">Everything you need to know about Anvil.</p>
+    
+    <div class="docs-grid">
+      <div class="doc-card">
+        <i class="fas fa-rocket"></i>
+        <h3>Getting Started</h3>
+        <p>Install Anvil, run your first task, and learn the basics.</p>
+        <a href="https://github.com/KingLabsA/anvil#quick-start" target="_blank">Read Guide →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-code"></i>
+        <h3>API Reference</h3>
+        <p>Complete API documentation for all endpoints and functions.</p>
+        <a href="http://localhost:8000/api/docs" target="_blank">View API Docs →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-puzzle-piece"></i>
+        <h3>Extension Guide</h3>
+        <p>Learn how to build custom extensions, skills, and tools.</p>
+        <a href="https://github.com/KingLabsA/anvil/blob/main/docs/EXTENSIONS.md" target="_blank">Read Guide →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-server"></i>
+        <h3>Deployment Guide</h3>
+        <p>Deploy Anvil to production with Docker, Kubernetes, or cloud providers.</p>
+        <a href="https://github.com/KingLabsA/anvil/blob/main/DEPLOYMENT.md" target="_blank">Read Guide →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-shield-alt"></i>
+        <h3>Security Guide</h3>
+        <p>Security best practices, authentication, and authorization.</p>
+        <a href="https://github.com/KingLabsA/anvil/blob/main/SECURITY_GUIDE.md" target="_blank">Read Guide →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-graduation-cap"></i>
+        <h3>Onboarding Tours</h3>
+        <p>Interactive guided tours to learn Anvil features.</p>
+        <a href="/fableforge/" target="_blank">Start Tour →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-download"></i>
+        <h3>Download Desktop</h3>
+        <p>Download the native desktop app for macOS, Windows, or Linux.</p>
+        <a href="/fableforge/download.html">Download →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-star"></i>
+        <h3>All Features</h3>
+        <p>Complete list of all Anvil features and capabilities.</p>
+        <a href="/fableforge/features.html">View Features →</a>
+      </div>
+      
+      <div class="doc-card">
+        <i class="fas fa-github"></i>
+        <h3>GitHub Repository</h3>
+        <p>Source code, issues, and contributions on GitHub.</p>
+        <a href="https://github.com/KingLabsA/anvil" target="_blank">View on GitHub →</a>
+      </div>
+    </div>
+    
+    <div class="back-link">
+      <a href="/fableforge/"><i class="fas fa-arrow-left"></i> Back to Home</a>
+    </div>
+  </div>
+</body>
+</html>

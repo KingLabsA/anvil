@@ -15,7 +15,52 @@
 
 ## Why Anvil?
 
-Every other agent verifies with the **same LLM that generated the code**. That's like asking the person who wrote the bug to confirm there's no bug. Anvil uses a dedicated verification model ([ReasonCritic-7B](https://huggingface.co/fableforge-ai/ReasonCritic-7B)) trained to catch what generating models miss.
+### 🎯 Unique Features No One Else Has
+
+| Feature | Anvil | Cursor | Continue | Aider | Cline |
+|---------|-------|--------|----------|-------|-------|
+| **Verify Loop** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Error Recovery** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Multi-Interface** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Extension System** | ✅ | ❌ | ✅ | ❌ | ❌ |
+| **Onboarding Tour** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Open Source** | ✅ | ❌ | ✅ | ✅ | ✅ |
+| **Self-hosted** | ✅ | ❌ | ✅ | ✅ | ✅ |
+
+**What makes Anvil different:**
+
+1. **Verify Loop** - Every change is automatically verified. Other agents generate code and hope it works. Anvil generates, verifies, and fixes until it's correct.
+
+2. **Error Recovery** - When verification fails, Anvil doesn't just report the error. It diagnoses the issue and automatically fixes it, then re-verifies.
+
+3. **Multi-Interface** - Use Anvil your way: Desktop app, Web UI, CLI, VS Code extension, JetBrains plugin, or MCP server. All interfaces share the same powerful backend.
+
+4. **Extension System** - Extend Anvil with custom skills, tools, and integrations. Build your own or install from the community.
+
+5. **Onboarding Tour** - New to Anvil? Interactive guided tours teach you the basics in minutes.
+
+### 🚀 Features You'd Expect
+
+All the modern coding assistant features you're used to:
+
+- **Inline Edit** (Cmd/Ctrl+K) - Edit code directly in the editor
+- **Tab Autocomplete** - Ghost text suggestions as you type
+- **Slash Commands** - Quick actions like `/test`, `/fix`, `/explain`
+- **@-mentions** - Reference files, symbols, and documentation
+- **Git Integration** - Auto-commit, diff viewing, undo
+- **Custom Rules** - Define AI behavior with custom instructions
+- **API Cost Tracking** - See token usage and costs in real-time
+- **Checkpoints** - Rollback AI changes with one click
+- **Codebase Context** - Index and search your entire codebase
+- **Memory System** - Anvil remembers your preferences across sessions
+
+### 💡 Philosophy
+
+**Anvil is built on three principles:**
+
+1. **Verification over generation** - Code isn't done until it's verified. Period.
+2. **Local-first** - Works offline, no account required. Your code stays on your machine.
+3. **Extensible** - Open source, extensible, and built for the community.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -58,25 +103,46 @@ Every other agent verifies with the **same LLM that generated the code**. That's
 - 🔒 **Permission System** — Fine-grained tool access control
 - 📝 **Session Sharing** — Export and share coding sessions
 
+### Modern IDE Features
+- ✏️ **Inline Edit** (Cmd/Ctrl+K) - Edit code directly in the editor
+- ⚡ **Tab Autocomplete** - Ghost text suggestions as you type
+- ⚙️ **Slash Commands** - Quick actions: `/test`, `/fix`, `/explain`, `/refactor`
+- 📌 **@-mentions** - Reference files, symbols, and documentation
+- 🔀 **Git Integration** - Auto-commit, diff viewing, undo
+- 📏 **Custom Rules** - Define AI behavior with custom instructions
+- 💰 **API Cost Tracking** - See token usage and costs in real-time
+- ⏪ **Checkpoints** - Rollback AI changes with one click
+- 📚 **Codebase Context** - Index and search your entire codebase
+- 🎯 **Memory System** - Anvil remembers your preferences across sessions
+- 👥 **Real-time Collaboration** - Work together with WebSocket support
+- 🔍 **Integrated Debugging** - Breakpoints, step-through, variable inspection
+- 📊 **Monitoring & Metrics** - Prometheus metrics for observability
+
 ## Installation
 
-### Quick Install (Recommended)
+### 🖥️ Desktop App (Recommended)
+
+Download the native desktop app for your platform:
+
+| Platform | Download | Size |
+|----------|----------|------|
+| **macOS** | [Download .dmg](https://github.com/KingLabsA/anvil/releases/latest/download/Anvil-Desktop-aarch64.dmg) | ~80 MB |
+| **Windows** | [Download .msi](https://github.com/KingLabsA/anvil/releases/latest/download/Anvil-Desktop-x64.msi) | ~70 MB |
+| **Linux** | [Download .AppImage](https://github.com/KingLabsA/anvil/releases/latest/download/Anvil-Desktop-x86_64.AppImage) | ~75 MB |
+
+**No login required!** Anvil works fully offline. Authentication is only needed if you want cloud features or device sync.
+
+<details>
+<summary>📦 Alternative Installation Methods</summary>
+
+### CLI Install (for developers)
 
 ```bash
 # One-liner install script
 curl -fsSL https://raw.githubusercontent.com/KingLabsA/anvil/main/install.sh | bash
-```
 
-### Manual Install
-
-```bash
-# Install with all features
+# Or install with pip
 pip install fableforge-anvil-agent[all]
-
-# Or install specific extras
-pip install fableforge-anvil-agent[web]      # Web UI
-pip install fableforge-anvil-agent[local]    # Local models
-pip install fableforge-anvil-agent[api]      # API models
 ```
 
 ### Docker
@@ -92,9 +158,96 @@ cd anvil
 docker-compose up -d
 ```
 
+### Build from Source
+
+```bash
+git clone https://github.com/KingLabsA/anvil.git
+cd anvil
+
+# Install Python dependencies
+pip install -e ".[all]"
+
+# Build desktop app (requires Rust and Node.js)
+cd desktop/anvil-desktop
+npm install
+npm run tauri build
+```
+
+</details>
+
+## Architecture
+
+Anvil is built as a modular, extensible platform:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Anvil Platform                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │  Desktop │  │   Web    │  │   CLI    │  │   MCP    │   │
+│  │   App    │  │   UI     │  │          │  │  Server  │   │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘   │
+│       │              │              │              │         │
+│       └──────────────┴──────────────┴──────────────┘         │
+│                          │                                    │
+│                    ┌─────▼─────┐                             │
+│                    │   REST    │                             │
+│                    │   API     │                             │
+│                    └─────┬─────┘                             │
+│                          │                                    │
+│       ┌──────────────────┼──────────────────┐               │
+│       │                  │                  │               │
+│  ┌────▼────┐      ┌─────▼─────┐     ┌─────▼─────┐        │
+│  │  Auth   │      │  Database │     │ WebSocket │        │
+│  │  (JWT)  │      │ (SQLite)  │     │  Server   │        │
+│  └─────────┘      └───────────┘     └───────────┘        │
+│                                                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ Monitor  │  │  Debug   │  │Extension │  │  Memory  │   │
+│  │(Prometheus│  │  System  │  │  System  │  │  System  │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Core Components
+
+- **Backend API** - FastAPI-based RESTful API with authentication
+- **Database** - SQLite (default) with PostgreSQL support
+- **WebSocket Server** - Real-time collaboration and updates
+- **Extension System** - Plugin architecture for extensibility
+- **Memory System** - Persistent learning across sessions
+- **Monitoring** - Prometheus metrics and observability
+- **Debug Adapter** - Integrated debugging support
+
+### Interfaces
+
+- **Desktop App** - Native Tauri application (macOS/Windows/Linux)
+- **Web UI** - Browser-based IDE with Monaco editor
+- **CLI** - Full-featured command-line interface
+- **VS Code Extension** - Editor integration
+- **JetBrains Plugin** - IntelliJ/PyCharm/WebStorm integration
+- **MCP Server** - Model Context Protocol for AI agent integration
+
 ## Quick Start
 
-### CLI Usage
+### 🎬 See It In Action
+
+```bash
+# 1. Open Anvil Desktop (or run: anvil serve for web UI)
+
+# 2. Try inline edit (Cmd/Ctrl+K)
+# Select code and describe the change you want
+
+# 3. Try tab autocomplete
+# Start typing and Anvil suggests completions
+
+# 4. Try slash commands in chat
+# Type / to see available commands
+```
+
+### 💻 CLI Usage
 
 ```bash
 # Run a task

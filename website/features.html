@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anvil Features — Complete Feature List</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --accent: #f59e0b;
+    --text-primary: #fafafa;
+    --text-secondary: #a0a0a0;
+    --border: #262626;
+    --success: #22c55e;
+  }
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 40px 20px;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 3rem;
+    font-size: 1.1rem;
+  }
+  
+  .feature-category {
+    margin-bottom: 3rem;
+  }
+  
+  .feature-category h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: var(--accent);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+  
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .feature-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s;
+  }
+  
+  .feature-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  
+  .feature-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .feature-card h3 i {
+    color: var(--accent);
+  }
+  
+  .feature-card p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+  
+  .badge {
+    display: inline-block;
+    background: var(--success);
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+  }
+  
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+  }
+  
+  .comparison-table th,
+  .comparison-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .comparison-table th {
+    background: var(--bg-secondary);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  
+  .comparison-table tr:hover {
+    background: var(--bg-secondary);
+  }
+  
+  .check { color: var(--success); font-weight: bold; }
+  .cross { color: #ef4444; }
+  
+  .back-link {
+    text-align: center;
+    margin-top: 3rem;
+  }
+  
+  .back-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  
+  .back-link a:hover {
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1><i class="fas fa-star"></i> Anvil Features</h1>
+    <p class="subtitle">Everything you need in a modern coding assistant — and more.</p>
+    
+    <div class="feature-category">
+      <h2><i class="fas fa-bolt"></i> Unique Features (Only Anvil Has These)</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3><i class="fas fa-sync"></i> Verify Loop <span class="badge">UNIQUE</span></h3>
+          <p>Every change is automatically verified. Other agents generate code and hope it works. Anvil generates, verifies, and fixes until it's correct.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-shield-alt"></i> Error Recovery <span class="badge">UNIQUE</span></h3>
+          <p>When verification fails, Anvil doesn't just report the error. It diagnoses the issue and automatically fixes it, then re-verifies.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-layer-group"></i> Multi-Interface <span class="badge">UNIQUE</span></h3>
+          <p>Use Anvil your way: Desktop app, Web UI, CLI, VS Code extension, JetBrains plugin, or MCP server. All interfaces share the same powerful backend.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-puzzle-piece"></i> Extension System <span class="badge">UNIQUE</span></h3>
+          <p>Extend Anvil with custom skills, tools, and integrations. Build your own or install from the community.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-graduation-cap"></i> Onboarding Tour <span class="badge">UNIQUE</span></h3>
+          <p>New to Anvil? Interactive guided tours teach you the basics in minutes. No other assistant has this.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-bug"></i> Integrated Debugging <span class="badge">UNIQUE</span></h3>
+          <p>Breakpoints, step-through debugging, variable inspection, and error analysis all built-in. No other coding assistant has this.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="feature-category">
+      <h2><i class="fas fa-code"></i> Modern IDE Features</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3><i class="fas fa-edit"></i> Inline Edit (Cmd/Ctrl+K)</h3>
+          <p>Edit code directly in the editor. Select code, describe the change, and Anvil applies it.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-keyboard"></i> Tab Autocomplete</h3>
+          <p>Ghost text suggestions as you type. Press Tab to accept, Escape to dismiss.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-terminal"></i> Slash Commands</h3>
+          <p>Quick actions in chat: /test, /fix, /explain, /refactor, /verify, /debug.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-at"></i> @-mentions</h3>
+          <p>Reference files, symbols, and documentation in chat with @filename or @symbol.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-code-branch"></i> Git Integration</h3>
+          <p>Auto-commit, diff viewing, undo, and AI-generated commit messages.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-ruler"></i> Custom Rules</h3>
+          <p>Define AI behavior with custom instructions. Create rules for your coding style.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-dollar-sign"></i> API Cost Tracking</h3>
+          <p>See token usage and costs in real-time. Monitor your API spending.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-undo"></i> Checkpoints/Undo</h3>
+          <p>Rollback AI changes with one click. Safety net for all AI edits.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-search"></i> Codebase Context</h3>
+          <p>Index and search your entire codebase. Anvil understands your project structure.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-brain"></i> Memory System</h3>
+          <p>Anvil remembers your preferences across sessions. Persistent learning.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-users"></i> Real-time Collaboration</h3>
+          <p>Work together with WebSocket support. See other users' cursors and changes.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-chart-line"></i> Monitoring & Metrics</h3>
+          <p>Prometheus metrics for observability. Monitor performance and usage.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="feature-category">
+      <h2><i class="fas fa-desktop"></i> Interfaces</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3><i class="fas fa-window-maximize"></i> Desktop App</h3>
+          <p>Native Tauri application for macOS, Windows, and Linux. Auto-updates, standalone.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-globe"></i> Web UI</h3>
+          <p>Browser-based IDE with Monaco editor. Full-featured, responsive design.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-terminal"></i> CLI</h3>
+          <p>Full command-line interface. 50+ commands for all operations.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fab fa-microsoft"></i> VS Code Extension</h3>
+          <p>Editor integration with context menu, sidebar, and keyboard shortcuts.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fab fa-java"></i> JetBrains Plugin</h3>
+          <p>Works with IntelliJ, PyCharm, WebStorm, and all JetBrains IDEs.</p>
+        </div>
+        <div class="feature-card">
+          <h3><i class="fas fa-robot"></i> MCP Server</h3>
+          <p>Model Context Protocol server for AI agent integration.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="feature-category">
+      <h2><i class="fas fa-chart-bar"></i> Feature Comparison</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Anvil</th>
+            <th>Cursor</th>
+            <th>Continue</th>
+            <th>Aider</th>
+            <th>Cline</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Verify Loop</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Error Recovery</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Open Source</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Self-hosted</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Desktop App</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Web UI</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>CLI</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>VS Code Extension</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>JetBrains Plugin</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Inline Edit</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Tab Autocomplete</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Git Integration</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Extension System</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Memory System</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Real-time Collab</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>MCP Support</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Onboarding</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Debugging</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>Monitoring</td>
+            <td class="check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="back-link">
+      <a href="/fableforge/"><i class="fas fa-arrow-left"></i> Back to Home</a>
+    </div>
+  </div>
+</body>
+</html>

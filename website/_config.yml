@@ -1,0 +1,6 @@
+title: Anvil — The Self-Verified Coding Agent
+description: Where code gets forged, hammered, and tested until it holds. Built on 210K+ agent traces across 21 projects.
+url: https://kinglabsa.github.io
+baseurl: /fableforge
+theme: minima
+markdown: kramdown
