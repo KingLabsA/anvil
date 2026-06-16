@@ -1460,4 +1460,61 @@ def rules_remove(name):
     console.print(f"[green]✓ Removed rule: {name}[/]")
 
 
+# ── Codebase commands ─────────────────────────────────────────────────
+
+@main.group()
+def codebase():
+    """Codebase search and indexing commands."""
+    pass
+
+
+@codebase.command("index")
+@click.option("--path", "-p", default=".", help="Path to index")
+def codebase_index(path):
+    """Index the codebase for semantic search."""
+    from anvil.codebase.indexer import CodebaseIndex
+    
+    indexer = CodebaseIndex(path)
+    console.print(f"[cyan]Indexing codebase at {path}...[/]")
+    
+    count = indexer.index()
+    stats = indexer.get_stats()
+    
+    console.print(f"[green]✓ Indexed {stats['total_chunks']} chunks across {stats['total_files']} files[/]")
+    console.print(f"[dim]Languages: {', '.join(f'{k}: {v}' for k, v in stats['languages'].items())}[/]")
+
+
+@codebase.command("search")
+@click.argument("query")
+@click.option("--limit", "-n", default=10, help="Maximum results")
+def codebase_search(query, limit):
+    """Search the codebase semantically."""
+    from anvil.codebase.indexer import CodebaseIndex
+    
+    indexer = CodebaseIndex(".")
+    indexer.index()
+    
+    results = indexer.search(query, limit)
+    
+    if not results:
+        console.print(f"[yellow]No results found for '{query}'[/]")
+        return
+    
+    table = Table(title=f"Search Results for '{query}'")
+    table.add_column("File", style="cyan")
+    table.add_column("Lines", style="dim")
+    table.add_column("Score", style="green")
+    table.add_column("Match")
+    
+    for r in results:
+        table.add_row(
+            r.chunk.file_path,
+            f"{r.chunk.line_start}-{r.chunk.line_end}",
+            f"{r.score:.1f}",
+            r.match_reason[:50],
+        )
+    
+    console.print(table)
+
+
 

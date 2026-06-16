@@ -22,7 +22,7 @@ class TestWebUILoading:
         page.goto("http://localhost:8000")
         
         # Check that the page title contains "Anvil"
-        expect(page).to_have_title(/Anvil/)
+        expect(page).to_have_title('Anvil')
         
         # Check that the logo is visible
         logo = page.locator(".logo")
@@ -262,7 +262,7 @@ class TestEditorInteraction:
         file_item.click()
         
         # Check that file is selected
-        expect(file_item).to_have_class(/active/)
+        expect(file_item).to_have_class('active')
     
     def test_tab_creation(self, page: Page):
         """Test that tabs are created when selecting files."""
@@ -369,7 +369,7 @@ class TestResponsiveDesign:
         page.goto("http://localhost:8000")
         
         # Check that page loads
-        expect(page).to_have_title(/Anvil/)
+        expect(page).to_have_title('Anvil')
         
         # Check that main elements are still visible
         logo = page.locator(".logo")
@@ -381,7 +381,7 @@ class TestResponsiveDesign:
         page.goto("http://localhost:8000")
         
         # Check that page loads
-        expect(page).to_have_title(/Anvil/)
+        expect(page).to_have_title('Anvil')
         
         # Check that main elements are visible
         editor = page.locator(".monaco-editor")

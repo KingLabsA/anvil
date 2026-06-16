@@ -1,0 +1,424 @@
+"""Codebase embeddings and semantic search for Anvil."""
+
+from __future__ import annotations
+
+import json
+import hashlib
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Optional
+import re
+
+
+@dataclass
+class CodeChunk:
+    """A chunk of code with metadata."""
+    file_path: str
+    line_start: int
+    line_end: int
+    content: str
+    language: str
+    functions: list[str] = field(default_factory=list)
+    classes: list[str] = field(default_factory=list)
+    imports: list[str] = field(default_factory=list)
+    hash: str = ""
+
+
+@dataclass
+class SearchResult:
+    """A search result with relevance score."""
+    chunk: CodeChunk
+    score: float
+    match_reason: str
+
+
+class CodebaseIndex:
+    """Index and search the codebase using embeddings."""
+    
+    # File extensions to index
+    INDEXABLE_EXTENSIONS = {
+        ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".go", ".rs",
+        ".rb", ".php", ".sql", ".yaml", ".yml", ".json", ".toml",
+        ".md", ".txt", ".html", ".css", ".scss", ".vue", ".svelte",
+    }
+    
+    # Directories to skip
+    SKIP_DIRS = {
+        "node_modules", ".git", "__pycache__", ".venv", "venv",
+        "dist", "build", ".next", ".nuxt", "coverage", ".mypy_cache",
+        "target", "vendor", ".bundle", ".tox", ".eggs",
+    }
+    
+    def __init__(self, project_root: str | Path):
+        self.project_root = Path(project_root)
+        self.chunks: list[CodeChunk] = []
+        self.file_hashes: dict[str, str] = {}
+        self.indexed = False
+    
+    def index(self, max_files: int = 1000) -> int:
+        """Index the codebase by chunking files.
+        
+        Args:
+            max_files: Maximum number of files to index
+            
+        Returns:
+            Number of chunks created
+        """
+        self.chunks = []
+        file_count = 0
+        
+        for file_path in self._walk_files():
+            if file_count >= max_files:
+                break
+            
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+                if not content.strip():
+                    continue
+                
+                # Calculate hash for change detection
+                file_hash = hashlib.md5(content.encode()).hexdigest()
+                rel_path = str(file_path.relative_to(self.project_root))
+                
+                # Skip unchanged files
+                if rel_path in self.file_hashes and self.file_hashes[rel_path] == file_hash:
+                    continue
+                self.file_hashes[rel_path] = file_hash
+                
+                # Chunk the file
+                language = self._detect_language(file_path)
+                chunks = self._chunk_file(rel_path, content, language)
+                self.chunks.extend(chunks)
+                file_count += 1
+                
+            except Exception:
+                continue
+        
+        self.indexed = True
+        return len(self.chunks)
+    
+    def _walk_files(self):
+        """Walk the project directory and yield indexable files."""
+        for file_path in sorted(self.project_root.rglob("*")):
+            if not file_path.is_file():
+                continue
+            
+            # Skip non-indexable extensions
+            if file_path.suffix not in self.INDEXABLE_EXTENSIONS:
+                continue
+            
+            # Skip hidden/special directories
+            rel_path = str(file_path.relative_to(self.project_root))
+            if any(part.startswith(".") or part in self.SKIP_DIRS for part in rel_path.split("/")):
+                continue
+            
+            yield file_path
+    
+    def _detect_language(self, file_path: Path) -> str:
+        """Detect programming language from file extension."""
+        ext_map = {
+            ".py": "python", ".js": "javascript", ".ts": "typescript",
+            ".jsx": "javascript", ".tsx": "typescript", ".java": "java",
+            ".go": "go", ".rs": "rust", ".rb": "ruby", ".php": "php",
+            ".sql": "sql", ".yaml": "yaml", ".yml": "yaml",
+            ".json": "json", ".toml": "toml", ".md": "markdown",
+            ".html": "html", ".css": "css", ".scss": "scss",
+            ".vue": "vue", ".svelte": "svelte",
+        }
+        return ext_map.get(file_path.suffix.lower(), "text")
+    
+    def _chunk_file(self, file_path: str, content: str, language: str, max_lines: int = 100) -> list[CodeChunk]:
+        """Chunk a file into smaller pieces."""
+        lines = content.split("\n")
+        chunks = []
+        
+        # Try to chunk by function/class boundaries
+        boundaries = self._find_boundaries(lines, language)
+        
+        if boundaries:
+            # Chunk at boundaries
+            for i, start in enumerate(boundaries):
+                end = boundaries[i + 1] if i + 1 < len(boundaries) else len(lines)
+                chunk_lines = lines[start:end]
+                chunk_content = "\n".join(chunk_lines).strip()
+                
+                if chunk_content and len(chunk_lines) > 2:
+                    chunk = CodeChunk(
+                        file_path=file_path,
+                        line_start=start + 1,
+                        line_end=end,
+                        content=chunk_content,
+                        language=language,
+                        functions=self._extract_functions(chunk_content, language),
+                        classes=self._extract_classes(chunk_content, language),
+                        imports=self._extract_imports(chunk_content, language),
+                        hash=hashlib.md5(chunk_content.encode()).hexdigest(),
+                    )
+                    chunks.append(chunk)
+        else:
+            # Fallback: chunk by line count
+            for i in range(0, len(lines), max_lines):
+                chunk_lines = lines[i:i + max_lines]
+                chunk_content = "\n".join(chunk_lines).strip()
+                if chunk_content:
+                    chunk = CodeChunk(
+                        file_path=file_path,
+                        line_start=i + 1,
+                        line_end=min(i + max_lines, len(lines)),
+                        content=chunk_content,
+                        language=language,
+                        functions=self._extract_functions(chunk_content, language),
+                        classes=self._extract_classes(chunk_content, language),
+                        imports=self._extract_imports(chunk_content, language),
+                        hash=hashlib.md5(chunk_content.encode()).hexdigest(),
+                    )
+                    chunks.append(chunk)
+        
+        return chunks
+    
+    def _find_boundaries(self, lines: list[str], language: str) -> list[int]:
+        """Find function/class boundaries in code."""
+        boundaries = [0]
+        
+        if language in ("python",):
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                if re.match(r"^(def |class |async def )", stripped):
+                    boundaries.append(i)
+        elif language in ("javascript", "typescript", "java", "go", "rust"):
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                if re.match(r"^(function |class |const |let |var |export |async |pub |fn )", stripped):
+                    boundaries.append(i)
+        elif language in ("html", "vue", "svelte"):
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                if re.match(r"^(<script|<template|<style|<template>)", stripped):
+                    boundaries.append(i)
+        
+        boundaries.append(len(lines))
+        return boundaries
+    
+    def _extract_functions(self, content: str, language: str) -> list[str]:
+        """Extract function names from code."""
+        functions = []
+        
+        if language in ("python",):
+            for match in re.finditer(r"(?:def|async\s+def)\s+(\w+)", content):
+                functions.append(match.group(1))
+        elif language in ("javascript", "typescript"):
+            for match in re.finditer(r"(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\())", content):
+                name = match.group(1) or match.group(2)
+                if name:
+                    functions.append(name)
+        elif language == "go":
+            for match in re.finditer(r"func\s+(?:\([^)]+\)\s+)?(\w+)", content):
+                functions.append(match.group(1))
+        elif language == "rust":
+            for match in re.finditer(r"(?:pub\s+)?(?:async\s+)?fn\s+(\w+)", content):
+                functions.append(match.group(1))
+        
+        return functions[:20]  # Limit to 20 functions per chunk
+    
+    def _extract_classes(self, content: str, language: str) -> list[str]:
+        """Extract class names from code."""
+        classes = []
+        
+        if language in ("python",):
+            for match in re.finditer(r"class\s+(\w+)", content):
+                classes.append(match.group(1))
+        elif language in ("javascript", "typescript", "java"):
+            for match in re.finditer(r"class\s+(\w+)", content):
+                classes.append(match.group(1))
+        
+        return classes[:10]  # Limit to 10 classes per chunk
+    
+    def _extract_imports(self, content: str, language: str) -> list[str]:
+        """Extract import statements from code."""
+        imports = []
+        
+        if language == "python":
+            for match in re.finditer(r"(?:from\s+(\S+)\s+)?import\s+(\S+)", content):
+                imports.append(match.group(2) or match.group(1))
+        elif language in ("javascript", "typescript"):
+            for match in re.finditer(r"(?:import\s+\{[^}]+\}\s+from\s+['\"]([^'\"]+)['\"]|import\s+(\S+))", content):
+                imports.append(match.group(1) or match.group(2))
+        elif language == "go":
+            for match in re.finditer(r'import\s+(?:\([^)]+\)|"([^"]+)")', content):
+                if match.group(1):
+                    imports.append(match.group(1))
+        
+        return imports[:10]  # Limit to 10 imports per chunk
+    
+    def search(self, query: str, limit: int = 10) -> list[SearchResult]:
+        """Search the codebase using keyword matching.
+        
+        Args:
+            query: Search query
+            limit: Maximum number of results
+            
+        Returns:
+            List of search results
+        """
+        if not self.indexed:
+            self.index()
+        
+        query_lower = query.lower()
+        query_words = set(query_lower.split())
+        
+        results: list[SearchResult] = []
+        
+        for chunk in self.chunks:
+            score = 0.0
+            reasons = []
+            
+            # Score by keyword matches in content
+            content_lower = chunk.content.lower()
+            for word in query_words:
+                if word in content_lower:
+                    score += 1.0
+                    reasons.append(f"keyword '{word}' found")
+            
+            # Bonus for function/class matches
+            for func in chunk.functions:
+                if func.lower() in query_lower:
+                    score += 3.0
+                    reasons.append(f"function '{func}' matches")
+            
+            for cls in chunk.classes:
+                if cls.lower() in query_lower:
+                    score += 3.0
+                    reasons.append(f"class '{cls}' matches")
+            
+            # Bonus for exact phrase match
+            if query_lower in content_lower:
+                score += 5.0
+                reasons.append("exact phrase match")
+            
+            if score > 0:
+                results.append(SearchResult(
+                    chunk=chunk,
+                    score=score,
+                    match_reason=", ".join(reasons[:3]),
+                ))
+        
+        # Sort by score descending
+        results.sort(key=lambda x: x.score, reverse=True)
+        return results[:limit]
+    
+    def get_file_context(self, file_path: str) -> str:
+        """Get full context for a file."""
+        if not self.indexed:
+            self.index()
+        
+        file_chunks = [c for c in self.chunks if c.file_path == file_path]
+        if not file_chunks:
+            return ""
+        
+        context_parts = []
+        for chunk in file_chunks:
+            context_parts.append(f"Lines {chunk.line_start}-{chunk.line_end}:")
+            context_parts.append(chunk.content)
+        
+        return "\n\n".join(context_parts)
+    
+    def get_related_files(self, file_path: str, limit: int = 5) -> list[str]:
+        """Find files related to a given file based on imports and shared functions."""
+        if not self.indexed:
+            self.index()
+        
+        target_chunks = [c for c in self.chunks if c.file_path == file_path]
+        if not target_chunks:
+            return []
+        
+        # Get all imports and functions from target file
+        all_imports = set()
+        all_functions = set()
+        for chunk in target_chunks:
+            all_imports.update(chunk.imports)
+            all_functions.update(chunk.functions)
+        
+        # Score other files by shared imports/functions
+        file_scores: dict[str, float] = {}
+        for chunk in self.chunks:
+            if chunk.file_path == file_path:
+                continue
+            
+            score = 0.0
+            for imp in chunk.imports:
+                if imp in all_imports:
+                    score += 1.0
+            
+            for func in chunk.functions:
+                if func in all_functions:
+                    score += 2.0
+            
+            if score > 0:
+                file_scores[chunk.file_path] = file_scores.get(chunk.file_path, 0) + score
+        
+        # Sort and return top files
+        sorted_files = sorted(file_scores.items(), key=lambda x: x[1], reverse=True)
+        return [f[0] for f in sorted_files[:limit]]
+    
+    def get_stats(self) -> dict[str, Any]:
+        """Get index statistics."""
+        if not self.indexed:
+            return {"indexed": False}
+        
+        languages = {}
+        for chunk in self.chunks:
+            lang = chunk.language
+            languages[lang] = languages.get(lang, 0) + 1
+        
+        files = set(c.file_path for c in self.chunks)
+        
+        return {
+            "indexed": True,
+            "total_chunks": len(self.chunks),
+            "total_files": len(files),
+            "languages": languages,
+        }
+    
+    def save_index(self, path: str | Path) -> None:
+        """Save the index to a file."""
+        index_data = {
+            "file_hashes": self.file_hashes,
+            "chunks": [
+                {
+                    "file_path": c.file_path,
+                    "line_start": c.line_start,
+                    "line_end": c.line_end,
+                    "language": c.language,
+                    "functions": c.functions,
+                    "classes": c.classes,
+                    "imports": c.imports,
+                    "hash": c.hash,
+                }
+                for c in self.chunks
+            ],
+        }
+        Path(path).write_text(json.dumps(index_data, indent=2))
+    
+    def load_index(self, path: str | Path) -> bool:
+        """Load the index from a file."""
+        try:
+            data = json.loads(Path(path).read_text())
+            self.file_hashes = data.get("file_hashes", {})
+            self.chunks = [
+                CodeChunk(
+                    file_path=c["file_path"],
+                    line_start=c["line_start"],
+                    line_end=c["line_end"],
+                    content="",  # Content not stored in index
+                    language=c["language"],
+                    functions=c.get("functions", []),
+                    classes=c.get("classes", []),
+                    imports=c.get("imports", []),
+                    hash=c.get("hash", ""),
+                )
+                for c in data.get("chunks", [])
+            ]
+            self.indexed = True
+            return True
+        except Exception:
+            return False

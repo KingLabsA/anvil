@@ -25,6 +25,7 @@ from anvil.api.database import db, DBUser, DBSession
 from anvil.api.websocket import connection_manager, websocket_handler
 from anvil.monitoring import get_metrics
 from anvil.onboarding import onboarding_manager
+from anvil.codebase.indexer import CodebaseIndex
 
 
 # ============================================================================
@@ -308,6 +309,63 @@ async def get_onboarding_status():
         "completed_tours": onboarding_manager.get_completed_tours(),
         "recommended_tour": onboarding_manager.get_recommended_tour().id if onboarding_manager.get_recommended_tour() else None,
     }
+
+
+# ============================================================================
+# Codebase
+# ============================================================================
+
+codebase_index = None
+
+@app.post("/api/codebase/index")
+async def index_codebase(
+    path: str = ".",
+    current_user: TokenData = Depends(get_current_user),
+):
+    """Index the codebase for semantic search."""
+    global codebase_index
+    codebase_index = CodebaseIndex(path)
+    count = codebase_index.index()
+    stats = codebase_index.get_stats()
+    return {"status": "indexed", "chunks": count, "stats": stats}
+
+
+@app.post("/api/codebase/search")
+async def search_codebase(
+    query: str,
+    limit: int = 10,
+    current_user: TokenData = Depends(get_current_user),
+):
+    """Search the codebase semantically."""
+    global codebase_index
+    if not codebase_index or not codebase_index.indexed:
+        return {"error": "Codebase not indexed. Call /api/codebase/index first."}
+    
+    results = codebase_index.search(query, limit)
+    return {
+        "query": query,
+        "results": [
+            {
+                "file": r.chunk.file_path,
+                "lines": f"{r.chunk.line_start}-{r.chunk.line_end}",
+                "score": r.score,
+                "reason": r.match_reason,
+                "language": r.chunk.language,
+                "functions": r.chunk.functions[:5],
+                "classes": r.chunk.classes[:3],
+            }
+            for r in results
+        ],
+    }
+
+
+@app.get("/api/codebase/stats")
+async def get_codebase_stats(current_user: TokenData = Depends(get_current_user)):
+    """Get codebase index statistics."""
+    global codebase_index
+    if not codebase_index:
+        return {"indexed": False}
+    return codebase_index.get_stats()
 
 
 # ============================================================================
