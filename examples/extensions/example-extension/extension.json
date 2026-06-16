@@ -1,0 +1,9 @@
+{
+  "name": "example-extension",
+  "version": "0.1.0",
+  "description": "Example Anvil extension demonstrating the extension system",
+  "author": "FableForge",
+  "main": "main.py",
+  "tools": ["example_tool"],
+  "hooks": ["on_task_start", "on_task_complete"]
+}

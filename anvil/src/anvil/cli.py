@@ -867,6 +867,146 @@ def memory_clear(category):
     console.print(f"[green]✓ Cleared {count} memories[/]")
 
 
+# ── Extensions management commands ─────────────────────────────────────
+
+@main.group()
+def extensions():
+    """Manage extensions — install, list, enable, disable, remove."""
+    pass
+
+
+@extensions.command("list")
+def extensions_list():
+    """List installed extensions."""
+    from anvil.extensions.manager import ExtensionManager
+    
+    mgr = ExtensionManager()
+    exts = mgr.list_extensions()
+    
+    if not exts:
+        console.print("[dim]No extensions installed.[/]")
+        return
+    
+    table = Table(show_header=True, title="Installed Extensions")
+    table.add_column("Name", style="cyan")
+    table.add_column("Version")
+    table.add_column("Description")
+    table.add_column("Author")
+    table.add_column("Tools")
+    
+    for ext in exts:
+        status = mgr.get_extension(ext.name)
+        enabled = "✓" if status and status.enabled else "✗"
+        table.add_row(
+            f"{enabled} {ext.name}",
+            ext.version,
+            ext.description[:50],
+            ext.author,
+            ", ".join(ext.tools) if ext.tools else "none",
+        )
+    
+    console.print(table)
+
+
+@extensions.command("install")
+@click.argument("source")
+def extensions_install(source):
+    """Install an extension from a local path or git URL."""
+    from anvil.extensions.manager import ExtensionManager
+    
+    mgr = ExtensionManager()
+    
+    try:
+        metadata = mgr.install(source)
+        console.print(f"[green]✓ Installed extension: {metadata.name} v{metadata.version}[/]")
+        console.print(f"  Description: {metadata.description}")
+        console.print(f"  Author: {metadata.author}")
+        if metadata.tools:
+            console.print(f"  Tools: {', '.join(metadata.tools)}")
+        if metadata.hooks:
+            console.print(f"  Hooks: {', '.join(metadata.hooks)}")
+    except Exception as e:
+        console.print(f"[red]Failed to install extension: {e}[/]")
+        sys.exit(1)
+
+
+@extensions.command("uninstall")
+@click.argument("name")
+def extensions_uninstall(name):
+    """Uninstall an extension."""
+    from anvil.extensions.manager import ExtensionManager
+    
+    mgr = ExtensionManager()
+    
+    if mgr.uninstall(name):
+        console.print(f"[green]✓ Uninstalled extension: {name}[/]")
+    else:
+        console.print(f"[red]Extension not found: {name}[/]")
+        sys.exit(1)
+
+
+@extensions.command("enable")
+@click.argument("name")
+def extensions_enable(name):
+    """Enable an extension."""
+    from anvil.extensions.manager import ExtensionManager
+    
+    mgr = ExtensionManager()
+    
+    if mgr.enable(name):
+        console.print(f"[green]✓ Enabled extension: {name}[/]")
+    else:
+        console.print(f"[red]Extension not found: {name}[/]")
+        sys.exit(1)
+
+
+@extensions.command("disable")
+@click.argument("name")
+def extensions_disable(name):
+    """Disable an extension."""
+    from anvil.extensions.manager import ExtensionManager
+    
+    mgr = ExtensionManager()
+    
+    if mgr.disable(name):
+        console.print(f"[green]✓ Disabled extension: {name}[/]")
+    else:
+        console.print(f"[red]Extension not found: {name}[/]")
+        sys.exit(1)
+
+
+@extensions.command("info")
+@click.argument("name")
+def extensions_info(name):
+    """Show detailed info about an extension."""
+    from anvil.extensions.manager import ExtensionManager
+    
+    mgr = ExtensionManager()
+    ext = mgr.get_extension(name)
+    
+    if not ext:
+        console.print(f"[red]Extension not found: {name}[/]")
+        sys.exit(1)
+    
+    console.print(f"\n[bold cyan]{ext.metadata.name}[/] v{ext.metadata.version}")
+    console.print(f"[dim]Author: {ext.metadata.author}[/]")
+    console.print(f"[dim]Path: {ext.path}[/]")
+    console.print(f"[dim]Enabled: {'Yes' if ext.enabled else 'No'}[/]")
+    
+    if ext.metadata.description:
+        console.print(f"\n{ext.metadata.description}")
+    
+    if ext.metadata.tools:
+        console.print(f"\n[bold]Tools:[/]")
+        for tool in ext.metadata.tools:
+            console.print(f"  • {tool}")
+    
+    if ext.metadata.hooks:
+        console.print(f"\n[bold]Hooks:[/]")
+        for hook in ext.metadata.hooks:
+            console.print(f"  • {hook}")
+
+
 # ── MCP server command ─────────────────────────────────────────────────
 
 @main.command()
