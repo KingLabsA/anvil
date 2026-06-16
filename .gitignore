@@ -78,3 +78,4 @@ temp/
 *.cert
 *.crt
 *.p12
+fableforge-training/

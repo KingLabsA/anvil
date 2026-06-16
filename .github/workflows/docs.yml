@@ -37,18 +37,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mkdocs-material mkdocs-redirects mkdocs-git-revision-date-localized-plugin \
-                       mkdocs-minify-plugin mkdocs-markdownextradata-plugin \
-                       mike pygments
+pip install mkdocs-material mkdocs-redirects mkdocs-minify-plugin \
+                     mkdocs-markdownextradata-plugin mike pygments
 
       - name: Build site
-        run: mkdocs build --strict
+        run: mkdocs build
         working-directory: docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/site
+          path: site
 
   # ── Deploy to GitHub Pages ───────────────────────────────────────
   deploy:

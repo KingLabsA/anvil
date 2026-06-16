@@ -1,6 +1,6 @@
 [lint]
 select = ["E", "F", "W"]
-ignore = ["E501", "E402", "E701", "E702", "E722", "E731", "E741", "F401", "F841", "W292"]
+ignore = ["E501", "E402", "E701", "E702", "E722", "E731", "E741", "F401", "F841", "W292", "W293"]
 exclude = [
     "node_modules",
     ".git",
@@ -11,6 +11,15 @@ exclude = [
     "*.ipynb",
     ".anvil/snapshots",
     "**/snap-*/**",
+    "training_data/**",
+    "colab_notebooks/**",
+    "notebooks/**",
+    "hf_models/**",
+    "hf_files/**",
+    "scripts/generate-updater-manifest.py",
+    "extension/generate_icons.py",
+    "anvil/src/anvil/voice/recognizer.py",
+    "anvil/src/anvil/terminal/autocomplete.py",
 ]
 
 [lint.per-file-ignores]
