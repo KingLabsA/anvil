@@ -1024,4 +1024,432 @@ def mcp():
     run_mcp_server()
 
 
+# ── Authentication commands ────────────────────────────────────────────
+
+@main.group()
+def auth():
+    """Authentication commands — login, register, logout."""
+    pass
+
+
+@auth.command("login")
+@click.option("--email", prompt=True, help="Email address")
+@click.option("--password", prompt=True, hide_input=True, help="Password")
+def auth_login(email, password):
+    """Login to Anvil API."""
+    import requests
+    from pathlib import Path
+    
+    try:
+        response = requests.post(
+            "http://localhost:8000/api/auth/login",
+            json={"email": email, "password": password},
+            timeout=10,
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Save tokens
+            token_file = Path.home() / ".anvil" / "auth.json"
+            token_file.parent.mkdir(parents=True, exist_ok=True)
+            token_file.write_text(json.dumps({
+                "access_token": data["access_token"],
+                "refresh_token": data["refresh_token"],
+                "email": email,
+            }))
+            token_file.chmod(0o600)  # Secure permissions
+            
+            console.print(f"[green]✓ Logged in as {email}[/]")
+        else:
+            console.print(f"[red]✗ Login failed: {response.json().get('detail', 'Unknown error')}[/]")
+            sys.exit(1)
+    except requests.exceptions.ConnectionError:
+        console.print("[red]✗ Cannot connect to Anvil server. Is it running? (anvil serve)[/]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]✗ Login failed: {e}[/]")
+        sys.exit(1)
+
+
+@auth.command("register")
+@click.option("--email", prompt=True, help="Email address")
+@click.option("--username", prompt=True, help="Username")
+@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True, help="Password")
+def auth_register(email, username, password):
+    """Register a new Anvil account."""
+    import requests
+    from pathlib import Path
+    
+    try:
+        response = requests.post(
+            "http://localhost:8000/api/auth/register",
+            json={"email": email, "username": username, "password": password},
+            timeout=10,
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Save tokens
+            token_file = Path.home() / ".anvil" / "auth.json"
+            token_file.parent.mkdir(parents=True, exist_ok=True)
+            token_file.write_text(json.dumps({
+                "access_token": data["access_token"],
+                "refresh_token": data["refresh_token"],
+                "email": email,
+            }))
+            token_file.chmod(0o600)  # Secure permissions
+            
+            console.print(f"[green]✓ Registered and logged in as {email}[/]")
+        else:
+            console.print(f"[red]✗ Registration failed: {response.json().get('detail', 'Unknown error')}[/]")
+            sys.exit(1)
+    except requests.exceptions.ConnectionError:
+        console.print("[red]✗ Cannot connect to Anvil server. Is it running? (anvil serve)[/]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]✗ Registration failed: {e}[/]")
+        sys.exit(1)
+
+
+@auth.command("logout")
+def auth_logout():
+    """Logout from Anvil API."""
+    from pathlib import Path
+    
+    token_file = Path.home() / ".anvil" / "auth.json"
+    if token_file.exists():
+        token_file.unlink()
+        console.print("[green]✓ Logged out[/]")
+    else:
+        console.print("[yellow]Not logged in[/]")
+
+
+@auth.command("whoami")
+def auth_whoami():
+    """Show current logged in user."""
+    import requests
+    from pathlib import Path
+    
+    token_file = Path.home() / ".anvil" / "auth.json"
+    if not token_file.exists():
+        console.print("[yellow]Not logged in. Run 'anvil auth login'[/]")
+        return
+    
+    auth_data = json.loads(token_file.read_text())
+    
+    try:
+        response = requests.get(
+            "http://localhost:8000/api/auth/me",
+            headers={"Authorization": f"Bearer {auth_data['access_token']}"},
+            timeout=10,
+        )
+        
+        if response.status_code == 200:
+            user = response.json()
+            console.print(f"[cyan]Email:[/] {user['email']}")
+            console.print(f"[cyan]Username:[/] {user['username']}")
+            console.print(f"[cyan]User ID:[/] {user['id']}")
+            console.print(f"[cyan]Active:[/] {'Yes' if user['is_active'] else 'No'}")
+            console.print(f"[cyan]Admin:[/] {'Yes' if user['is_admin'] else 'No'}")
+        else:
+            console.print(f"[red]✗ Failed to get user info: {response.json().get('detail', 'Unknown error')}[/]")
+            sys.exit(1)
+    except requests.exceptions.ConnectionError:
+        console.print("[red]✗ Cannot connect to Anvil server. Is it running? (anvil serve)[/]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]✗ Failed: {e}[/]")
+        sys.exit(1)
+
+
+# ── Debug commands ─────────────────────────────────────────────────────
+
+@main.group()
+def debug():
+    """Debugging commands — breakpoints, step, continue."""
+    pass
+
+
+@debug.command("start")
+@click.argument("file_path")
+def debug_start(file_path):
+    """Start debugging a file."""
+    console.print(f"[cyan]Starting debug session for {file_path}...[/]")
+    console.print("[yellow]Debug adapter not yet implemented in CLI[/]")
+    console.print("[dim]Use the Web UI for debugging: anvil serve[/]")
+
+
+@debug.command("breakpoint")
+@click.argument("file_path")
+@click.argument("line", type=int)
+def debug_breakpoint(file_path, line):
+    """Set a breakpoint."""
+    console.print(f"[cyan]Setting breakpoint at {file_path}:{line}[/]")
+    console.print("[yellow]Debug adapter not yet implemented in CLI[/]")
+
+
+@debug.command("continue")
+def debug_continue():
+    """Continue execution."""
+    console.print("[cyan]Continuing execution...[/]")
+    console.print("[yellow]Debug adapter not yet implemented in CLI[/]")
+
+
+@debug.command("step-over")
+def debug_step_over():
+    """Step over to next line."""
+    console.print("[cyan]Stepping over...[/]")
+    console.print("[yellow]Debug adapter not yet implemented in CLI[/]")
+
+
+@debug.command("step-into")
+def debug_step_into():
+    """Step into function."""
+    console.print("[cyan]Stepping into...[/]")
+    console.print("[yellow]Debug adapter not yet implemented in CLI[/]")
+
+
+@debug.command("step-out")
+def debug_step_out():
+    """Step out of function."""
+    console.print("[cyan]Stepping out...[/]")
+    console.print("[yellow]Debug adapter not yet implemented in CLI[/]")
+
+
+# ── Metrics commands ───────────────────────────────────────────────────
+
+@main.command()
+@click.option("--format", "-f", type=click.Choice(["text", "json", "prometheus"]), default="text")
+def metrics(format):
+    """Show Anvil metrics and statistics."""
+    import requests
+    
+    try:
+        if format == "prometheus":
+            response = requests.get("http://localhost:8000/api/metrics", timeout=10)
+            if response.status_code == 200:
+                print(response.text)
+            else:
+                console.print(f"[red]✗ Failed to get metrics[/]")
+                sys.exit(1)
+        else:
+            # Get basic stats
+            response = requests.get("http://localhost:8000/api/health", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                
+                if format == "json":
+                    print(json.dumps(data, indent=2))
+                else:
+                    console.print("[bold cyan]Anvil Metrics[/]")
+                    console.print(f"[cyan]Status:[/] {data['status']}")
+                    console.print(f"[cyan]Version:[/] {data['version']}")
+                    console.print(f"[cyan]Uptime:[/] {data['uptime_seconds']:.1f}s")
+                    console.print(f"[cyan]Timestamp:[/] {data['timestamp']}")
+            else:
+                console.print(f"[red]✗ Failed to get metrics[/]")
+                sys.exit(1)
+    except requests.exceptions.ConnectionError:
+        console.print("[red]✗ Cannot connect to Anvil server. Is it running? (anvil serve)[/]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]✗ Failed: {e}[/]")
+        sys.exit(1)
+
+
+# ── Git commands ───────────────────────────────────────────────────────
+
+@main.group()
+def git():
+    """Git integration commands — auto-commit, diff, undo."""
+    pass
+
+
+@git.command("status")
+def git_status():
+    """Show git status."""
+    import subprocess
+    
+    try:
+        result = subprocess.run(
+            ["git", "status", "--short"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        if result.stdout:
+            console.print(result.stdout)
+        else:
+            console.print("[green]Working tree clean[/]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]✗ Git error: {e}[/]")
+        sys.exit(1)
+    except FileNotFoundError:
+        console.print("[red]✗ Git not found. Please install git.[/]")
+        sys.exit(1)
+
+
+@git.command("diff")
+@click.option("--staged", is_flag=True, help="Show staged changes")
+def git_diff(staged):
+    """Show git diff."""
+    import subprocess
+    
+    cmd = ["git", "diff"]
+    if staged:
+        cmd.append("--staged")
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        if result.stdout:
+            console.print(result.stdout)
+        else:
+            console.print("[green]No changes[/]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]✗ Git error: {e}[/]")
+        sys.exit(1)
+
+
+@git.command("commit")
+@click.option("--message", "-m", help="Commit message")
+@click.option("--auto", is_flag=True, help="Auto-generate commit message with AI")
+def git_commit(message, auto):
+    """Commit changes."""
+    import subprocess
+    
+    if auto:
+        console.print("[cyan]Generating commit message with AI...[/]")
+        # TODO: Implement AI commit message generation
+        message = "Update code with AI assistance"
+    
+    if not message:
+        message = click.prompt("Commit message")
+    
+    try:
+        subprocess.run(["git", "add", "-A"], check=True)
+        subprocess.run(["git", "commit", "-m", message], check=True)
+        console.print(f"[green]✓ Committed: {message}[/]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]✗ Git error: {e}[/]")
+        sys.exit(1)
+
+
+@git.command("undo")
+@click.option("--steps", "-n", default=1, help="Number of commits to undo")
+def git_undo(steps):
+    """Undo last commit(s)."""
+    import subprocess
+    
+    try:
+        subprocess.run(["git", "reset", f"HEAD~{steps}"], check=True)
+        console.print(f"[green]✓ Undid {steps} commit(s)[/]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]✗ Git error: {e}[/]")
+        sys.exit(1)
+
+
+# ── Rules commands ─────────────────────────────────────────────────────
+
+@main.group()
+def rules():
+    """Custom rules and instructions for AI behavior."""
+    pass
+
+
+@rules.command("list")
+def rules_list():
+    """List all custom rules."""
+    from pathlib import Path
+    
+    rules_dir = Path.home() / ".anvil" / "rules"
+    if not rules_dir.exists():
+        console.print("[yellow]No custom rules. Use 'anvil rules add' to create one.[/]")
+        return
+    
+    rules_files = list(rules_dir.glob("*.md"))
+    if not rules_files:
+        console.print("[yellow]No custom rules. Use 'anvil rules add' to create one.[/]")
+        return
+    
+    console.print("[bold cyan]Custom Rules:[/]")
+    for rule_file in rules_files:
+        console.print(f"  • {rule_file.stem}")
+
+
+@rules.command("add")
+@click.argument("name")
+def rules_add(name):
+    """Add a new custom rule."""
+    from pathlib import Path
+    
+    rules_dir = Path.home() / ".anvil" / "rules"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    
+    rule_file = rules_dir / f"{name}.md"
+    if rule_file.exists():
+        console.print(f"[red]✗ Rule '{name}' already exists[/]")
+        sys.exit(1)
+    
+    # Open editor
+    content = click.edit(
+        f"# {name}\n\n"
+        "Write your custom rule/instruction here.\n\n"
+        "This will be included in the AI's system prompt.\n"
+    )
+    
+    if content:
+        rule_file.write_text(content)
+        console.print(f"[green]✓ Added rule: {name}[/]")
+    else:
+        console.print("[yellow]Cancelled[/]")
+
+
+@rules.command("show")
+@click.argument("name")
+def rules_show(name):
+    """Show a custom rule."""
+    from pathlib import Path
+    
+    rule_file = Path.home() / ".anvil" / "rules" / f"{name}.md"
+    if not rule_file.exists():
+        console.print(f"[red]✗ Rule '{name}' not found[/]")
+        sys.exit(1)
+    
+    console.print(rule_file.read_text())
+
+
+@rules.command("edit")
+@click.argument("name")
+def rules_edit(name):
+    """Edit a custom rule."""
+    from pathlib import Path
+    
+    rule_file = Path.home() / ".anvil" / "rules" / f"{name}.md"
+    if not rule_file.exists():
+        console.print(f"[red]✗ Rule '{name}' not found[/]")
+        sys.exit(1)
+    
+    content = click.edit(rule_file.read_text())
+    if content:
+        rule_file.write_text(content)
+        console.print(f"[green]✓ Updated rule: {name}[/]")
+    else:
+        console.print("[yellow]Cancelled[/]")
+
+
+@rules.command("remove")
+@click.argument("name")
+def rules_remove(name):
+    """Remove a custom rule."""
+    from pathlib import Path
+    
+    rule_file = Path.home() / ".anvil" / "rules" / f"{name}.md"
+    if not rule_file.exists():
+        console.print(f"[red]✗ Rule '{name}' not found[/]")
+        sys.exit(1)
+    
+    rule_file.unlink()
+    console.print(f"[green]✓ Removed rule: {name}[/]")
+
+
 
