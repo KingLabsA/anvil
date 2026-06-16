@@ -24,6 +24,7 @@ from anvil.api.auth import (
 from anvil.api.database import db, DBUser, DBSession
 from anvil.api.websocket import connection_manager, websocket_handler
 from anvil.monitoring import get_metrics
+from anvil.onboarding import onboarding_manager
 
 
 # ============================================================================
@@ -206,6 +207,107 @@ async def get_prometheus_metrics():
     from fastapi.responses import Response
     metrics_data, content_type = get_metrics()
     return Response(content=metrics_data, media_type=content_type)
+
+
+# ============================================================================
+# Onboarding
+# ============================================================================
+
+@app.get("/api/onboarding/tours")
+async def list_onboarding_tours():
+    """List all available onboarding tours."""
+    tours = onboarding_manager.list_tours()
+    return {
+        "tours": [
+            {
+                "id": tour.id,
+                "name": tour.name,
+                "description": tour.description,
+                "steps_count": len(tour.steps),
+                "completed": onboarding_manager.is_tour_completed(tour.id),
+            }
+            for tour in tours
+        ]
+    }
+
+
+@app.get("/api/onboarding/tours/{tour_id}")
+async def get_onboarding_tour(tour_id: str):
+    """Get a specific onboarding tour."""
+    tour = onboarding_manager.get_tour(tour_id)
+    if not tour:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tour {tour_id} not found",
+        )
+    
+    return {
+        "id": tour.id,
+        "name": tour.name,
+        "description": tour.description,
+        "steps": [
+            {
+                "id": step.id,
+                "title": step.title,
+                "description": step.description,
+                "action": step.action,
+                "target": step.target,
+                "content": step.content,
+                "completed": step.completed,
+                "skippable": step.skippable,
+            }
+            for step in tour.steps
+        ],
+        "completed": onboarding_manager.is_tour_completed(tour_id),
+    }
+
+
+@app.post("/api/onboarding/tours/{tour_id}/start")
+async def start_onboarding_tour(tour_id: str):
+    """Start an onboarding tour."""
+    tour = onboarding_manager.start_tour(tour_id)
+    if not tour:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tour {tour_id} not found",
+        )
+    
+    step = tour.next_step()
+    return {
+        "tour_id": tour.id,
+        "current_step": tour.current_step,
+        "step": {
+            "id": step.id,
+            "title": step.title,
+            "description": step.description,
+            "action": step.action,
+            "target": step.target,
+            "content": step.content,
+        } if step else None,
+    }
+
+
+@app.post("/api/onboarding/tours/{tour_id}/complete")
+async def complete_onboarding_tour(tour_id: str):
+    """Mark an onboarding tour as completed."""
+    success = onboarding_manager.complete_tour(tour_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tour {tour_id} not found",
+        )
+    
+    return {"status": "completed", "tour_id": tour_id}
+
+
+@app.get("/api/onboarding/status")
+async def get_onboarding_status():
+    """Get onboarding status for the current user."""
+    return {
+        "should_show_onboarding": onboarding_manager.should_show_onboarding(),
+        "completed_tours": onboarding_manager.get_completed_tours(),
+        "recommended_tour": onboarding_manager.get_recommended_tour().id if onboarding_manager.get_recommended_tour() else None,
+    }
 
 
 # ============================================================================

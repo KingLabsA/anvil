@@ -1795,5 +1795,221 @@ https://github.com/KingLabsA/anvil
 
     <!-- Monaco Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+
+    <!-- Onboarding Tour Overlay -->
+    <div id="onboarding-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 99999;">
+        <div id="onboarding-tooltip" style="position: absolute; background: var(--bg-secondary); border: 2px solid var(--accent); border-radius: 8px; padding: 20px; max-width: 400px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 id="onboarding-title" style="margin: 0; color: var(--accent); font-size: 1.2rem;"></h3>
+                <button onclick="skipOnboardingStep()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem;">×</button>
+            </div>
+            <p id="onboarding-description" style="margin-bottom: 15px; line-height: 1.5;"></p>
+            <div id="onboarding-progress" style="margin-bottom: 15px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;"></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="onboarding-prev" onclick="previousOnboardingStep()" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); padding: 8px 16px; border-radius: 4px; cursor: pointer;">Previous</button>
+                <button id="onboarding-next" onclick="nextOnboardingStep()" style="background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Next</button>
+                <button id="onboarding-skip" onclick="skipOnboardingTour()" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--border); padding: 8px 16px; border-radius: 4px; cursor: pointer;">Skip Tour</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Welcome Modal -->
+    <div id="onboarding-welcome" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); border: 2px solid var(--accent); border-radius: 12px; padding: 40px; max-width: 600px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); z-index: 100000;">
+        <div style="text-align: center;">
+            <div style="font-size: 4rem; margin-bottom: 20px;">🔨</div>
+            <h2 style="color: var(--accent); margin-bottom: 15px;">Welcome to Anvil!</h2>
+            <p style="margin-bottom: 30px; line-height: 1.6; color: var(--text-primary);">
+                Anvil is your AI-powered coding assistant that verifies every change. 
+                Would you like to take a quick tour to learn the basics?
+            </p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="startQuickStartTour()" style="background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                    <i class="fas fa-play"></i> Start Tour
+                </button>
+                <button onclick="skipOnboarding()" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1rem;">
+                    Skip for now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Onboarding System
+        let currentTour = null;
+        let currentStepIndex = 0;
+        let tourSteps = [];
+
+        // Check if onboarding should be shown
+        async function checkOnboarding() {
+            try {
+                const response = await fetch('/api/onboarding/status');
+                const status = await response.json();
+                
+                if (status.should_show_onboarding) {
+                    showOnboardingWelcome();
+                }
+            } catch (error) {
+                console.error('Failed to check onboarding status:', error);
+            }
+        }
+
+        // Show welcome modal
+        function showOnboardingWelcome() {
+            document.getElementById('onboarding-welcome').style.display = 'block';
+        }
+
+        // Start quick start tour
+        async function startQuickStartTour() {
+            document.getElementById('onboarding-welcome').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/onboarding/tours/quick_start/start', { method: 'POST' });
+                const tour = await response.json();
+                
+                currentTour = 'quick_start';
+                tourSteps = tour.steps;
+                currentStepIndex = 0;
+                
+                showOnboardingStep();
+            } catch (error) {
+                console.error('Failed to start tour:', error);
+            }
+        }
+
+        // Show current onboarding step
+        function showOnboardingStep() {
+            if (currentStepIndex >= tourSteps.length) {
+                completeOnboardingTour();
+                return;
+            }
+
+            const step = tourSteps[currentStepIndex];
+            const overlay = document.getElementById('onboarding-overlay');
+            const tooltip = document.getElementById('onboarding-tooltip');
+            
+            // Update content
+            document.getElementById('onboarding-title').textContent = step.title;
+            document.getElementById('onboarding-description').textContent = step.description;
+            document.getElementById('onboarding-progress').textContent = `Step ${currentStepIndex + 1} of ${tourSteps.length}`;
+            
+            // Show overlay
+            overlay.style.display = 'block';
+            
+            // Position tooltip
+            if (step.target) {
+                const target = document.querySelector(step.target);
+                if (target) {
+                    const rect = target.getBoundingClientRect();
+                    tooltip.style.left = `${rect.left}px`;
+                    tooltip.style.top = `${rect.bottom + 10}px`;
+                    
+                    // Highlight target
+                    target.style.boxShadow = '0 0 0 4px var(--accent)';
+                    target.style.transition = 'box-shadow 0.3s';
+                }
+            } else {
+                // Center tooltip
+                tooltip.style.left = '50%';
+                tooltip.style.top = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+            }
+            
+            // Update buttons
+            document.getElementById('onboarding-prev').style.display = currentStepIndex > 0 ? 'block' : 'none';
+            document.getElementById('onboarding-next').textContent = currentStepIndex === tourSteps.length - 1 ? 'Finish' : 'Next';
+        }
+
+        // Next step
+        function nextOnboardingStep() {
+            // Remove highlight from current target
+            if (tourSteps[currentStepIndex] && tourSteps[currentStepIndex].target) {
+                const target = document.querySelector(tourSteps[currentStepIndex].target);
+                if (target) {
+                    target.style.boxShadow = '';
+                }
+            }
+            
+            currentStepIndex++;
+            showOnboardingStep();
+        }
+
+        // Previous step
+        function previousOnboardingStep() {
+            // Remove highlight from current target
+            if (tourSteps[currentStepIndex] && tourSteps[currentStepIndex].target) {
+                const target = document.querySelector(tourSteps[currentStepIndex].target);
+                if (target) {
+                    target.style.boxShadow = '';
+                }
+            }
+            
+            currentStepIndex--;
+            showOnboardingStep();
+        }
+
+        // Skip current step
+        function skipOnboardingStep() {
+            nextOnboardingStep();
+        }
+
+        // Skip entire tour
+        function skipOnboardingTour() {
+            completeOnboardingTour();
+        }
+
+        // Complete tour
+        async function completeOnboardingTour() {
+            document.getElementById('onboarding-overlay').style.display = 'none';
+            
+            try {
+                await fetch(`/api/onboarding/tours/${currentTour}/complete`, { method: 'POST' });
+            } catch (error) {
+                console.error('Failed to complete tour:', error);
+            }
+            
+            // Show completion message
+            showCompletionMessage();
+        }
+
+        // Skip onboarding entirely
+        async function skipOnboarding() {
+            document.getElementById('onboarding-welcome').style.display = 'none';
+            
+            try {
+                // Mark all tours as completed
+                await fetch('/api/onboarding/tours/quick_start/complete', { method: 'POST' });
+                await fetch('/api/onboarding/tours/features/complete', { method: 'POST' });
+                await fetch('/api/onboarding/tours/shortcuts/complete', { method: 'POST' });
+            } catch (error) {
+                console.error('Failed to skip onboarding:', error);
+            }
+        }
+
+        // Show completion message
+        function showCompletionMessage() {
+            const overlay = document.getElementById('onboarding-overlay');
+            overlay.style.display = 'block';
+            
+            const tooltip = document.getElementById('onboarding-tooltip');
+            tooltip.style.left = '50%';
+            tooltip.style.top = '50%';
+            tooltip.style.transform = 'translate(-50%, -50%)';
+            
+            document.getElementById('onboarding-title').textContent = '🎉 Tour Complete!';
+            document.getElementById('onboarding-description').textContent = 'You\'re all set to start coding with Anvil. Remember, you can always ask Anvil for help!';
+            document.getElementById('onboarding-progress').textContent = '';
+            document.getElementById('onboarding-prev').style.display = 'none';
+            document.getElementById('onboarding-next').textContent = 'Get Started';
+            document.getElementById('onboarding-next').onclick = () => {
+                overlay.style.display = 'none';
+            };
+            document.getElementById('onboarding-skip').style.display = 'none';
+        }
+
+        // Check onboarding on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(checkOnboarding, 1000);
+        });
+    </script>
 </body>
 </html>
