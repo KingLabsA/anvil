@@ -1,6 +1,7 @@
 """Tests for Anvil API."""
 
 import pytest
+from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 from anvil.api.server import app
 from anvil.api.database import db, DBUser
@@ -39,6 +40,23 @@ def auth_token(client, test_user):
     return response.json()["access_token"]
 
 
+@pytest.fixture
+def mock_engine():
+    """Mock AnvilEngine to avoid loading models."""
+    with patch('anvil.api.server.AnvilEngine') as MockEngine:
+        mock_instance = Mock()
+        
+        # Mock run method
+        mock_result = Mock()
+        mock_result.success = True
+        mock_result.output = "Task completed successfully"
+        mock_result.error = None
+        mock_instance.run.return_value = mock_result
+        
+        MockEngine.return_value = mock_instance
+        yield mock_instance
+
+
 class TestHealthEndpoints:
     """Test health and status endpoints."""
     
@@ -66,9 +84,11 @@ class TestAuthentication:
     
     def test_register_success(self, client):
         """Test successful user registration."""
+        import time
+        unique_email = f"newuser_{int(time.time())}@example.com"
         response = client.post("/api/auth/register", json={
-            "email": "newuser@example.com",
-            "username": "newuser",
+            "email": unique_email,
+            "username": f"newuser_{int(time.time())}",
             "password": "newpassword",
         })
         assert response.status_code == 200
@@ -128,7 +148,7 @@ class TestAuthentication:
 class TestTaskEndpoints:
     """Test task execution endpoints."""
     
-    def test_run_task(self, client, auth_token):
+    def test_run_task(self, client, auth_token, mock_engine):
         """Test running a task."""
         response = client.post(
             "/api/run",
@@ -145,6 +165,7 @@ class TestTaskEndpoints:
         assert "output" in data
         assert "session_id" in data
         assert "duration_ms" in data
+        assert data["success"] is True
     
     def test_run_task_unauthorized(self, client):
         """Test running a task without auth."""
@@ -178,7 +199,7 @@ class TestVerifyEndpoints:
 class TestExplainEndpoints:
     """Test code explanation endpoints."""
     
-    def test_explain_code(self, client, auth_token):
+    def test_explain_code(self, client, auth_token, mock_engine):
         """Test explaining code."""
         response = client.post(
             "/api/explain",
@@ -195,7 +216,7 @@ class TestExplainEndpoints:
 class TestRefactorEndpoints:
     """Test code refactoring endpoints."""
     
-    def test_refactor_code(self, client, auth_token):
+    def test_refactor_code(self, client, auth_token, mock_engine):
         """Test refactoring code."""
         response = client.post(
             "/api/refactor",
@@ -214,7 +235,7 @@ class TestRefactorEndpoints:
 class TestFixEndpoints:
     """Test error fixing endpoints."""
     
-    def test_fix_errors(self, client, auth_token):
+    def test_fix_errors(self, client, auth_token, mock_engine):
         """Test fixing errors."""
         response = client.post(
             "/api/fix",
@@ -235,7 +256,7 @@ class TestFixEndpoints:
 class TestGenerateTestsEndpoints:
     """Test test generation endpoints."""
     
-    def test_generate_tests(self, client, auth_token):
+    def test_generate_tests(self, client, auth_token, mock_engine):
         """Test generating tests."""
         response = client.post(
             "/api/generate-tests",
@@ -265,7 +286,7 @@ class TestSessionEndpoints:
         data = response.json()
         assert isinstance(data, list)
     
-    def test_get_session(self, client, auth_token):
+    def test_get_session(self, client, auth_token, mock_engine):
         """Test getting a session."""
         # First create a session
         run_response = client.post(
@@ -284,7 +305,7 @@ class TestSessionEndpoints:
         data = response.json()
         assert data["id"] == session_id
     
-    def test_delete_session(self, client, auth_token):
+    def test_delete_session(self, client, auth_token, mock_engine):
         """Test deleting a session."""
         # First create a session
         run_response = client.post(
