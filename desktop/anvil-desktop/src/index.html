@@ -5,108 +5,187 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anvil Desktop</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
-        }
-        .container {
-            text-align: center;
             padding: 2rem;
         }
-        h1 {
-            font-size: 3rem;
+        
+        .logo {
+            font-size: 4rem;
             margin-bottom: 1rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-        p {
+        
+        .subtitle {
             font-size: 1.2rem;
-            margin-bottom: 2rem;
             opacity: 0.9;
+            margin-bottom: 2rem;
         }
+        
+        .status-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            text-align: center;
+        }
+        
         .loader {
-            border: 4px solid rgba(255,255,255,0.3);
+            border: 4px solid rgba(255, 255, 255, 0.3);
             border-top: 4px solid white;
             border-radius: 50%;
             width: 50px;
             height: 50px;
             animation: spin 1s linear infinite;
-            margin: 2rem auto;
+            margin: 1.5rem auto;
         }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .status {
+        
+        .status-text {
             font-size: 1rem;
-            opacity: 0.8;
+            opacity: 0.9;
+            margin-top: 1rem;
         }
+        
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid rgba(239, 68, 68, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .error-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-message {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
         iframe {
             width: 100%;
             height: 100vh;
             border: none;
             display: none;
         }
+        
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
-    <div class="container" id="loading">
-        <h1>🔨 Anvil Desktop</h1>
-        <p>Self-Verified Coding Agent</p>
-        <div class="loader"></div>
-        <p class="status" id="status">Starting Anvil server...</p>
+    <div class="container" id="loading-screen">
+        <div class="logo">🔨</div>
+        <h1>Anvil Desktop</h1>
+        <p class="subtitle">The Self-Verified Coding Agent</p>
+        
+        <div class="status-box">
+            <div class="loader" id="loader"></div>
+            <div class="status-text" id="status-text">Starting Anvil server...</div>
+            <div class="error hidden" id="error-box">
+                <div class="error-title">Failed to start server</div>
+                <div class="error-message" id="error-message"></div>
+                <button class="btn" onclick="retry()">Retry</button>
+            </div>
+        </div>
     </div>
-    <iframe id="anvil-frame" src="http://localhost:8000"></iframe>
+    
+    <iframe id="anvil-frame" class="hidden" src="http://localhost:8000"></iframe>
 
     <script>
-        const statusEl = document.getElementById('status');
-        const loadingEl = document.getElementById('loading');
-        const frameEl = document.getElementById('anvil-frame');
+        const { invoke } = window.__TAURI__.core;
         
-        let attempts = 0;
-        const maxAttempts = 30;
+        const loader = document.getElementById('loader');
+        const statusText = document.getElementById('status-text');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+        const loadingScreen = document.getElementById('loading-screen');
+        const frame = document.getElementById('anvil-frame');
         
-        function checkServer() {
-            attempts++;
-            statusEl.textContent = `Connecting to Anvil server... (attempt ${attempts}/${maxAttempts})`;
-            
-            fetch('http://localhost:8000/health')
-                .then(response => {
-                    if (response.ok) {
-                        statusEl.textContent = 'Connected! Loading Anvil...';
-                        setTimeout(() => {
-                            loadingEl.style.display = 'none';
-                            frameEl.style.display = 'block';
-                        }, 500);
-                    } else {
-                        retry();
-                    }
-                })
-                .catch(error => {
-                    if (attempts >= maxAttempts) {
-                        statusEl.textContent = 'Failed to connect to Anvil server. Please start it manually with: anvil serve';
-                        statusEl.style.color = '#ffcccc';
-                    } else {
-                        retry();
-                    }
-                });
-        }
-        
-        function retry() {
-            if (attempts < maxAttempts) {
-                setTimeout(checkServer, 1000);
+        async function startServer() {
+            try {
+                statusText.textContent = 'Starting Anvil server...';
+                errorBox.classList.add('hidden');
+                loader.style.display = 'block';
+                
+                await invoke('start_server');
+                
+                statusText.textContent = 'Server ready! Loading Anvil...';
+                
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                    frame.classList.remove('hidden');
+                }, 500);
+                
+            } catch (error) {
+                loader.style.display = 'none';
+                statusText.textContent = '';
+                errorBox.classList.remove('hidden');
+                errorMessage.textContent = error;
             }
         }
         
-        // Start checking for server
-        checkServer();
+        function retry() {
+            startServer();
+        }
+        
+        // Start server on load
+        startServer();
     </script>
 </body>
 </html>
