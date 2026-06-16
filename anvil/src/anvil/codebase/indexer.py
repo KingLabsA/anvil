@@ -142,7 +142,7 @@ class CodebaseIndex:
                 chunk_lines = lines[start:end]
                 chunk_content = "\n".join(chunk_lines).strip()
                 
-                if chunk_content and len(chunk_lines) > 2:
+                if chunk_content:
                     chunk = CodeChunk(
                         file_path=file_path,
                         line_start=start + 1,
@@ -184,20 +184,23 @@ class CodebaseIndex:
             for i, line in enumerate(lines):
                 stripped = line.strip()
                 if re.match(r"^(def |class |async def )", stripped):
-                    boundaries.append(i)
+                    if i not in boundaries:
+                        boundaries.append(i)
         elif language in ("javascript", "typescript", "java", "go", "rust"):
             for i, line in enumerate(lines):
                 stripped = line.strip()
                 if re.match(r"^(function |class |const |let |var |export |async |pub |fn )", stripped):
-                    boundaries.append(i)
+                    if i not in boundaries:
+                        boundaries.append(i)
         elif language in ("html", "vue", "svelte"):
             for i, line in enumerate(lines):
                 stripped = line.strip()
                 if re.match(r"^(<script|<template|<style|<template>)", stripped):
-                    boundaries.append(i)
+                    if i not in boundaries:
+                        boundaries.append(i)
         
         boundaries.append(len(lines))
-        return boundaries
+        return sorted(set(boundaries))
     
     def _extract_functions(self, content: str, language: str) -> list[str]:
         """Extract function names from code."""
