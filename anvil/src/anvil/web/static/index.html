@@ -471,6 +471,94 @@
             background: rgba(220, 220, 170, 0.2);
             color: var(--warning);
         }
+
+        /* Git Diff Viewer */
+        .diff-viewer {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 80%;
+            max-width: 1000px;
+            max-height: 80vh;
+            overflow: hidden;
+            z-index: 10000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .diff-viewer.show {
+            display: block;
+        }
+
+        .diff-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .diff-content {
+            overflow-y: auto;
+            max-height: calc(80vh - 120px);
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .diff-line {
+            display: flex;
+            padding: 2px 0;
+        }
+
+        .diff-line.added {
+            background: rgba(78, 201, 176, 0.1);
+        }
+
+        .diff-line.removed {
+            background: rgba(244, 135, 113, 0.1);
+        }
+
+        .diff-line-number {
+            width: 50px;
+            text-align: right;
+            padding-right: 10px;
+            color: var(--text-secondary);
+            user-select: none;
+        }
+
+        .diff-line-content {
+            flex: 1;
+            white-space: pre-wrap;
+        }
+
+        .diff-line.added .diff-line-content {
+            color: var(--success);
+        }
+
+        .diff-line.removed .diff-line-content {
+            color: var(--error);
+        }
+
+        .diff-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+        }
+
+        .diff-overlay.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -753,6 +841,27 @@
         <div class="status-item" style="margin-left: auto;">
             <i class="fas fa-bolt"></i>
             Anvil v0.3.0
+        </div>
+    </div>
+
+    <!-- Git Diff Viewer -->
+    <div class="diff-overlay" id="diff-overlay" onclick="closeDiffViewer()"></div>
+    <div class="diff-viewer" id="diff-viewer">
+        <div class="diff-header">
+            <h3 style="margin: 0;">
+                <i class="fas fa-code-branch"></i> Git Changes
+            </h3>
+            <div>
+                <button class="btn" onclick="commitChanges()">
+                    <i class="fas fa-check"></i> Commit
+                </button>
+                <button class="btn" onclick="closeDiffViewer()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+        <div class="diff-content" id="diff-content">
+            <!-- Diff content will be inserted here -->
         </div>
     </div>
 
@@ -1127,7 +1236,79 @@ if __name__ == "__main__":
         }
 
         function showGitPanel() {
-            alert('Git panel (not implemented in demo)');
+            showDiffViewer();
+        }
+
+        function showDiffViewer() {
+            const overlay = document.getElementById('diff-overlay');
+            const viewer = document.getElementById('diff-viewer');
+            const content = document.getElementById('diff-content');
+            
+            // Generate sample diff (in real app, this would come from git)
+            const sampleDiff = generateSampleDiff();
+            content.innerHTML = sampleDiff;
+            
+            overlay.classList.add('show');
+            viewer.classList.add('show');
+        }
+
+        function closeDiffViewer() {
+            const overlay = document.getElementById('diff-overlay');
+            const viewer = document.getElementById('diff-viewer');
+            
+            overlay.classList.remove('show');
+            viewer.classList.remove('show');
+        }
+
+        function generateSampleDiff() {
+            // Sample diff for demonstration
+            const changes = [
+                { type: 'context', lineNum: 1, content: 'def main():' },
+                { type: 'removed', lineNum: 2, content: '    print("Hello, World!")' },
+                { type: 'added', lineNum: 2, content: '    print("Hello, Anvil!")' },
+                { type: 'context', lineNum: 3, content: '' },
+                { type: 'context', lineNum: 4, content: 'if __name__ == "__main__":' },
+                { type: 'context', lineNum: 5, content: '    main()' },
+            ];
+            
+            let html = '';
+            let oldLine = 1;
+            let newLine = 1;
+            
+            changes.forEach(change => {
+                const lineClass = change.type === 'added' ? 'added' : 
+                                 change.type === 'removed' ? 'removed' : '';
+                const prefix = change.type === 'added' ? '+' : 
+                              change.type === 'removed' ? '-' : ' ';
+                
+                html += `
+                    <div class="diff-line ${lineClass}">
+                        <span class="diff-line-number">${change.type !== 'added' ? oldLine++ : ''}</span>
+                        <span class="diff-line-number">${change.type !== 'removed' ? newLine++ : ''}</span>
+                        <span class="diff-line-content">${prefix} ${escapeHtml(change.content)}</span>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function commitChanges() {
+            const message = prompt('Enter commit message:');
+            if (message) {
+                addTerminalLine(`$ git commit -m "${message}"`, 'command');
+                setTimeout(() => {
+                    addTerminalLine('[main abc123] ' + message, 'success');
+                    addTerminalLine('1 file changed, 1 insertion(+), 1 deletion(-)', 'output');
+                    closeDiffViewer();
+                }, 500);
+            }
         }
 
         function showExtensions() {
