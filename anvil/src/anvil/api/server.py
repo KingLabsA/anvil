@@ -26,6 +26,7 @@ from anvil.api.websocket import connection_manager, websocket_handler
 from anvil.monitoring import get_metrics
 from anvil.onboarding import onboarding_manager
 from anvil.codebase.indexer import CodebaseIndex
+from anvil.api.multi_edit import router as multi_edit_router
 
 
 # ============================================================================
@@ -148,6 +149,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(multi_edit_router)
+
 # Global state
 start_time = datetime.now()
 
@@ -197,6 +201,15 @@ async def get_status():
             "/api/generate-tests",
             "/api/sessions",
             "/api/metrics",
+            "/api/multi-edit",
+            "/api/debug/start",
+            "/api/debug/breakpoint",
+            "/api/debug/continue",
+            "/api/debug/step-over",
+            "/api/debug/step-into",
+            "/api/debug/step-out",
+            "/api/debug/variables/{session_id}",
+            "/api/debug/call-stack/{session_id}",
             "/ws",
         ],
     }
