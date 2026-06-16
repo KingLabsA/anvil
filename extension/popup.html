@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anvil</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="icons/icon48.png" alt="Anvil" class="logo">
+      <h1>Anvil</h1>
+      <span class="status" id="status">●</span>
+    </header>
+
+    <div class="content">
+      <div class="input-section">
+        <textarea 
+          id="query" 
+          placeholder="Ask Anvil anything about your code..."
+          rows="4"
+        ></textarea>
+        <button id="submit" class="primary">Ask Anvil</button>
+      </div>
+
+      <div class="response-section" id="response" style="display: none;">
+        <div class="response-header">
+          <span class="response-title">Anvil's Response</span>
+          <button id="copy" class="icon-btn" title="Copy">📋</button>
+        </div>
+        <div class="response-content" id="response-content"></div>
+      </div>
+
+      <div class="actions">
+        <button id="explain" class="action-btn">💡 Explain Code</button>
+        <button id="optimize" class="action-btn">⚡ Optimize</button>
+        <button id="review" class="action-btn">🔍 Review</button>
+      </div>
+    </div>
+
+    <footer>
+      <a href="#" id="settings">⚙️ Settings</a>
+      <a href="https://anvil.ai/docs" target="_blank">📚 Docs</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+/* Anvil Browser Extension - Content Styles */
+
+/* Injected button styles */
+.anvil-injected-button {
+  background: #f59e0b !important;
+  color: #0a0a0a !important;
+  border: none !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  margin-top: 8px !important;
+  transition: background 0.2s !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.anvil-injected-button:hover {
+  background: #d97706 !important;
+}
+
+/* Code block wrapper */
+.anvil-code-wrapper {
+  position: relative;
+  margin-top: 8px;
+}
+
+/* Tooltip */
+.anvil-tooltip {
+  position: absolute;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
