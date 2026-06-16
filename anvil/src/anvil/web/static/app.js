@@ -8,6 +8,8 @@ class AnvilApp {
     this.initKeyboardShortcuts();
     this.initUndoRedo();
     this.initDragDrop();
+    this.initMultiFileEdit();
+    this.initDebugging();
   }
 
   // Theme Management
@@ -311,7 +313,401 @@ class AnvilApp {
       }
     }
   }
+
+  // Multi-File Editing
+  initMultiFileEdit() {
+    this.multiFileEdits = [];
+    this.initMultiFileEditUI();
+  }
+
+  initMultiFileEditUI() {
+    const addEditBtn = document.getElementById('add-multi-edit');
+    if (addEditBtn) {
+      addEditBtn.addEventListener('click', () => this.addMultiFileEdit());
+    }
+  }
+
+  addMultiFileEdit() {
+    const container = document.getElementById('multi-edit-container');
+    if (!container) return;
+
+    const editItem = document.createElement('div');
+    editItem.className = 'multi-edit-item';
+    editItem.innerHTML = `
+      <div class="multi-edit-row">
+        <select class="edit-action">
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+        </select>
+        <input type="text" class="edit-path" placeholder="File path (e.g., src/main.py)">
+        <textarea class="edit-content" placeholder="File content (for create/update)"></textarea>
+        <button class="remove-edit-btn">Remove</button>
+      </div>
+    `;
+
+    container.appendChild(editItem);
+
+    const removeBtn = editItem.querySelector('.remove-edit-btn');
+    removeBtn.addEventListener('click', () => {
+      editItem.remove();
+      this.multiFileEdits = this.multiFileEdits.filter(item => item !== editItem);
+    });
+
+    this.multiFileEdits.push(editItem);
+  }
+
+  async submitMultiFileEdit() {
+    const edits = [];
+    const items = document.querySelectorAll('.multi-edit-item');
+    
+    items.forEach(item => {
+      const action = item.querySelector('.edit-action').value;
+      const path = item.querySelector('.edit-path').value;
+      const content = item.querySelector('.edit-content').value;
+      
+      if (path) {
+        const edit = { action, path };
+        if (action !== 'delete') {
+          edit.content = content;
+        }
+        edits.push(edit);
+      }
+    });
+
+    if (edits.length === 0) {
+      this.showNotification('No files to edit', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/multi-edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        },
+        body: JSON.stringify({
+          edits,
+          description: 'Multi-file edit',
+          auto_verify: true
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        this.showNotification(`Successfully edited ${result.files_changed.length} file(s)`, 'success');
+        this.multiFileEdits = [];
+        document.getElementById('multi-edit-container').innerHTML = '';
+      } else {
+        this.showNotification(`Error: ${result.errors.join(', ')}`, 'error');
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  // Debugging
+  initDebugging() {
+    this.debugSession = null;
+    this.breakpoints = [];
+    this.initDebuggingUI();
+  }
+
+  initDebuggingUI() {
+    const startDebugBtn = document.getElementById('start-debug');
+    const addBreakpointBtn = document.getElementById('add-breakpoint');
+    const continueBtn = document.getElementById('continue-debug');
+    const stepOverBtn = document.getElementById('step-over');
+    const stepIntoBtn = document.getElementById('step-into');
+    const stepOutBtn = document.getElementById('step-out');
+    const stopDebugBtn = document.getElementById('stop-debug');
+
+    if (startDebugBtn) {
+      startDebugBtn.addEventListener('click', () => this.startDebugSession());
+    }
+    if (addBreakpointBtn) {
+      addBreakpointBtn.addEventListener('click', () => this.addBreakpoint());
+    }
+    if (continueBtn) {
+      continueBtn.addEventListener('click', () => this.continueDebug());
+    }
+    if (stepOverBtn) {
+      stepOverBtn.addEventListener('click', () => this.stepOver());
+    }
+    if (stepIntoBtn) {
+      stepIntoBtn.addEventListener('click', () => this.stepInto());
+    }
+    if (stepOutBtn) {
+      stepOutBtn.addEventListener('click', () => this.stepOut());
+    }
+    if (stopDebugBtn) {
+      stopDebugBtn.addEventListener('click', () => this.stopDebugSession());
+    }
+  }
+
+  async startDebugSession() {
+    const fileInput = document.getElementById('debug-file');
+    if (!fileInput || !fileInput.value) {
+      this.showNotification('Please select a file to debug', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/debug/start?file=${encodeURIComponent(fileInput.value)}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        }
+      });
+
+      const session = await response.json();
+      this.debugSession = session;
+      this.showNotification('Debug session started', 'success');
+      this.updateDebugUI();
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  async addBreakpoint() {
+    if (!this.debugSession) {
+      this.showNotification('No active debug session', 'error');
+      return;
+    }
+
+    const lineInput = document.getElementById('breakpoint-line');
+    const conditionInput = document.getElementById('breakpoint-condition');
+    
+    if (!lineInput || !lineInput.value) {
+      this.showNotification('Please enter a line number', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/debug/breakpoint', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        },
+        body: JSON.stringify({
+          session_id: this.debugSession.session_id,
+          breakpoint: {
+            file: this.debugSession.file,
+            line: parseInt(lineInput.value),
+            condition: conditionInput ? conditionInput.value : null,
+            enabled: true
+          }
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        this.breakpoints.push(result.breakpoint);
+        this.showNotification('Breakpoint added', 'success');
+        this.updateBreakpointsUI();
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  async continueDebug() {
+    if (!this.debugSession) return;
+
+    try {
+      const response = await fetch(`/api/debug/continue?session_id=${this.debugSession.session_id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        this.debugSession.current_line = result.current_line;
+        this.showNotification(`Execution continued to line ${result.current_line}`, 'success');
+        this.updateDebugUI();
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  async stepOver() {
+    if (!this.debugSession) return;
+
+    try {
+      const response = await fetch(`/api/debug/step-over?session_id=${this.debugSession.session_id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        this.debugSession.current_line = result.current_line;
+        this.showNotification(`Stepped over to line ${result.current_line}`, 'success');
+        this.updateDebugUI();
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  async stepInto() {
+    if (!this.debugSession) return;
+
+    try {
+      const response = await fetch(`/api/debug/step-into?session_id=${this.debugSession.session_id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        this.debugSession.current_line = result.current_line;
+        this.showNotification(`Stepped into line ${result.current_line}`, 'success');
+        this.updateDebugUI();
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  async stepOut() {
+    if (!this.debugSession) return;
+
+    try {
+      const response = await fetch(`/api/debug/step-out?session_id=${this.debugSession.session_id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        this.debugSession.current_line = result.current_line;
+        this.showNotification(`Stepped out to line ${result.current_line}`, 'success');
+        this.updateDebugUI();
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  async stopDebugSession() {
+    if (!this.debugSession) return;
+
+    try {
+      const response = await fetch(`/api/debug/${this.debugSession.session_id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        this.debugSession = null;
+        this.breakpoints = [];
+        this.showNotification('Debug session stopped', 'success');
+        this.updateDebugUI();
+      }
+    } catch (error) {
+      this.showNotification(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  updateDebugUI() {
+    const debugPanel = document.getElementById('debug-panel');
+    if (!debugPanel) return;
+
+    if (this.debugSession) {
+      debugPanel.style.display = 'block';
+      const currentLineEl = document.getElementById('current-line');
+      if (currentLineEl) {
+        currentLineEl.textContent = this.debugSession.current_line;
+      }
+    } else {
+      debugPanel.style.display = 'none';
+    }
+  }
+
+  updateBreakpointsUI() {
+    const breakpointsList = document.getElementById('breakpoints-list');
+    if (!breakpointsList) return;
+
+    breakpointsList.innerHTML = this.breakpoints.map((bp, index) => `
+      <div class="breakpoint-item">
+        <span>Line ${bp.line}${bp.condition ? ` (${bp.condition})` : ''}</span>
+        <button onclick="app.removeBreakpoint(${index})">Remove</button>
+      </div>
+    `).join('');
+  }
+
+  removeBreakpoint(index) {
+    this.breakpoints.splice(index, 1);
+    this.updateBreakpointsUI();
+  }
+
+  getAuthToken() {
+    return localStorage.getItem('anvil-auth-token') || '';
+  }
+
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
+  // Panel management
+  showMultiFileEdit() {
+    document.getElementById('multi-file-edit-panel').style.display = 'block';
+    document.getElementById('debug-panel').style.display = 'none';
+  }
+
+  hideMultiFileEdit() {
+    document.getElementById('multi-file-edit-panel').style.display = 'none';
+  }
+
+  showDebugPanel() {
+    document.getElementById('debug-panel').style.display = 'block';
+    document.getElementById('multi-file-edit-panel').style.display = 'none';
+  }
+
+  hideDebugPanel() {
+    document.getElementById('debug-panel').style.display = 'none';
+  }
 }
 
 // Initialize app
 const app = new AnvilApp();
+
+// Global functions for HTML onclick handlers
+function showMultiFileEdit() {
+  app.showMultiFileEdit();
+}
+
+function hideMultiFileEdit() {
+  app.hideMultiFileEdit();
+}
+
+function showDebugPanel() {
+  app.showDebugPanel();
+}
+
+function hideDebugPanel() {
+  app.hideDebugPanel();
+}
