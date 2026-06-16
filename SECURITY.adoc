@@ -105,7 +105,7 @@ anvil log --filter "path traversed outside sandbox"
 
 .Example:
 Upgrade to Anvil v0.2.0 or later, which includes the fix in commit
-`abc123def456` (https://github.com/fableforge/fableforge/pull/123).
+`abc123def456` (https://github.com/KingLabsA/anvil/pull/123).
 
 The fix adds path canonicalization and boundary checking to the
 `VerifyPipeline.resolve_path()` method, ensuring all file operations
