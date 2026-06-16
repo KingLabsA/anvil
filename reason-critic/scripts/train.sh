@@ -563,7 +563,7 @@ evaluate_benchagent() {
 
     if [[ ! -d "$BENCHAGENT_EVAL" ]]; then
         echo "[WARN] BenchAgent not found at $BENCHAGENT_EVAL"
-        echo "       Clone it: git clone https://github.com/fableforge/bench-agent.git"
+        echo "       Clone it: git clone https://github.com/KingLabsA/bench-agent.git"
         echo "       Skipping evaluation."
         return 0
     fi
