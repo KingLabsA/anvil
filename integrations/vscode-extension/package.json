@@ -1,0 +1,191 @@
+{
+  "name": "anvil-vscode",
+  "displayName": "Anvil - Self-Verified Coding Agent",
+  "description": "AI-powered coding assistant with verification and error recovery",
+  "version": "0.3.0",
+  "publisher": "fableforge",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "coding",
+    "assistant",
+    "llm",
+    "verification",
+    "error recovery"
+  ],
+  "activationEvents": [
+    "onCommand:anvil.runTask",
+    "onCommand:anvil.verifyCode",
+    "onCommand:anvil.explainCode",
+    "onCommand:anvil.refactorCode",
+    "onCommand:anvil.fixErrors",
+    "onCommand:anvil.generateTests",
+    "onCommand:anvil.showHistory",
+    "onCommand:anvil.configureSettings"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "anvil.runTask",
+        "title": "Anvil: Run Task",
+        "icon": "$(play)"
+      },
+      {
+        "command": "anvil.verifyCode",
+        "title": "Anvil: Verify Code",
+        "icon": "$(check)"
+      },
+      {
+        "command": "anvil.explainCode",
+        "title": "Anvil: Explain Code",
+        "icon": "$(info)"
+      },
+      {
+        "command": "anvil.refactorCode",
+        "title": "Anvil: Refactor Code",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "anvil.fixErrors",
+        "title": "Anvil: Fix Errors",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "anvil.generateTests",
+        "title": "Anvil: Generate Tests",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "anvil.showHistory",
+        "title": "Anvil: Show History",
+        "icon": "$(history)"
+      },
+      {
+        "command": "anvil.configureSettings",
+        "title": "Anvil: Configure Settings",
+        "icon": "$(gear)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "anvil.runTask",
+          "group": "anvil@1"
+        },
+        {
+          "command": "anvil.verifyCode",
+          "group": "anvil@2"
+        },
+        {
+          "command": "anvil.explainCode",
+          "group": "anvil@3"
+        },
+        {
+          "command": "anvil.refactorCode",
+          "group": "anvil@4"
+        },
+        {
+          "command": "anvil.fixErrors",
+          "group": "anvil@5"
+        },
+        {
+          "command": "anvil.generateTests",
+          "group": "anvil@6"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "anvil.verifyCode",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "anvil-sidebar",
+          "title": "Anvil",
+          "icon": "$(tools)"
+        }
+      ]
+    },
+    "views": {
+      "anvil-sidebar": [
+        {
+          "id": "anvil-tasks",
+          "name": "Tasks"
+        },
+        {
+          "id": "anvil-history",
+          "name": "History"
+        },
+        {
+          "id": "anvil-settings",
+          "name": "Settings"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Anvil",
+      "properties": {
+        "anvil.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Anvil server URL"
+        },
+        "anvil.model": {
+          "type": "string",
+          "default": "local",
+          "enum": ["local", "gpt-4o", "claude-3-5-sonnet"],
+          "description": "Default model to use"
+        },
+        "anvil.autoVerify": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically verify code after changes"
+        },
+        "anvil.maxIterations": {
+          "type": "number",
+          "default": 20,
+          "description": "Maximum iterations for task execution"
+        },
+        "anvil.theme": {
+          "type": "string",
+          "default": "dark",
+          "enum": ["dark", "light"],
+          "description": "UI theme"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@types/axios": "^0.14.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
