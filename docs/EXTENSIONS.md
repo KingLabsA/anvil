@@ -1,157 +1,286 @@
-# Anvil Extension System
+# Extensions Guide
 
-The Anvil extension system allows you to extend Anvil's functionality with custom tools, hooks, and integrations.
+This guide covers how to create and use Anvil extensions.
 
-## Creating an Extension
+## What are Extensions?
 
-### Structure
+Extensions allow you to extend Anvil's capabilities with custom tools, models, and features.
+
+## Installing Extensions
+
+### From Extension Registry
+
+```bash
+# List available extensions
+anvil extension list
+
+# Install an extension
+anvil extension install my-extension
+
+# Uninstall an extension
+anvil extension uninstall my-extension
+```
+
+### From Source
+
+```bash
+# Clone the extension
+git clone https://github.com/user/my-extension.git
+
+# Install
+anvil extension install ./my-extension
+```
+
+## Using Extensions
+
+Once installed, extensions are automatically available in Anvil.
+
+```bash
+# Use an extension's tool
+anvil run "Use my-custom-tool to analyze the code"
+```
+
+## Creating Extensions
+
+### Extension Structure
 
 ```
 my-extension/
-├── extension.json    # Extension metadata
-└── main.py           # Extension code
+├── manifest.json       # Extension manifest
+├── tools/             # Custom tools
+│   └── my_tool.py
+├── models/            # Custom models
+│   └── my_model.py
+└── README.md          # Documentation
 ```
 
-### extension.json
+### Manifest File
+
+Create a `manifest.json` file:
 
 ```json
 {
   "name": "my-extension",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "My custom Anvil extension",
   "author": "Your Name",
-  "main": "main.py",
   "tools": ["my_tool"],
-  "hooks": ["on_task_start", "on_task_complete"]
+  "models": ["my_model"]
 }
 ```
 
-### main.py
+### Creating a Tool
+
+Create a tool in `tools/my_tool.py`:
 
 ```python
-def my_tool(input_text: str) -> str:
-    """Custom tool implementation."""
-    return f"Processed: {input_text}"
+from anvil.extensions import Tool
 
-def on_task_start(task: str) -> None:
-    """Called when a task starts."""
-    print(f"Starting task: {task}")
-
-def on_task_complete(task: str, success: bool) -> None:
-    """Called when a task completes."""
-    print(f"Task completed: {success}")
+class MyTool(Tool):
+    name = "my_tool"
+    description = "My custom tool"
+    
+    def execute(self, input_data):
+        # Your tool logic here
+        result = process(input_data)
+        return result
 ```
 
-## Available Hooks
+### Creating a Model
 
-- `on_task_start(task: str)` - Called when a task starts
-- `on_task_complete(task: str, success: bool)` - Called when a task completes
-- `on_file_change(file_path: str)` - Called when a file changes
-- `on_verify_start(file_path: str)` - Called before verification
-- `on_verify_complete(file_path: str, passed: bool)` - Called after verification
+Create a model in `models/my_model.py`:
 
-## Installing Extensions
+```python
+from anvil.extensions import Model
 
-### From Local Directory
-
-```bash
-anvil extensions install ./my-extension
+class MyModel(Model):
+    name = "my_model"
+    description = "My custom model"
+    
+    def generate(self, prompt):
+        # Your model logic here
+        response = process(prompt)
+        return response
 ```
 
-### From Git Repository
+### Registering Components
 
-```bash
-anvil extensions install https://github.com/user/anvil-extension.git
+In your extension's `__init__.py`:
+
+```python
+from anvil.extensions import register_tool, register_model
+from .tools.my_tool import MyTool
+from .models.my_model import MyModel
+
+register_tool(MyTool)
+register_model(MyModel)
 ```
 
-## Managing Extensions
+## Extension API
 
-```bash
-# List installed extensions
-anvil extensions list
+### Tool API
 
-# Enable/disable extensions
-anvil extensions enable my-extension
-anvil extensions disable my-extension
+```python
+from anvil.extensions import Tool
 
-# Uninstall extension
-anvil extensions uninstall my-extension
+class MyTool(Tool):
+    name = "my_tool"
+    description = "My custom tool"
+    
+    def execute(self, input_data):
+        """
+        Execute the tool.
+        
+        Args:
+            input_data: Input data for the tool
+            
+        Returns:
+            Result of the tool execution
+        """
+        return result
 ```
 
-## Using Extension Tools
+### Model API
 
-Extension tools are automatically available in the Anvil CLI and web UI:
+```python
+from anvil.extensions import Model
 
-```bash
-anvil tool my_tool "input text"
+class MyModel(Model):
+    name = "my_model"
+    description = "My custom model"
+    
+    def generate(self, prompt, **kwargs):
+        """
+        Generate a response.
+        
+        Args:
+            prompt: Input prompt
+            **kwargs: Additional arguments
+            
+        Returns:
+            Generated response
+        """
+        return response
 ```
-
-## Extension Examples
-
-See `examples/extensions/` for example extensions:
-
-- `example-extension` - Basic extension with tools and hooks
 
 ## Publishing Extensions
 
-To publish your extension:
+### To Extension Registry
 
-1. Create a GitHub repository
-2. Add a README with installation instructions
-3. Tag releases with semantic versioning
-4. Share the repository URL
-
-Users can install your extension with:
+1. Create an account on the Anvil Extension Registry
+2. Package your extension:
 
 ```bash
-anvil extensions install https://github.com/username/my-extension.git
+cd my-extension
+zip -r my-extension.zip .
+```
+
+3. Upload to the registry
+
+### To GitHub
+
+1. Push your extension to GitHub
+2. Users can install with:
+
+```bash
+anvil extension install github:user/my-extension
 ```
 
 ## Best Practices
 
-1. **Version your extensions** - Use semantic versioning
-2. **Document your tools** - Add docstrings to all tool functions
-3. **Handle errors gracefully** - Catch exceptions and provide helpful messages
-4. **Keep extensions focused** - Each extension should do one thing well
-5. **Test your extensions** - Write tests for your tools and hooks
+### Tool Development
 
-## API Reference
+- Keep tools focused on a single responsibility
+- Provide clear documentation
+- Handle errors gracefully
+- Return structured data when possible
 
-### ExtensionManager
+### Model Development
+
+- Document model capabilities and limitations
+- Provide examples of good inputs
+- Handle edge cases gracefully
+- Consider performance implications
+
+### Extension Development
+
+- Follow the extension structure
+- Provide comprehensive documentation
+- Include examples
+- Test thoroughly
+- Version your extensions
+
+## Examples
+
+### Simple Tool
 
 ```python
-from anvil.extensions import ExtensionManager
+from anvil.extensions import Tool
 
-manager = ExtensionManager()
-
-# Install extension
-manager.install("./my-extension")
-
-# List extensions
-extensions = manager.list_extensions()
-
-# Get extension
-ext = manager.get_extension("my-extension")
-
-# Enable/disable
-manager.enable("my-extension")
-manager.disable("my-extension")
-
-# Uninstall
-manager.uninstall("my-extension")
-
-# Call hooks
-results = manager.call_hook("on_task_start", "task description")
-
-# Get tool
-tool = manager.get_tool("my_tool")
-if tool:
-    result = tool("input")
+class WordCountTool(Tool):
+    name = "word_count"
+    description = "Count words in text"
+    
+    def execute(self, text):
+        return len(text.split())
 ```
 
-## Support
+### API Tool
 
-For help with extensions:
+```python
+import requests
+from anvil.extensions import Tool
 
-- GitHub Issues: https://github.com/KingLabsA/anvil/issues
-- Documentation: https://github.com/KingLabsA/anvil#readme
+class WeatherTool(Tool):
+    name = "weather"
+    description = "Get weather for a location"
+    
+    def execute(self, location):
+        response = requests.get(
+            f"https://api.weather.com/{location}"
+        )
+        return response.json()
+```
+
+### Custom Model
+
+```python
+from transformers import pipeline
+from anvil.extensions import Model
+
+class CustomModel(Model):
+    name = "custom_model"
+    description = "My custom model"
+    
+    def __init__(self):
+        self.pipeline = pipeline("text-generation", model="my-model")
+    
+    def generate(self, prompt):
+        return self.pipeline(prompt)[0]["generated_text"]
+```
+
+## Troubleshooting
+
+### Extension Not Loading
+
+- Check the manifest file
+- Verify the extension structure
+- Check the logs for errors
+
+### Tool Not Working
+
+- Verify the tool is registered
+- Check the tool implementation
+- Check the logs for errors
+
+### Model Not Working
+
+- Verify the model is registered
+- Check the model implementation
+- Check the logs for errors
+
+## Next Steps
+
+- Read the [API Reference](./api-reference.md)
+- Check out [Examples](./examples.md)
+- Join the [Community](./community.md)
