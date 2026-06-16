@@ -340,3 +340,22 @@ class VerifyPipeline:
                     message=f"Syntax error: {e.msg}", details=f"Line {e.lineno}",
                 ))
         return report
+
+    def verify_files(self, files: list[str], working_dir: str = ".") -> dict:
+        """Verify multiple files and return results as a dictionary."""
+        report = self.verify(files, working_dir=working_dir)
+        return {
+            "syntax": all(r.status == VerifyStatus.PASS for r in report.results if r.checker == "syntax"),
+            "lint": all(r.status == VerifyStatus.PASS for r in report.results if r.checker == "lint"),
+            "types": all(r.status == VerifyStatus.PASS for r in report.results if r.checker == "types"),
+            "passed": report.passed,
+            "results": [
+                {
+                    "checker": r.checker,
+                    "status": r.status.value,
+                    "message": r.message,
+                    "details": r.details
+                }
+                for r in report.results
+            ]
+        }

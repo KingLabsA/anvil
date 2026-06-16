@@ -1,10 +1,12 @@
 """Multi-file editing API for Anvil."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import os
 from pathlib import Path
+
+from anvil.api.auth import get_current_user, TokenData
 
 router = APIRouter()
 
@@ -55,7 +57,10 @@ debug_sessions: Dict[str, DebugSession] = {}
 
 
 @router.post("/api/multi-edit", response_model=MultiFileEditResponse)
-async def multi_file_edit(request: MultiFileEditRequest):
+async def multi_file_edit(
+    request: MultiFileEditRequest,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Edit multiple files at once."""
     files_changed = []
     errors = []
@@ -112,7 +117,10 @@ async def multi_file_edit(request: MultiFileEditRequest):
 
 
 @router.post("/api/debug/start", response_model=DebugSession)
-async def start_debug_session(file: str):
+async def start_debug_session(
+    file: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Start a debug session for a file."""
     import uuid
     
@@ -134,7 +142,11 @@ async def start_debug_session(file: str):
 
 
 @router.post("/api/debug/breakpoint")
-async def add_breakpoint(session_id: str, breakpoint: DebugBreakpoint):
+async def add_breakpoint(
+    session_id: str,
+    breakpoint: DebugBreakpoint,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Add a breakpoint to a debug session."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
@@ -146,7 +158,10 @@ async def add_breakpoint(session_id: str, breakpoint: DebugBreakpoint):
 
 
 @router.post("/api/debug/continue")
-async def continue_debug(session_id: str):
+async def continue_debug(
+    session_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Continue execution in a debug session."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
@@ -181,7 +196,10 @@ async def continue_debug(session_id: str):
 
 
 @router.post("/api/debug/step-over")
-async def step_over(session_id: str):
+async def step_over(
+    session_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Step over the current line."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
@@ -198,7 +216,10 @@ async def step_over(session_id: str):
 
 
 @router.post("/api/debug/step-into")
-async def step_into(session_id: str):
+async def step_into(
+    session_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Step into the current function."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
@@ -224,7 +245,10 @@ async def step_into(session_id: str):
 
 
 @router.post("/api/debug/step-out")
-async def step_out(session_id: str):
+async def step_out(
+    session_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Step out of the current function."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
@@ -247,7 +271,10 @@ async def step_out(session_id: str):
 
 
 @router.get("/api/debug/variables/{session_id}")
-async def get_variables(session_id: str):
+async def get_variables(
+    session_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Get current variables in a debug session."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
@@ -267,7 +294,10 @@ async def get_variables(session_id: str):
 
 
 @router.get("/api/debug/call-stack/{session_id}")
-async def get_call_stack(session_id: str):
+async def get_call_stack(
+    session_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Get the call stack in a debug session."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
@@ -283,7 +313,10 @@ async def get_call_stack(session_id: str):
 
 
 @router.delete("/api/debug/{session_id}")
-async def stop_debug_session(session_id: str):
+async def stop_debug_session(
+    session_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """Stop a debug session."""
     if session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail="Debug session not found")
