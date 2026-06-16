@@ -594,6 +594,39 @@
         #at-mention-menu > div:hover {
             background: var(--bg-tertiary);
         }
+
+        /* Command Palette */
+        .command-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+
+        .command-item:hover, .command-item.selected {
+            background: var(--bg-tertiary);
+        }
+
+        .command-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .command-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Theme support */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f3f3;
+            --bg-tertiary: #e0e0e0;
+            --text-primary: #1e1e1e;
+            --text-secondary: #6e6e6e;
+            --border: #d4d4d4;
+        }
     </style>
 </head>
 <body>
@@ -2500,5 +2533,16 @@ https://github.com/KingLabsA/anvil
             setTimeout(checkOnboarding, 1000);
         });
     </script>
+
+    <!-- Command Palette -->
+    <div id="command-palette" style="display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); width: 600px; max-width: 90%; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 100000;">
+        <div style="padding: 12px; border-bottom: 1px solid var(--border);">
+            <input id="command-input" type="text" placeholder="Type a command..." style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; color: var(--text-primary); font-size: 14px;" autocomplete="off">
+        </div>
+        <div id="command-results" style="max-height: 400px; overflow-y: auto; padding: 8px;"></div>
+    </div>
+
+    <!-- App JavaScript -->
+    <script src="app.js"></script>
 </body>
 </html>
