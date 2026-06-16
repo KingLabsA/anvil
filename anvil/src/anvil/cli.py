@@ -1517,4 +1517,35 @@ def codebase_search(query, limit):
     console.print(table)
 
 
+@codebase.command("docs")
+@click.argument("query")
+@click.option("--limit", "-n", default=5, help="Maximum results")
+def codebase_docs(query, limit):
+    """Search documentation."""
+    from anvil.codebase.docs_rag import DocumentationRAG
+    
+    rag = DocumentationRAG(".")
+    rag.index()
+    
+    results = rag.search(query, limit)
+    
+    if not results:
+        console.print(f"[yellow]No docs found for '{query}'[/]")
+        return
+    
+    table = Table(title=f"Documentation Results for '{query}'")
+    table.add_column("Doc", style="cyan")
+    table.add_column("Section")
+    table.add_column("Score", style="green")
+    
+    for r in results:
+        table.add_row(
+            r.chunk.doc_path,
+            r.chunk.section,
+            f"{r.score:.1f}",
+        )
+    
+    console.print(table)
+
+
 
