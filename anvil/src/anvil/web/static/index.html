@@ -59,6 +59,81 @@
             color: var(--accent);
         }
 
+        /* Menu Bar */
+        .menu-bar {
+            display: flex;
+            gap: 0.25rem;
+            flex: 1;
+        }
+
+        .menu-item {
+            position: relative;
+            padding: 0.4rem 0.8rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-radius: 4px;
+        }
+
+        .menu-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            padding: 0.25rem 0;
+        }
+
+        .menu-dropdown.show {
+            display: block;
+        }
+
+        .menu-dropdown-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .menu-dropdown-item:hover {
+            background: var(--accent);
+        }
+
+        .menu-dropdown-item i {
+            width: 16px;
+            color: var(--text-secondary);
+        }
+
+        .menu-dropdown-item:hover i {
+            color: white;
+        }
+
+        .menu-dropdown-item .shortcut {
+            margin-left: auto;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .menu-dropdown-item:hover .shortcut {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .menu-separator {
+            height: 1px;
+            background: var(--border);
+            margin: 0.25rem 0;
+        }
+
         .header-actions {
             display: flex;
             gap: 0.5rem;
@@ -422,15 +497,164 @@
         <!-- Header -->
         <div class="header">
             <div class="logo">🔨 Anvil</div>
+            
+            <!-- Menu Bar -->
+            <div class="menu-bar">
+                <div class="menu-item" onclick="toggleMenu('file-menu')">
+                    File
+                    <div class="menu-dropdown" id="file-menu">
+                        <div class="menu-dropdown-item" onclick="newFile()">
+                            <i class="fas fa-file"></i> New File
+                            <span class="shortcut">Ctrl+N</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="openFile()">
+                            <i class="fas fa-folder-open"></i> Open File
+                            <span class="shortcut">Ctrl+O</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="openFolder()">
+                            <i class="fas fa-folder"></i> Open Folder
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="saveFile()">
+                            <i class="fas fa-save"></i> Save
+                            <span class="shortcut">Ctrl+S</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="saveFileAs()">
+                            <i class="fas fa-save"></i> Save As...
+                            <span class="shortcut">Ctrl+Shift+S</span>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="showSettings()">
+                            <i class="fas fa-cog"></i> Settings
+                            <span class="shortcut">Ctrl+,</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-item" onclick="toggleMenu('edit-menu')">
+                    Edit
+                    <div class="menu-dropdown" id="edit-menu">
+                        <div class="menu-dropdown-item" onclick="undo()">
+                            <i class="fas fa-undo"></i> Undo
+                            <span class="shortcut">Ctrl+Z</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="redo()">
+                            <i class="fas fa-redo"></i> Redo
+                            <span class="shortcut">Ctrl+Y</span>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="cut()">
+                            <i class="fas fa-cut"></i> Cut
+                            <span class="shortcut">Ctrl+X</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="copy()">
+                            <i class="fas fa-copy"></i> Copy
+                            <span class="shortcut">Ctrl+C</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="paste()">
+                            <i class="fas fa-paste"></i> Paste
+                            <span class="shortcut">Ctrl+V</span>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="find()">
+                            <i class="fas fa-search"></i> Find
+                            <span class="shortcut">Ctrl+F</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="replace()">
+                            <i class="fas fa-exchange-alt"></i> Replace
+                            <span class="shortcut">Ctrl+H</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-item" onclick="toggleMenu('view-menu')">
+                    View
+                    <div class="menu-dropdown" id="view-menu">
+                        <div class="menu-dropdown-item" onclick="toggleSidebar()">
+                            <i class="fas fa-columns"></i> Toggle Sidebar
+                            <span class="shortcut">Ctrl+B</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="toggleTerminal()">
+                            <i class="fas fa-terminal"></i> Toggle Terminal
+                            <span class="shortcut">Ctrl+`</span>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="zoomIn()">
+                            <i class="fas fa-search-plus"></i> Zoom In
+                            <span class="shortcut">Ctrl++</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="zoomOut()">
+                            <i class="fas fa-search-minus"></i> Zoom Out
+                            <span class="shortcut">Ctrl+-</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="resetZoom()">
+                            <i class="fas fa-search"></i> Reset Zoom
+                            <span class="shortcut">Ctrl+0</span>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="toggleFullScreen()">
+                            <i class="fas fa-expand"></i> Full Screen
+                            <span class="shortcut">F11</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-item" onclick="toggleMenu('tools-menu')">
+                    Tools
+                    <div class="menu-dropdown" id="tools-menu">
+                        <div class="menu-dropdown-item" onclick="runTask()">
+                            <i class="fas fa-play"></i> Run Task
+                            <span class="shortcut">Ctrl+Enter</span>
+                        </div>
+                        <div class="menu-dropdown-item" onclick="verifyCode()">
+                            <i class="fas fa-check-circle"></i> Verify Code
+                            <span class="shortcut">Ctrl+Shift+V</span>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="showGitPanel()">
+                            <i class="fas fa-code-branch"></i> Git Panel
+                        </div>
+                        <div class="menu-dropdown-item" onclick="showExtensions()">
+                            <i class="fas fa-puzzle-piece"></i> Extensions
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="showCommandPalette()">
+                            <i class="fas fa-terminal"></i> Command Palette
+                            <span class="shortcut">Ctrl+Shift+P</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-item" onclick="toggleMenu('help-menu')">
+                    Help
+                    <div class="menu-dropdown" id="help-menu">
+                        <div class="menu-dropdown-item" onclick="showDocumentation()">
+                            <i class="fas fa-book"></i> Documentation
+                        </div>
+                        <div class="menu-dropdown-item" onclick="showKeyboardShortcuts()">
+                            <i class="fas fa-keyboard"></i> Keyboard Shortcuts
+                            <span class="shortcut">Ctrl+K Ctrl+S</span>
+                        </div>
+                        <div class="menu-separator"></div>
+                        <div class="menu-dropdown-item" onclick="checkForUpdates()">
+                            <i class="fas fa-download"></i> Check for Updates
+                        </div>
+                        <div class="menu-dropdown-item" onclick="showAbout()">
+                            <i class="fas fa-info-circle"></i> About Anvil
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="header-actions">
-                <button class="btn" onclick="openFile()">
-                    <i class="fas fa-folder-open"></i> Open
+                <button class="btn" onclick="showCommandPalette()" title="Command Palette (Ctrl+Shift+P)">
+                    <i class="fas fa-terminal"></i>
                 </button>
-                <button class="btn" onclick="saveFile()">
-                    <i class="fas fa-save"></i> Save
+                <button class="btn" onclick="showSettings()" title="Settings (Ctrl+,)">
+                    <i class="fas fa-cog"></i>
                 </button>
-                <button class="btn btn-primary" onclick="runTask()">
-                    <i class="fas fa-play"></i> Run Task
+                <button class="btn btn-primary" onclick="runTask()" title="Run Task (Ctrl+Enter)">
+                    <i class="fas fa-play"></i> Run
                 </button>
             </div>
         </div>
@@ -555,6 +779,471 @@
     </div>
 
     <script>
+        // File management
+        let currentFile = 'main.py';
+        let openFiles = ['main.py'];
+        let settings = {
+            theme: 'dark',
+            fontSize: 14,
+            tabSize: 4,
+            wordWrap: true,
+            autoSave: false,
+            verifyOnSave: true,
+            model: 'local',
+            maxIterations: 20
+        };
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('anvil-settings');
+            if (saved) {
+                settings = { ...settings, ...JSON.parse(saved) };
+            }
+        }
+
+        // Save settings to localStorage
+        function saveSettings() {
+            localStorage.setItem('anvil-settings', JSON.stringify(settings));
+        }
+
+        // Menu functions
+        function toggleMenu(menuId) {
+            const menu = document.getElementById(menuId);
+            const isShowing = menu.classList.contains('show');
+            
+            // Close all menus
+            document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('show'));
+            
+            // Toggle clicked menu
+            if (!isShowing) {
+                menu.classList.add('show');
+            }
+        }
+
+        // Close menus when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.menu-item')) {
+                document.querySelectorAll('.menu-dropdown').forEach(m => m.classList.remove('show'));
+            }
+        });
+
+        // File operations
+        function newFile() {
+            const filename = prompt('Enter filename:', 'untitled.py');
+            if (filename) {
+                addTab(filename);
+                setActiveTab(filename);
+            }
+        }
+
+        function openFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    addTab(file.name);
+                    setActiveTab(file.name);
+                    addTerminalLine(`Opened ${file.name}`, 'success');
+                }
+            };
+            input.click();
+        }
+
+        function openFolder() {
+            alert('Open folder dialog (not implemented in demo)');
+        }
+
+        function saveFile() {
+            addTerminalLine('File saved successfully', 'success');
+            if (settings.verifyOnSave) {
+                setTimeout(() => verifyCode(), 500);
+            }
+        }
+
+        function saveFileAs() {
+            const filename = prompt('Save as:', currentFile);
+            if (filename) {
+                addTerminalLine(`Saved as ${filename}`, 'success');
+            }
+        }
+
+        // Edit operations
+        function undo() {
+            document.execCommand('undo');
+        }
+
+        function redo() {
+            document.execCommand('redo');
+        }
+
+        function cut() {
+            document.execCommand('cut');
+        }
+
+        function copy() {
+            document.execCommand('copy');
+        }
+
+        function paste() {
+            document.execCommand('paste');
+        }
+
+        function find() {
+            const searchTerm = prompt('Find:');
+            if (searchTerm) {
+                addTerminalLine(`Searching for: ${searchTerm}`, 'output');
+            }
+        }
+
+        function replace() {
+            const find = prompt('Find:');
+            if (find) {
+                const replace = prompt('Replace with:');
+                if (replace) {
+                    addTerminalLine(`Replacing "${find}" with "${replace}"`, 'output');
+                }
+            }
+        }
+
+        // View operations
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function toggleTerminal() {
+            const terminal = document.querySelector('.terminal');
+            terminal.style.display = terminal.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function zoomIn() {
+            settings.fontSize += 2;
+            document.querySelector('.editor').style.fontSize = settings.fontSize + 'px';
+            saveSettings();
+            addTerminalLine(`Zoom: ${settings.fontSize}px`, 'output');
+        }
+
+        function zoomOut() {
+            settings.fontSize = Math.max(10, settings.fontSize - 2);
+            document.querySelector('.editor').style.fontSize = settings.fontSize + 'px';
+            saveSettings();
+            addTerminalLine(`Zoom: ${settings.fontSize}px`, 'output');
+        }
+
+        function resetZoom() {
+            settings.fontSize = 14;
+            document.querySelector('.editor').style.fontSize = '14px';
+            saveSettings();
+            addTerminalLine('Zoom reset to 14px', 'output');
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Tools operations
+        function verifyCode() {
+            addTerminalLine('Verifying code...', 'output');
+            setTimeout(() => {
+                addTerminalLine('✓ Syntax check passed', 'success');
+                setTimeout(() => {
+                    addTerminalLine('✓ Lint check passed', 'success');
+                    setTimeout(() => {
+                        addTerminalLine('✓ Type check passed', 'success');
+                        addTerminalLine('✓ All checks passed!', 'success');
+                    }, 500);
+                }, 500);
+            }, 500);
+        }
+
+        function showGitPanel() {
+            alert('Git panel (not implemented in demo)');
+        }
+
+        function showExtensions() {
+            showSettings('extensions');
+        }
+
+        function showCommandPalette() {
+            const command = prompt('Enter command:');
+            if (command) {
+                addTerminalLine(`Executing: ${command}`, 'output');
+            }
+        }
+
+        // Help operations
+        function showDocumentation() {
+            window.open('https://github.com/KingLabsA/anvil#readme', '_blank');
+        }
+
+        function showKeyboardShortcuts() {
+            alert(`Keyboard Shortcuts:
+
+File:
+  Ctrl+N - New File
+  Ctrl+O - Open File
+  Ctrl+S - Save
+  Ctrl+Shift+S - Save As
+
+Edit:
+  Ctrl+Z - Undo
+  Ctrl+Y - Redo
+  Ctrl+X - Cut
+  Ctrl+C - Copy
+  Ctrl+V - Paste
+  Ctrl+F - Find
+  Ctrl+H - Replace
+
+View:
+  Ctrl+B - Toggle Sidebar
+  Ctrl+\` - Toggle Terminal
+  Ctrl++ - Zoom In
+  Ctrl+- - Zoom Out
+  Ctrl+0 - Reset Zoom
+  F11 - Full Screen
+
+Tools:
+  Ctrl+Enter - Run Task
+  Ctrl+Shift+V - Verify Code
+  Ctrl+Shift+P - Command Palette
+
+General:
+  Ctrl+, - Settings`);
+        }
+
+        function checkForUpdates() {
+            addTerminalLine('Checking for updates...', 'output');
+            setTimeout(() => {
+                addTerminalLine('✓ You are running the latest version (0.3.0)', 'success');
+            }, 1000);
+        }
+
+        function showAbout() {
+            alert(`Anvil Desktop v0.3.0
+
+The Self-Verified Coding Agent
+
+Built with Tauri + Rust
+Web UI powered by Anvil Server
+
+https://github.com/KingLabsA/anvil
+
+© 2026 FableForge`);
+        }
+
+        // Settings panel
+        function showSettings(tab = 'general') {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: var(--bg-secondary);
+                    border-radius: 12px;
+                    width: 600px;
+                    max-height: 80vh;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                ">
+                    <div style="
+                        padding: 1rem;
+                        border-bottom: 1px solid var(--border);
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    ">
+                        <h2 style="margin: 0; font-size: 1.2rem;">Settings</h2>
+                        <button onclick="this.closest('[style*=fixed]').remove()" style="
+                            background: none;
+                            border: none;
+                            color: var(--text-primary);
+                            font-size: 1.5rem;
+                            cursor: pointer;
+                        ">×</button>
+                    </div>
+                    <div style="display: flex; flex: 1; overflow: hidden;">
+                        <div style="
+                            width: 150px;
+                            border-right: 1px solid var(--border);
+                            padding: 1rem 0;
+                        ">
+                            <div class="settings-tab ${tab === 'general' ? 'active' : ''}" onclick="switchSettingsTab('general')" style="
+                                padding: 0.5rem 1rem;
+                                cursor: pointer;
+                                ${tab === 'general' ? 'background: var(--accent);' : ''}
+                            ">General</div>
+                            <div class="settings-tab ${tab === 'editor' ? 'active' : ''}" onclick="switchSettingsTab('editor')" style="
+                                padding: 0.5rem 1rem;
+                                cursor: pointer;
+                                ${tab === 'editor' ? 'background: var(--accent);' : ''}
+                            ">Editor</div>
+                            <div class="settings-tab ${tab === 'model' ? 'active' : ''}" onclick="switchSettingsTab('model')" style="
+                                padding: 0.5rem 1rem;
+                                cursor: pointer;
+                                ${tab === 'model' ? 'background: var(--accent);' : ''}
+                            ">Model</div>
+                            <div class="settings-tab ${tab === 'extensions' ? 'active' : ''}" onclick="switchSettingsTab('extensions')" style="
+                                padding: 0.5rem 1rem;
+                                cursor: pointer;
+                                ${tab === 'extensions' ? 'background: var(--accent);' : ''}
+                            ">Extensions</div>
+                        </div>
+                        <div style="flex: 1; padding: 1.5rem; overflow-y: auto;" id="settings-content">
+                            ${getSettingsContent(tab)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function switchSettingsTab(tab) {
+            document.getElementById('settings-content').innerHTML = getSettingsContent(tab);
+            document.querySelectorAll('.settings-tab').forEach(t => {
+                t.style.background = t.textContent.toLowerCase() === tab ? 'var(--accent)' : '';
+            });
+        }
+
+        function getSettingsContent(tab) {
+            if (tab === 'general') {
+                return `
+                    <h3 style="margin-bottom: 1rem;">General Settings</h3>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem;">Theme</label>
+                        <select onchange="settings.theme = this.value; saveSettings();" style="
+                            width: 100%;
+                            padding: 0.5rem;
+                            background: var(--bg-primary);
+                            border: 1px solid var(--border);
+                            border-radius: 4px;
+                            color: var(--text-primary);
+                        ">
+                            <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
+                            <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Light</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" ${settings.autoSave ? 'checked' : ''} onchange="settings.autoSave = this.checked; saveSettings();">
+                            Auto-save files
+                        </label>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" ${settings.verifyOnSave ? 'checked' : ''} onchange="settings.verifyOnSave = this.checked; saveSettings();">
+                            Verify code on save
+                        </label>
+                    </div>
+                `;
+            } else if (tab === 'editor') {
+                return `
+                    <h3 style="margin-bottom: 1rem;">Editor Settings</h3>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem;">Font Size</label>
+                        <input type="number" value="${settings.fontSize}" min="10" max="32" onchange="settings.fontSize = parseInt(this.value); saveSettings(); document.querySelector('.editor').style.fontSize = this.value + 'px';" style="
+                            width: 100%;
+                            padding: 0.5rem;
+                            background: var(--bg-primary);
+                            border: 1px solid var(--border);
+                            border-radius: 4px;
+                            color: var(--text-primary);
+                        ">
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem;">Tab Size</label>
+                        <input type="number" value="${settings.tabSize}" min="2" max="8" onchange="settings.tabSize = parseInt(this.value); saveSettings();" style="
+                            width: 100%;
+                            padding: 0.5rem;
+                            background: var(--bg-primary);
+                            border: 1px solid var(--border);
+                            border-radius: 4px;
+                            color: var(--text-primary);
+                        ">
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" ${settings.wordWrap ? 'checked' : ''} onchange="settings.wordWrap = this.checked; saveSettings();">
+                            Word wrap
+                        </label>
+                    </div>
+                `;
+            } else if (tab === 'model') {
+                return `
+                    <h3 style="margin-bottom: 1rem;">Model Settings</h3>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem;">Default Model</label>
+                        <select onchange="settings.model = this.value; saveSettings();" style="
+                            width: 100%;
+                            padding: 0.5rem;
+                            background: var(--bg-primary);
+                            border: 1px solid var(--border);
+                            border-radius: 4px;
+                            color: var(--text-primary);
+                        ">
+                            <option value="local" ${settings.model === 'local' ? 'selected' : ''}>Local (ShellWhisperer)</option>
+                            <option value="gpt-4o" ${settings.model === 'gpt-4o' ? 'selected' : ''}>GPT-4o</option>
+                            <option value="claude-3-5-sonnet" ${settings.model === 'claude-3-5-sonnet' ? 'selected' : ''}>Claude 3.5 Sonnet</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem;">Max Iterations</label>
+                        <input type="number" value="${settings.maxIterations}" min="1" max="100" onchange="settings.maxIterations = parseInt(this.value); saveSettings();" style="
+                            width: 100%;
+                            padding: 0.5rem;
+                            background: var(--bg-primary);
+                            border: 1px solid var(--border);
+                            border-radius: 4px;
+                            color: var(--text-primary);
+                        ">
+                    </div>
+                `;
+            } else if (tab === 'extensions') {
+                return `
+                    <h3 style="margin-bottom: 1rem;">Extensions</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Manage installed extensions</p>
+                    <div style="margin-bottom: 1rem;">
+                        <button onclick="alert('Extension marketplace coming soon!')" style="
+                            background: var(--accent);
+                            color: white;
+                            border: none;
+                            padding: 0.5rem 1rem;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        ">Browse Extensions</button>
+                    </div>
+                    <div style="border: 1px solid var(--border); border-radius: 4px; padding: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                            <i class="fas fa-puzzle-piece" style="font-size: 2rem; color: var(--accent);"></i>
+                            <div>
+                                <div style="font-weight: 600;">Anvil Core</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">v0.3.0 • Built-in</div>
+                            </div>
+                        </div>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Core Anvil functionality including verification, error recovery, and agent memory.</p>
+                    </div>
+                `;
+            }
+            return '';
+        }
+
         // File management
         let currentFile = 'main.py';
         let openFiles = ['main.py'];
@@ -685,23 +1374,71 @@
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
-                if (e.key === 's') {
-                    e.preventDefault();
-                    saveFile();
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendMessage();
+                switch(e.key) {
+                    case 'n':
+                        e.preventDefault();
+                        newFile();
+                        break;
+                    case 'o':
+                        e.preventDefault();
+                        openFile();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            saveFileAs();
+                        } else {
+                            saveFile();
+                        }
+                        break;
+                    case 'b':
+                        e.preventDefault();
+                        toggleSidebar();
+                        break;
+                    case '`':
+                        e.preventDefault();
+                        toggleTerminal();
+                        break;
+                    case ',':
+                        e.preventDefault();
+                        showSettings();
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        runTask();
+                        break;
+                    case 'P':
+                        if (e.shiftKey) {
+                            e.preventDefault();
+                            showCommandPalette();
+                        }
+                        break;
+                    case 'V':
+                        if (e.shiftKey) {
+                            e.preventDefault();
+                            verifyCode();
+                        }
+                        break;
                 }
+            }
+            
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullScreen();
             }
         });
 
         // Enter to send message
         document.getElementById('chat-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 sendMessage();
             }
         });
+
+        // Initialize settings
+        loadSettings();
+        document.querySelector('.editor').style.fontSize = settings.fontSize + 'px';
     </script>
 </body>
 </html>

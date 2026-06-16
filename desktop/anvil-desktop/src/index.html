@@ -149,6 +149,7 @@
 
     <script>
         const { invoke } = window.__TAURI__.core;
+        const { listen } = window.__TAURI__.event;
         
         const loader = document.getElementById('loader');
         const statusText = document.getElementById('status-text');
@@ -170,6 +171,7 @@
                 setTimeout(() => {
                     loadingScreen.classList.add('hidden');
                     frame.classList.remove('hidden');
+                    checkForUpdates();
                 }, 500);
                 
             } catch (error) {
@@ -180,12 +182,79 @@
             }
         }
         
+        async function checkForUpdates() {
+            try {
+                const updateMsg = await invoke('check_for_updates');
+                if (updateMsg) {
+                    showUpdateNotification(updateMsg);
+                }
+            } catch (error) {
+                console.error('Update check failed:', error);
+            }
+        }
+        
+        function showUpdateNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4ec9b0;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                max-width: 400px;
+            `;
+            notification.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 0.5rem;">🎉 Update Available!</div>
+                <div style="font-size: 0.9rem; margin-bottom: 1rem;">${message}</div>
+                <button onclick="installUpdate(this)" style="
+                    background: white;
+                    color: #4ec9b0;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    margin-right: 0.5rem;
+                ">Install & Restart</button>
+                <button onclick="this.parentElement.parentElement.remove()" style="
+                    background: transparent;
+                    color: white;
+                    border: 1px solid white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 4px;
+                    cursor: pointer;
+                ">Later</button>
+            `;
+            document.body.appendChild(notification);
+        }
+        
+        async function installUpdate(button) {
+            button.textContent = 'Downloading...';
+            button.disabled = true;
+            
+            try {
+                await invoke('install_update');
+                // App will restart automatically
+            } catch (error) {
+                alert('Update failed: ' + error);
+                button.textContent = 'Retry';
+                button.disabled = false;
+            }
+        }
+        
         function retry() {
             startServer();
         }
         
         // Start server on load
         startServer();
+        
+        // Check for updates periodically (every hour)
+        setInterval(checkForUpdates, 3600000);
     </script>
 </body>
 </html>

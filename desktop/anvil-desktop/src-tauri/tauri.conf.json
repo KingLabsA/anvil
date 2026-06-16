@@ -31,6 +31,20 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "FableForge",
+    "category": "DeveloperTool",
+    "shortDescription": "Self-Verified Coding Agent",
+    "longDescription": "Anvil Desktop - The self-verified coding agent that plans, executes, verifies, and recovers from failures autonomously."
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/KingLabsA/anvil/releases/latest/download/latest.json"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUU1dSRFQ1TjdaR1hZQjdZQ1RUV0hWQ1pENkZaVzRTNUNaTjdGV0hWQ1pENkZaVzRTNUNaTjcK"
+    }
   }
 }

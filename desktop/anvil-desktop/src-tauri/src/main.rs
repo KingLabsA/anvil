@@ -1,8 +1,11 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use tauri::Manager;
 use std::process::{Command, Child};
 use std::sync::Mutex;
 use std::time::Duration;
 use std::thread;
+use tauri_plugin_updater::UpdaterExt;
 
 struct ServerState {
     child: Option<Child>,
@@ -56,17 +59,70 @@ async fn start_server(app: tauri::AppHandle) -> Result<(), String> {
     Err("Server failed to start within 15 seconds".to_string())
 }
 
+#[tauri::command]
+async fn check_for_updates(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    
+    match updater.check().await {
+        Ok(Some(update)) => {
+            // Update available
+            Ok(Some(format!(
+                "Version {} is available! Current: {}",
+                update.version,
+                env!("CARGO_PKG_VERSION")
+            )))
+        }
+        Ok(None) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    
+    if let Some(update) = updater.check().await.map_err(|e| e.to_string())? {
+        let progress = |current: usize, total: usize| {
+            println!("Downloading: {current}/{total}");
+        };
+        
+        update
+            .download(progress)
+            .await
+            .map_err(|e| e.to_string())?;
+        
+        update.install().map_err(|e| e.to_string())?;
+        
+        // Restart the app
+        tauri::process::relaunch(app).map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Mutex::new(ServerState { child: None }))
-        .invoke_handler(tauri::generate_handler![check_server, start_server])
+        .invoke_handler(tauri::generate_handler![
+            check_server,
+            start_server,
+            check_for_updates,
+            install_update
+        ])
         .setup(|app| {
             let app_handle = app.handle();
             
             // Start server automatically on app launch
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = start_server(app_handle).await {
+                if let Err(e) = start_server(app_handle.clone()).await {
                     eprintln!("Failed to start server: {}", e);
+                }
+                
+                // Check for updates after server starts
+                thread::sleep(Duration::from_secs(5));
+                if let Ok(Some(msg)) = check_for_updates(app_handle).await {
+                    println!("{}", msg);
                 }
             });
             
