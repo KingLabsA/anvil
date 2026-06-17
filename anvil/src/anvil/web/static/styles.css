@@ -211,4 +211,23 @@ body { font-family: var(--font); background: var(--bg-primary); color: var(--tex
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
 
+/* ─── Mode Buttons (Plan/Act) ─── */
+.mode-btn { padding: 6px 12px; border-radius: var(--radius); font-weight: 600; font-size: 0.78rem; cursor: pointer; border: 1px solid var(--border); font-family: var(--font); transition: all var(--transition); }
+.mode-btn.plan { background: var(--accent-muted); color: var(--accent); border-color: rgba(56,139,253,0.3); }
+.mode-btn.act { background: var(--green-muted); color: var(--green); border-color: rgba(63,185,80,0.3); }
+.mode-btn:hover { transform: scale(1.03); }
+
+/* ─── Tree Items (File Explorer) ─── */
+.tree-item { padding: 5px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; transition: background var(--transition); display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+.tree-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.tree-item.dir { font-weight: 500; }
+.tree-children { display: none; }
+.tree-item.open + .tree-children { display: block; }
+
+/* ─── Diff View ─── */
+.diff-view { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.5; white-space: pre-wrap; overflow-x: auto; color: var(--text-secondary); }
+
+/* ─── Checkpoint Actions ─── */
+.checkpoint-actions { border-bottom: 1px solid var(--border-subtle); }
+
 @media (max-width: 900px) { .sidebar { display: none; } .header-center { display: none; } }

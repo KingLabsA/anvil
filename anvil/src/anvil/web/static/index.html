@@ -36,6 +36,7 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button id="plan-mode-btn" class="mode-btn plan" onclick="app.togglePlanMode()" title="Toggle Plan/Act mode">📋 Plan</button>
                 <button id="run-btn" class="run-btn" title="Run Task (Ctrl+Enter)">
                     <i class="fas fa-play"></i> Run
                 </button>
@@ -79,6 +80,15 @@
                     <h3><i class="fas fa-history"></i> Sessions</h3>
                     <div id="sessions-list" class="nav-list"></div>
                 </div>
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-bookmark"></i> Checkpoints</h3>
+                    <div class="checkpoint-actions" style="padding:4px 8px;display:flex;gap:4px">
+                        <button class="btn-sm" onclick="app.createCheckpoint('manual')" title="Save checkpoint"><i class="fas fa-save"></i></button>
+                        <button class="btn-sm" onclick="app.undoCheckpoint()" title="Undo"><i class="fas fa-undo"></i></button>
+                        <button class="btn-sm" onclick="app.redoCheckpoint()" title="Redo"><i class="fas fa-redo"></i></button>
+                    </div>
+                    <div id="checkpoint-list" class="nav-list"></div>
+                </div>
             </aside>
 
             <!-- Main Area -->
@@ -99,6 +109,7 @@
                 <div class="tab-bar">
                     <button class="tab active" data-tab="output"><i class="fas fa-terminal"></i> Output</button>
                     <button class="tab" data-tab="codebase"><i class="fas fa-folder-tree"></i> Codebase</button>
+                    <button class="tab" data-tab="files"><i class="fas fa-folder-open"></i> Files</button>
                     <button class="tab" data-tab="git"><i class="fas fa-code-branch"></i> Git</button>
                     <button class="tab" data-tab="sessions"><i class="fas fa-history"></i> Sessions</button>
                     <button class="tab" data-tab="docs"><i class="fas fa-book"></i> Docs</button>
@@ -171,6 +182,23 @@
                             <div class="empty-state">
                                 <i class="fas fa-folder-open"></i>
                                 <p>Click "Index" to scan and index your codebase</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Files Tab (File Explorer) -->
+                    <div class="tab-panel" id="panel-files" style="display:none">
+                        <div class="panel-header">
+                            <div class="panel-title"><i class="fas fa-folder-open"></i> File Explorer</div>
+                            <div class="panel-actions">
+                                <input type="text" id="file-path-input" class="search-input" placeholder="Path..." value=".">
+                                <button class="btn-sm" onclick="app.loadFileTree(document.querySelector('#file-path-input').value)"><i class="fas fa-sync"></i> Browse</button>
+                            </div>
+                        </div>
+                        <div id="file-explorer-results" class="panel-content">
+                            <div class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p>Click "Browse" or enter a path to explore files</p>
                             </div>
                         </div>
                     </div>

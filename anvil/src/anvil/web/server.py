@@ -333,6 +333,200 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
             for sid, sess in list(_sessions.items())[-50:]
         ]
 
+    # ─── Subagents ───
+    from anvil.core.subagents import SubagentManager
+    _subagent_mgr = SubagentManager()
+
+    @app.post("/subagent/spawn")
+    def spawn_subagent(task: str, agent: str = "general", model: str = "gpt-4o-mini", max_turns: int = 20) -> dict:
+        task_id = _subagent_mgr.spawn(task, agent_name=agent, model=model, max_turns=max_turns)
+        return {"task_id": task_id, "status": "spawned"}
+
+    @app.post("/subagent/execute/{task_id}")
+    def execute_subagent(task_id: str) -> dict:
+        result = _subagent_mgr.execute(task_id)
+        return {
+            "id": result.id, "output": result.output, "status": result.status.value,
+            "duration_ms": result.duration_ms, "error": result.error,
+        }
+
+    @app.get("/subagent/active")
+    def list_active_subagents() -> list[dict]:
+        return [{"id": t.id, "task": t.task, "agent": t.agent_name} for t in _subagent_mgr.get_active()]
+
+    @app.get("/subagent/history")
+    def subagent_history() -> list[dict]:
+        return [
+            {"id": r.id, "task": r.task, "status": r.status.value, "duration_ms": r.duration_ms}
+            for r in _subagent_mgr.get_history()
+        ]
+
+    @app.post("/subagent/fan-out")
+    def fan_out(tasks: list[str], agent: str = "general", model: str = "gpt-4o-mini") -> dict:
+        ids = _subagent_mgr.fan_out(tasks, agent_name=agent, model=model)
+        return {"task_ids": ids, "count": len(ids)}
+
+    # ─── Checkpoints ───
+    from anvil.core.checkpoint import CheckpointManager
+    _checkpoint_mgr = CheckpointManager()
+
+    @app.post("/checkpoint/create")
+    def create_checkpoint(message: str) -> dict:
+        cp = _checkpoint_mgr.create_checkpoint(message)
+        return {"id": cp.id, "hash": cp.hash, "message": cp.message, "files": cp.files_changed}
+
+    @app.post("/checkpoint/undo")
+    def undo_checkpoint() -> dict:
+        cp = _checkpoint_mgr.undo()
+        if cp:
+            return {"id": cp.id, "hash": cp.hash, "message": cp.message}
+        return {"error": "Nothing to undo"}
+
+    @app.post("/checkpoint/redo")
+    def redo_checkpoint() -> dict:
+        cp = _checkpoint_mgr.redo()
+        if cp:
+            return {"id": cp.id, "hash": cp.hash, "message": cp.message}
+        return {"error": "Nothing to redo"}
+
+    @app.get("/checkpoint/list")
+    def list_checkpoints() -> list[dict]:
+        return _checkpoint_mgr.get_checkpoints()
+
+    @app.get("/checkpoint/diff/{checkpoint_id}")
+    def checkpoint_diff(checkpoint_id: str) -> str:
+        return _checkpoint_mgr.get_diff(checkpoint_id)
+
+    # ─── Plan/Act ───
+    from anvil.core.plan_act import PlanActController, AgentMode
+    _plan_ctrl = PlanActController()
+
+    @app.get("/plan/current")
+    def get_plan() -> dict:
+        return _plan_ctrl.get_plan_json()
+
+    @app.post("/plan/create")
+    def create_plan(task: str, steps: list[dict]) -> dict:
+        plan = _plan_ctrl.create_plan(task, steps)
+        return {"task": plan.task, "steps": len(plan.steps), "approved": plan.approved}
+
+    @app.post("/plan/approve")
+    def approve_plan() -> dict:
+        msg = _plan_ctrl.approve_plan()
+        return {"message": msg, "mode": _plan_ctrl.mode.value}
+
+    @app.post("/plan/reject")
+    def reject_plan() -> dict:
+        msg = _plan_ctrl.reject_plan()
+        return {"message": msg}
+
+    @app.get("/plan/mode")
+    def get_mode() -> dict:
+        return {"mode": _plan_ctrl.mode.value}
+
+    @app.post("/plan/mode/{mode}")
+    def set_mode(mode: str) -> dict:
+        _plan_ctrl.set_mode(AgentMode(mode))
+        return {"mode": _plan_ctrl.mode.value}
+
+    # ─── File Explorer ───
+    @app.get("/files/list")
+    def list_files(path: str = ".") -> list[dict]:
+        """List files in directory."""
+        target = Path(path).resolve()
+        if not target.exists():
+            return []
+        items = []
+        try:
+            for item in sorted(target.iterdir()):
+                if item.name.startswith(".") or item.name == "__pycache__":
+                    continue
+                items.append({
+                    "name": item.name,
+                    "path": str(item),
+                    "type": "directory" if item.is_dir() else "file",
+                    "size": item.stat().st_size if item.is_file() else 0,
+                })
+        except PermissionError:
+            pass
+        return items
+
+    @app.get("/files/read")
+    def read_file(path: str) -> dict:
+        """Read file content."""
+        target = Path(path).resolve()
+        if not target.exists():
+            return {"error": "File not found"}
+        try:
+            content = target.read_text(errors="replace")
+            return {"path": str(target), "content": content, "lines": content.count("\n") + 1}
+        except Exception as e:
+            return {"error": str(e)}
+
+    @app.get("/files/tree")
+    def file_tree(path: str = ".", max_depth: int = 3) -> dict:
+        """Get file tree."""
+        def _build(p: Path, depth: int) -> dict:
+            if depth > max_depth:
+                return {"name": p.name, "type": "truncated"}
+            if p.is_dir():
+                children = []
+                try:
+                    for child in sorted(p.iterdir()):
+                        if child.name.startswith(".") or child.name == "__pycache__" or child.name == "node_modules":
+                            continue
+                        children.append(_build(child, depth + 1))
+                except PermissionError:
+                    pass
+                return {"name": p.name, "type": "directory", "children": children}
+            return {"name": p.name, "type": "file", "size": p.stat().st_size}
+
+        return _build(Path(path).resolve(), 0)
+
+    # ─── Streaming Chat (WebSocket) ───
+    @app.websocket("/ws/chat")
+    async def websocket_chat(websocket: WebSocket):
+        await websocket.accept()
+        try:
+            while True:
+                data = await websocket.receive_json()
+                model_name = data.get("model", "shellwhisperer")
+                message = data.get("message", "")
+
+                # Send thinking
+                await websocket.send_json({"type": "thinking", "content": "Thinking..."})
+
+                # Call model
+                try:
+                    if model_name.startswith(("fableforge", "mythos", "shellwhisperer")) or "/" in model_name:
+                        import httpx
+                        client = httpx.Client(timeout=120.0)
+                        resp = client.post("http://localhost:11434/api/chat", json={
+                            "model": model_name,
+                            "messages": [
+                                {"role": "system", "content": "You are Anvil, an expert AI coding assistant."},
+                                {"role": "user", "content": message},
+                            ],
+                            "stream": False,
+                        })
+                        resp.raise_for_status()
+                        result = resp.json()
+                        content = result.get("message", {}).get("content", "")
+                        await websocket.send_json({"type": "response", "content": content, "success": True})
+                    else:
+                        from anvil.models.registry import ModelRegistry, Message
+                        model = ModelRegistry.create(model_name)
+                        messages = [
+                            Message(role="system", content="You are Anvil, an expert AI coding assistant."),
+                            Message(role="user", content=message),
+                        ]
+                        response = model.complete(messages, temperature=0.7)
+                        await websocket.send_json({"type": "response", "content": response.content, "success": True})
+                except Exception as e:
+                    await websocket.send_json({"type": "response", "content": "", "success": False, "error": str(e)})
+        except WebSocketDisconnect:
+            pass
+
     return app
 
 

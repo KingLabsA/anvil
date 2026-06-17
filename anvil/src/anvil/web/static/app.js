@@ -1,5 +1,5 @@
 // Anvil — Full Agent Web UI
-// Wires up: Run pipeline, Codebase indexing, Git, MCP tools, Memory, Sessions, Docs RAG, Metrics
+// Wires up: Run pipeline, Codebase, Git, MCP, Memory, Sessions, Docs, Metrics, Subagents, Checkpoints, Plan/Act, File Explorer, Diff Viewer, Streaming
 
 class AnvilApp {
   constructor() {
@@ -8,6 +8,9 @@ class AnvilApp {
     this.currentAgent = 'build';
     this.settings = {};
     this.ollamaModels = [];
+    this.planMode = 'plan'; // plan or act
+    this.currentPath = '.';
+    this.ws = null;
     this.init();
   }
 
@@ -17,6 +20,8 @@ class AnvilApp {
     await this.loadSettings();
     await this.loadModels();
     await this.loadMCPSessions();
+    await this.loadPlanMode();
+    await this.loadCheckpoints();
     this.setStatus('Ready', 'ready');
   }
 
@@ -252,11 +257,13 @@ class AnvilApp {
 
   logEntry(type, msg) {
     const log = document.querySelector('#output-log');
-    if (!log) return;
+    if (!log) return '';
     const cls = type === 'success' ? 'log-success' : type === 'error' ? 'log-error' : type === 'warning' ? 'log-warning' : 'log-info';
     const time = new Date().toLocaleTimeString();
-    log.innerHTML += `<div class="log-entry"><span class="log-info">[${time}]</span> <span class="${cls}">${msg}</span></div>`;
+    const id = 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+    log.innerHTML += `<div class="log-entry" id="${id}"><span class="log-info">[${time}]</span> <span class="${cls}">${this.escape(msg)}</span></div>`;
     log.scrollTop = log.scrollHeight;
+    return id;
   }
 
   clearOutput() {
@@ -267,6 +274,13 @@ class AnvilApp {
   copyOutput() {
     const log = document.querySelector('#output-log');
     if (log) navigator.clipboard.writeText(log.innerText);
+  }
+
+  removeMessage(id) {
+    if (id) {
+      const el = document.querySelector(`#${id}`);
+      if (el) el.remove();
+    }
   }
 
   // ─── Codebase ───
@@ -436,6 +450,243 @@ class AnvilApp {
   }
 
   escape(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+  // ─── File Explorer ───
+  async loadFileTree(path = '.') {
+    const results = document.querySelector('#file-explorer-results');
+    if (!results) return;
+    results.innerHTML = '<div class="empty-state"><div class="thinking"><span></span><span></span><span></span></div></div>';
+    try {
+      const res = await fetch(`/files/tree?path=${encodeURIComponent(path)}&max_depth=3`);
+      const tree = await res.json();
+      results.innerHTML = this.renderTree(tree, 0);
+    } catch (e) {
+      results.innerHTML = `<div class="empty-state"><p>Error: ${e.message}</p></div>`;
+    }
+  }
+
+  renderTree(node, depth) {
+    const indent = depth * 16;
+    let html = '';
+    if (node.type === 'directory') {
+      html += `<div class="tree-item dir" style="padding-left:${indent}px" onclick="this.classList.toggle('open')">
+        <i class="fas fa-folder" style="color:var(--orange)"></i> ${this.escape(node.name)}
+      </div>`;
+      if (node.children) {
+        html += `<div class="tree-children">`;
+        node.children.forEach(c => { html += this.renderTree(c, depth + 1); });
+        html += `</div>`;
+      }
+    } else {
+      const icon = this.getFileIcon(node.name);
+      html += `<div class="tree-item file" style="padding-left:${indent}px" onclick="app.openFile('${this.escape(node.name)}')">
+        <i class="${icon}"></i> ${this.escape(node.name)}
+        <span class="badge">${this.formatSize(node.size || 0)}</span>
+      </div>`;
+    }
+    return html;
+  }
+
+  getFileIcon(name) {
+    if (name.endsWith('.py')) return 'fab fa-python';
+    if (name.endsWith('.js') || name.endsWith('.ts') || name.endsWith('.tsx')) return 'fab fa-js';
+    if (name.endsWith('.rs')) return 'fab fa-rust';
+    if (name.endsWith('.go')) return 'fab fa-go';
+    if (name.endsWith('.md')) return 'fab fa-markdown';
+    if (name.endsWith('.json')) return 'fas fa-code';
+    if (name.endsWith('.yml') || name.endsWith('.yaml')) return 'fas fa-cog';
+    return 'fas fa-file';
+  }
+
+  formatSize(bytes) {
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + 'KB';
+    return (bytes/1024/1024).toFixed(1) + 'MB';
+  }
+
+  async openFile(path) {
+    try {
+      const res = await fetch(`/files/read?path=${encodeURIComponent(path)}`);
+      const data = await res.json();
+      if (data.error) return this.notify(data.error, 'error');
+      this.logEntry('info', `📄 ${data.path} (${data.lines} lines)`);
+      this.logEntry('output', data.content);
+    } catch (e) {}
+  }
+
+  // ─── Checkpoints ───
+  async loadCheckpoints() {
+    try {
+      const res = await fetch('/checkpoint/list');
+      const checkpoints = await res.json();
+      const el = document.querySelector('#checkpoint-list');
+      if (el) {
+        el.innerHTML = checkpoints.length === 0
+          ? '<div class="nav-item" style="color:var(--text-tertiary)">No checkpoints</div>'
+          : checkpoints.slice(-10).reverse().map(c =>
+            `<div class="nav-item ${c.is_current ? 'active' : ''}">
+              <i class="fas fa-bookmark" style="font-size:0.7rem;color:var(--accent)"></i>
+              <span>${c.message.slice(0,25)}</span>
+            </div>`
+          ).join('');
+      }
+    } catch (e) {}
+  }
+
+  async createCheckpoint(msg) {
+    try {
+      const res = await fetch(`/checkpoint/create?message=${encodeURIComponent(msg)}`, { method: 'POST' });
+      const data = await res.json();
+      this.notify(`Checkpoint created: ${data.hash?.slice(0,7)}`, 'success');
+      this.loadCheckpoints();
+    } catch (e) { this.notify('Checkpoint failed', 'error'); }
+  }
+
+  async undoCheckpoint() {
+    try {
+      const res = await fetch('/checkpoint/undo', { method: 'POST' });
+      const data = await res.json();
+      if (data.error) return this.notify(data.error, 'info');
+      this.notify(`Undone to ${data.hash?.slice(0,7)}`, 'success');
+      this.loadCheckpoints();
+    } catch (e) {}
+  }
+
+  async redoCheckpoint() {
+    try {
+      const res = await fetch('/checkpoint/redo', { method: 'POST' });
+      const data = await res.json();
+      if (data.error) return this.notify(data.error, 'info');
+      this.notify(`Redone to ${data.hash?.slice(0,7)}`, 'success');
+      this.loadCheckpoints();
+    } catch (e) {}
+  }
+
+  async showDiff(checkpointId) {
+    const out = document.querySelector('#git-output');
+    if (!out) return;
+    try {
+      const res = await fetch(`/checkpoint/diff/${checkpointId}`);
+      const diff = await res.text();
+      out.innerHTML = `<pre class="diff-view">${this.escape(diff)}</pre>`;
+    } catch (e) {}
+  }
+
+  // ─── Plan/Act Mode ───
+  async loadPlanMode() {
+    try {
+      const res = await fetch('/plan/mode');
+      const data = await res.json();
+      this.planMode = data.mode;
+      this.updatePlanModeUI();
+    } catch (e) {}
+  }
+
+  async togglePlanMode() {
+    const newMode = this.planMode === 'plan' ? 'act' : 'plan';
+    try {
+      await fetch(`/plan/mode/${newMode}`, { method: 'POST' });
+      this.planMode = newMode;
+      this.updatePlanModeUI();
+      this.notify(`Switched to ${newMode.toUpperCase()} mode`, 'info');
+    } catch (e) {}
+  }
+
+  updatePlanModeUI() {
+    const btn = document.querySelector('#plan-mode-btn');
+    if (btn) {
+      btn.textContent = this.planMode === 'plan' ? '📋 Plan' : '⚡ Act';
+      btn.className = this.planMode === 'plan' ? 'mode-btn plan' : 'mode-btn act';
+    }
+  }
+
+  async createPlan(task, steps) {
+    try {
+      const res = await fetch('/plan/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task, steps }),
+      });
+      const data = await res.json();
+      this.notify(`Plan created with ${data.steps} steps`, 'success');
+      this.showPlan();
+    } catch (e) {}
+  }
+
+  async approvePlan() {
+    try {
+      const res = await fetch('/plan/approve', { method: 'POST' });
+      const data = await res.json();
+      this.notify(data.message, 'success');
+      this.planMode = data.mode;
+      this.updatePlanModeUI();
+    } catch (e) {}
+  }
+
+  async showPlan() {
+    try {
+      const res = await fetch('/plan/current');
+      const plan = await res.json();
+      if (!plan.task) return this.logEntry('info', 'No active plan');
+      this.logEntry('info', `📋 Plan: ${plan.task}`);
+      (plan.steps || []).forEach(s => {
+        const icon = s.status === 'done' ? '✅' : '⏳';
+        this.logEntry('info', `  ${icon} Step ${s.index+1}: ${s.description}`);
+      });
+    } catch (e) {}
+  }
+
+  // ─── Subagents ───
+  async spawnSubagent(task, agent = 'general') {
+    try {
+      const res = await fetch(`/subagent/spawn?task=${encodeURIComponent(task)}&agent=${agent}&model=${this.currentModel}`, { method: 'POST' });
+      const data = await res.json();
+      this.logEntry('info', `🤖 Spawned subagent: ${data.task_id}`);
+      // Execute it
+      const execRes = await fetch(`/subagent/execute/${data.task_id}`, { method: 'POST' });
+      const result = await execRes.json();
+      this.logEntry(result.status === 'completed' ? 'success' : 'error', `Subagent result: ${result.output?.slice(0, 500)}`);
+    } catch (e) { this.notify('Subagent failed', 'error'); }
+  }
+
+  async loadSubagentHistory() {
+    try {
+      const res = await fetch('/subagent/history');
+      const history = await res.json();
+      return history;
+    } catch (e) { return []; }
+  }
+
+  // ─── Streaming (WebSocket) ───
+  connectWebSocket() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    this.ws = new WebSocket(`${proto}//${location.host}/ws/chat`);
+    this.ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'thinking') {
+        this.setStatus('Thinking...', 'active');
+        this._thinkingId = this.logEntry('info', '🤔 Thinking...');
+      } else if (data.type === 'response') {
+        if (data.success) {
+          this.logEntry('success', data.response || '(empty response)');
+          this.setStatus('Ready', 'ready');
+        } else {
+          this.logEntry('error', `Error: ${data.error}`);
+          this.setStatus('Error', 'error');
+        }
+      }
+    };
+    this.ws.onclose = () => { setTimeout(() => this.connectWebSocket(), 3000); };
+  }
+
+  sendViaWebSocket(message) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.connectWebSocket();
+      return false;
+    }
+    this.ws.send(JSON.stringify({ message, model: this.currentModel }));
+    return true;
+  }
 }
 
 const app = new AnvilApp();
