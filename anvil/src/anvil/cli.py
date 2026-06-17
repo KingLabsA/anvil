@@ -30,11 +30,10 @@ def print_banner():
 [bold cyan]| | | | '_ \\ / _ \\ '_ \\  | |  _ / _ \\/ __| '_ \\ [/]
 [bold cyan]| |_| | |_) |  __/ | | | | |_| |  __/\\__ \\ | | |[/]
 [bold cyan] \\___/| .__/ \\___|_| |_|  \\____|\\___|___/_| |_|[/]
-[bold cyan]      |_|  [dim]v0.2.0 — self-verified coding agent[/]
+[bold cyan]      |_|  [dim]v0.3.0 — self-verified coding agent[/]
 """
     console.print(banner)
     console.print("[dim]Generate → Execute → Verify → Recover[/]")
-    console.print("[dim]Trained on 210K examples of real agents doing exactly this.[/]")
     console.print("[dim]Press [bold]Tab[/] to switch agents. Use [bold]@agent[/] to invoke subagents.[/]")
     console.print()
 

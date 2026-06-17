@@ -1,120 +1,81 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anvil Desktop</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anvil Desktop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="app">
-    <header class="header">
-      <div class="logo">
-        <span class="logo-icon">&#9874;</span>
-        <span class="logo-text">Anvil</span>
-        <span class="version">v1.0</span>
-      </div>
-      <div class="header-actions">
-        <button id="btn-new-chat" class="btn-icon" title="New Chat">&#43;</button>
-        <button id="btn-settings" class="btn-icon" title="Settings">&#9881;</button>
-        <button id="btn-theme" class="btn-icon" title="Toggle Theme">&#9790;</button>
-      </div>
-    </header>
-
-    <div class="main">
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <h3>Conversations</h3>
+    <div class="app">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon"><i class="fas fa-hammer"></i></div>
+                <span class="logo-text">Anvil</span>
+                <span class="version">Desktop</span>
+            </div>
+            <div class="header-center">
+                <div class="model-selector"><select id="model-select"></select></div>
+            </div>
+            <div class="header-actions">
+                <button id="theme-toggle" class="icon-btn"><i class="fas fa-moon"></i></button>
+                <button id="settings-btn" class="icon-btn"><i class="fas fa-cog"></i></button>
+            </div>
+        </header>
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-brain"></i> Models</h3>
+                    <div id="models-list" class="nav-list"></div>
+                </div>
+            </aside>
+            <main class="main-area">
+                <div class="task-bar">
+                    <div class="task-input-wrapper">
+                        <i class="fas fa-terminal task-icon"></i>
+                        <textarea id="task-input" placeholder="Describe a task..." rows="1"></textarea>
+                        <div class="task-actions">
+                            <button id="task-run" class="run-btn-sm"><i class="fas fa-play"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="output-log" id="output-log">
+                    <div class="welcome-full">
+                        <div class="welcome-icon"><i class="fas fa-hammer"></i></div>
+                        <h1>Anvil Desktop</h1>
+                        <p class="welcome-sub">Self-Verified AI Coding Agent</p>
+                        <div class="welcome-grid">
+                            <button class="welcome-card" onclick="app.setTask('Fix the bug in src/main.py')"><i class="fas fa-bug"></i><span>Fix Bug</span></button>
+                            <button class="welcome-card" onclick="app.setTask('Add error handling to API endpoints')"><i class="fas fa-plus-circle"></i><span>Add Feature</span></button>
+                            <button class="welcome-card" onclick="app.setTask('Write tests for the auth module')"><i class="fas fa-flask"></i><span>Write Tests</span></button>
+                            <button class="welcome-card" onclick="app.setTask('Review code for security issues')"><i class="fas fa-shield-alt"></i><span>Security Audit</span></button>
+                            <button class="welcome-card" onclick="app.setTask('Generate docs for all APIs')"><i class="fas fa-book"></i><span>Generate Docs</span></button>
+                            <button class="welcome-card" onclick="app.setTask('Refactor database layer')"><i class="fas fa-sync"></i><span>Refactor</span></button>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-        <div id="conversations" class="conversations-list"></div>
-      </aside>
-
-      <main class="chat-area">
-        <div id="messages" class="messages"></div>
-        <div class="input-area">
-          <div class="model-selector">
-            <select id="model-select">
-              <option value="openai/gpt-4o-mini">GPT-4o Mini (fast)</option>
-              <option value="openai/gpt-4o">GPT-4o</option>
-              <option value="anthropic/claude-sonnet-4-20250514">Claude Sonnet 4</option>
-              <option value="anthropic/claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-              <option value="google/gemini-2.0-flash">Gemini 2.0 Flash</option>
-              <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
-              <option value="groq/llama-3.1-70b-versatile">Llama 3.1 70B (Groq)</option>
-              <option value="mistral/mistral-large-latest">Mistral Large</option>
-            </select>
-          </div>
-          <div class="input-box">
-            <textarea id="input" placeholder="Ask Anvil anything..." rows="1"></textarea>
-            <button id="btn-send" class="btn-send" title="Send">&#9654;</button>
-          </div>
-          <div class="input-footer">
-            <span id="status" class="status">Ready</span>
-            <span id="token-count" class="token-count"></span>
-          </div>
-        </div>
-      </main>
+        <footer class="status-bar">
+            <div class="status-left"><div class="status-item"><div id="status-dot" class="status-dot"></div><span id="status-text">Ready</span></div></div>
+            <div class="status-right"><div class="status-item"><i class="fas fa-microchip"></i><span id="current-model">-</span></div></div>
+        </footer>
     </div>
-  </div>
-
-  <!-- Settings Modal -->
-  <div id="settings-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Settings</h2>
-        <button id="btn-close-settings" class="btn-icon">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="settings-section">
-          <h3>API Keys</h3>
-          <p class="hint">Enter your API keys. Keys are stored locally and never sent anywhere except the provider API.</p>
-          <div class="field">
-            <label>OpenAI</label>
-            <input type="password" id="key-openai" placeholder="sk-...">
-          </div>
-          <div class="field">
-            <label>Anthropic</label>
-            <input type="password" id="key-anthropic" placeholder="sk-ant-...">
-          </div>
-          <div class="field">
-            <label>Google Gemini</label>
-            <input type="password" id="key-gemini" placeholder="AI...">
-          </div>
-          <div class="field">
-            <label>DeepSeek</label>
-            <input type="password" id="key-deepseek" placeholder="sk-...">
-          </div>
-          <div class="field">
-            <label>Groq</label>
-            <input type="password" id="key-groq" placeholder="gsk_...">
-          </div>
-          <div class="field">
-            <label>Mistral</label>
-            <input type="password" id="key-mistral" placeholder="...">
-          </div>
+    <div id="notification-container" class="notification-container"></div>
+    <div id="settings-modal" class="modal" style="display:none">
+        <div class="modal-content">
+            <div class="modal-header"><h2><i class="fas fa-cog"></i> Settings</h2><button class="modal-close" onclick="app.closeSettings()">&times;</button></div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>API</h3>
+                    <div class="setting-item"><label>API Base URL</label><input type="text" id="api-base" value="http://localhost:11434"></div>
+                    <div class="setting-item"><label>OpenAI Key (optional)</label><input type="password" id="openai-api-key" placeholder="sk-..."></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="app.closeSettings()">Cancel</button><button class="btn btn-primary" onclick="app.saveSettings()">Save</button></div>
         </div>
-        <div class="settings-section">
-          <h3>Preferences</h3>
-          <div class="field">
-            <label>System Prompt</label>
-            <textarea id="system-prompt" rows="3" placeholder="You are a helpful coding assistant..."></textarea>
-          </div>
-          <div class="field">
-            <label>Max Tokens</label>
-            <input type="number" id="max-tokens" value="4096" min="256" max="128000">
-          </div>
-          <div class="field">
-            <label>Temperature</label>
-            <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button id="btn-save-settings" class="btn-primary">Save Settings</button>
-        </div>
-      </div>
     </div>
-  </div>
-
-  <script src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

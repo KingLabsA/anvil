@@ -205,8 +205,47 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
             if _settings.mistral_api_key:
                 os.environ["MISTRAL_API_KEY"] = _settings.mistral_api_key
 
+            model_name = req.model
+
+            # Ollama models: call directly via HTTP
+            if model_name.startswith("ollama:") or model_name in ("ollama", "local", "llama"):
+                import httpx as _httpx
+                ollama_model = model_name.replace("ollama:", "") if ":" in model_name else "shellwhisperer"
+                client = _httpx.Client(timeout=120.0)
+                payload = {
+                    "model": ollama_model,
+                    "messages": [
+                        {"role": "system", "content": "You are Anvil, an expert AI coding assistant. Write clean, production-ready code. Explain your reasoning clearly."},
+                        {"role": "user", "content": req.message},
+                    ],
+                    "stream": False,
+                }
+                resp = client.post("http://localhost:11434/api/chat", json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                content = data.get("message", {}).get("content", "")
+                return ChatResponse(response=content, success=True)
+
+            # Check if model looks like an Ollama model name (contains / or is a known name)
+            if "/" in model_name and not model_name.startswith(("gpt-", "claude", "gemini", "deepseek", "groq/", "mistral")):
+                import httpx as _httpx
+                client = _httpx.Client(timeout=120.0)
+                payload = {
+                    "model": model_name,
+                    "messages": [
+                        {"role": "system", "content": "You are Anvil, an expert AI coding assistant. Write clean, production-ready code. Explain your reasoning clearly."},
+                        {"role": "user", "content": req.message},
+                    ],
+                    "stream": False,
+                }
+                resp = client.post("http://localhost:11434/api/chat", json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                content = data.get("message", {}).get("content", "")
+                return ChatResponse(response=content, success=True)
+
             from anvil.models.registry import ModelRegistry, Message
-            model = ModelRegistry.create(req.model)
+            model = ModelRegistry.create(model_name)
 
             messages = [
                 Message(role="system", content="You are Anvil, an expert AI coding assistant. Write clean, production-ready code. Explain your reasoning clearly."),
@@ -242,7 +281,39 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
     @app.get("/models")
     def list_models() -> list[dict]:
         from anvil.models.registry import ModelRegistry
-        return ModelRegistry.list_providers()
+        providers = ModelRegistry.list_providers()
+        # Add local Ollama models
+        try:
+            import httpx
+            resp = httpx.get("http://localhost:11434/api/tags", timeout=3.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                for m in data.get("models", []):
+                    providers.append({
+                        "provider": "ollama",
+                        "model": m["name"],
+                        "display_name": f"Ollama: {m['name']}",
+                        "size_gb": round(m.get("size", 0) / 1e9, 1),
+                    })
+        except Exception:
+            pass
+        return providers
+
+    @app.get("/ollama/models")
+    def ollama_models() -> list[dict]:
+        """List available Ollama models."""
+        try:
+            import httpx
+            resp = httpx.get("http://localhost:11434/api/tags", timeout=3.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                return [
+                    {"name": m["name"], "size_gb": round(m.get("size", 0) / 1e9, 1)}
+                    for m in data.get("models", [])
+                ]
+        except Exception:
+            pass
+        return []
 
     @app.get("/mcp/tools")
     def list_mcp_tools() -> list[dict]:
