@@ -112,14 +112,15 @@ PLAN_PROMPT = """Break this task into small, verifiable steps. For each step, sa
 
 Task: {task}"""
 
-EXECUTE_PROMPT = """Execute the next step. Use the tools available to you.
-After making changes, always verify by running relevant checks.
+EXECUTE_PROMPT = """Execute the next step by emitting ```tool blocks. Do NOT describe what you would do — actually do it.
 
 Current agent: {agent_name}
 Current plan: {plan}
 Current step: {step}
 Files changed so far: {files}
-Verify results so far: {verify_results}"""
+Verify results so far: {verify_results}
+
+REMINDER: You MUST emit ```tool JSON blocks to take action. Plain text descriptions do nothing."""
 
 RECOVER_PROMPT = """The last step failed verification. Here's what happened:
 
@@ -881,14 +882,41 @@ class AnvilEngine:
             if result.file_path and result.success:
                 files_in_step.append(result.file_path)
         # No tool calls parsed means the model failed to follow the protocol.
-        # Mark as failure so the engine can retry rather than silently succeeding.
+        # Retry once with a stronger prompt before giving up.
         if not results:
-            return {
-                "success": False,
-                "tool_calls": [],
-                "files_changed": [],
-                "error": "Model did not emit any valid tool calls",
-            }
+            retry_messages = [
+                Message(role="system", content=system),
+                Message(role="user", content=user_content),
+                Message(role="assistant", content=response.content[:2000]),
+                Message(role="user", content=(
+                    "You did NOT emit any ```tool JSON blocks. Your text response does nothing. "
+                    "You MUST respond with ```tool blocks to take action. Here is your response:\n\n"
+                    f"{response.content[:1000]}\n\n"
+                    "Now re-emit your response using ```tool JSON blocks. No prose, just tool blocks."
+                )),
+            ]
+            retry = self.model.complete(
+                retry_messages,
+                temperature=0.1,
+                max_tokens=self.config.model.max_tokens,
+                context_window=self.config.model.context_window,
+            )
+            tool_calls = self._parse_tool_calls(retry.content)
+            for tc in tool_calls:
+                result = self._execute_tool(tc["tool"], tc["args"])
+                results.append({
+                    "tool": tc["tool"], "args": tc["args"],
+                    "output": result.output[:500], "success": result.success,
+                })
+                if result.file_path and result.success:
+                    files_in_step.append(result.file_path)
+            if not results:
+                return {
+                    "success": False,
+                    "tool_calls": [],
+                    "files_changed": [],
+                    "error": "Model did not emit any valid tool calls (retry also failed)",
+                }
         return {
             "success": any(r["success"] for r in results),
             "tool_calls": results,
