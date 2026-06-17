@@ -1,22 +1,21 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Anvil Desktop",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "identifier": "com.fableforge.anvil-desktop",
   "build": {
-    "frontendDist": null,
-    "devUrl": "http://localhost:8000"
+    "frontendDist": "../src",
+    "beforeBuildCommand": "echo 'Building...'"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Anvil Desktop - Self-Verified Coding Agent",
+        "title": "Anvil Desktop",
         "width": 1200,
         "height": 800,
         "resizable": true,
-        "fullscreen": false,
-        "url": "http://localhost:8000"
+        "fullscreen": false
       }
     ],
     "security": {
@@ -25,7 +24,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -34,18 +33,6 @@
       "icons/icon.ico"
     ],
     "publisher": "FableForge",
-    "category": "DeveloperTool",
-    "shortDescription": "Self-Verified Coding Agent",
-    "longDescription": "Anvil Desktop - The self-verified coding agent that plans, executes, verifies, and recovers from failures autonomously."
-  },
-  "plugins": {
-    "updater": {
-      "active": true,
-      "endpoints": [
-        "https://github.com/KingLabsA/anvil/releases/latest/download/latest.json"
-      ],
-      "dialog": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUU1dSRFQ1TjdaR1hZQjdZQ1RUV0hWQ1pENkZaVzRTNUNaTjdGV0hWQ1pENkZaVzRTNUNaTjcK"
-    }
+    "category": "DeveloperTool"
   }
 }

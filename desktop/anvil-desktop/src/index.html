@@ -1,260 +1,120 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anvil Desktop</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            height: 100vh;
-            overflow: hidden;
-        }
-        
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            padding: 2rem;
-        }
-        
-        .logo {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 2rem;
-        }
-        
-        .status-box {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 2rem;
-            max-width: 500px;
-            text-align: center;
-        }
-        
-        .loader {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 1.5rem auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .status-text {
-            font-size: 1rem;
-            opacity: 0.9;
-            margin-top: 1rem;
-        }
-        
-        .error {
-            background: rgba(239, 68, 68, 0.2);
-            border: 2px solid rgba(239, 68, 68, 0.5);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-        
-        .error-title {
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        
-        .error-message {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        
-        .btn {
-            background: white;
-            color: #667eea;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 1rem;
-            transition: transform 0.2s;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        iframe {
-            width: 100%;
-            height: 100vh;
-            border: none;
-            display: none;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anvil Desktop</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container" id="loading-screen">
-        <div class="logo">🔨</div>
-        <h1>Anvil Desktop</h1>
-        <p class="subtitle">The Self-Verified Coding Agent</p>
-        
-        <div class="status-box">
-            <div class="loader" id="loader"></div>
-            <div class="status-text" id="status-text">Starting Anvil server...</div>
-            <div class="error hidden" id="error-box">
-                <div class="error-title">Failed to start server</div>
-                <div class="error-message" id="error-message"></div>
-                <button class="btn" onclick="retry()">Retry</button>
-            </div>
-        </div>
-    </div>
-    
-    <iframe id="anvil-frame" class="hidden" src="http://localhost:8000"></iframe>
+  <div id="app">
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">&#9874;</span>
+        <span class="logo-text">Anvil</span>
+        <span class="version">v1.0</span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-new-chat" class="btn-icon" title="New Chat">&#43;</button>
+        <button id="btn-settings" class="btn-icon" title="Settings">&#9881;</button>
+        <button id="btn-theme" class="btn-icon" title="Toggle Theme">&#9790;</button>
+      </div>
+    </header>
 
-    <script>
-        const { invoke } = window.__TAURI__.core;
-        const { listen } = window.__TAURI__.event;
-        
-        const loader = document.getElementById('loader');
-        const statusText = document.getElementById('status-text');
-        const errorBox = document.getElementById('error-box');
-        const errorMessage = document.getElementById('error-message');
-        const loadingScreen = document.getElementById('loading-screen');
-        const frame = document.getElementById('anvil-frame');
-        
-        async function startServer() {
-            try {
-                statusText.textContent = 'Starting Anvil server...';
-                errorBox.classList.add('hidden');
-                loader.style.display = 'block';
-                
-                await invoke('start_server');
-                
-                statusText.textContent = 'Server ready! Loading Anvil...';
-                
-                setTimeout(() => {
-                    loadingScreen.classList.add('hidden');
-                    frame.classList.remove('hidden');
-                    checkForUpdates();
-                }, 500);
-                
-            } catch (error) {
-                loader.style.display = 'none';
-                statusText.textContent = '';
-                errorBox.classList.remove('hidden');
-                errorMessage.textContent = error;
-            }
-        }
-        
-        async function checkForUpdates() {
-            try {
-                const updateMsg = await invoke('check_for_updates');
-                if (updateMsg) {
-                    showUpdateNotification(updateMsg);
-                }
-            } catch (error) {
-                console.error('Update check failed:', error);
-            }
-        }
-        
-        function showUpdateNotification(message) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #4ec9b0;
-                color: white;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                z-index: 10000;
-                max-width: 400px;
-            `;
-            notification.innerHTML = `
-                <div style="font-weight: bold; margin-bottom: 0.5rem;">🎉 Update Available!</div>
-                <div style="font-size: 0.9rem; margin-bottom: 1rem;">${message}</div>
-                <button onclick="installUpdate(this)" style="
-                    background: white;
-                    color: #4ec9b0;
-                    border: none;
-                    padding: 0.5rem 1rem;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    margin-right: 0.5rem;
-                ">Install & Restart</button>
-                <button onclick="this.parentElement.parentElement.remove()" style="
-                    background: transparent;
-                    color: white;
-                    border: 1px solid white;
-                    padding: 0.5rem 1rem;
-                    border-radius: 4px;
-                    cursor: pointer;
-                ">Later</button>
-            `;
-            document.body.appendChild(notification);
-        }
-        
-        async function installUpdate(button) {
-            button.textContent = 'Downloading...';
-            button.disabled = true;
-            
-            try {
-                await invoke('install_update');
-                // App will restart automatically
-            } catch (error) {
-                alert('Update failed: ' + error);
-                button.textContent = 'Retry';
-                button.disabled = false;
-            }
-        }
-        
-        function retry() {
-            startServer();
-        }
-        
-        // Start server on load
-        startServer();
-        
-        // Check for updates periodically (every hour)
-        setInterval(checkForUpdates, 3600000);
-    </script>
+    <div class="main">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h3>Conversations</h3>
+        </div>
+        <div id="conversations" class="conversations-list"></div>
+      </aside>
+
+      <main class="chat-area">
+        <div id="messages" class="messages"></div>
+        <div class="input-area">
+          <div class="model-selector">
+            <select id="model-select">
+              <option value="openai/gpt-4o-mini">GPT-4o Mini (fast)</option>
+              <option value="openai/gpt-4o">GPT-4o</option>
+              <option value="anthropic/claude-sonnet-4-20250514">Claude Sonnet 4</option>
+              <option value="anthropic/claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+              <option value="google/gemini-2.0-flash">Gemini 2.0 Flash</option>
+              <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+              <option value="groq/llama-3.1-70b-versatile">Llama 3.1 70B (Groq)</option>
+              <option value="mistral/mistral-large-latest">Mistral Large</option>
+            </select>
+          </div>
+          <div class="input-box">
+            <textarea id="input" placeholder="Ask Anvil anything..." rows="1"></textarea>
+            <button id="btn-send" class="btn-send" title="Send">&#9654;</button>
+          </div>
+          <div class="input-footer">
+            <span id="status" class="status">Ready</span>
+            <span id="token-count" class="token-count"></span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button id="btn-close-settings" class="btn-icon">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3>API Keys</h3>
+          <p class="hint">Enter your API keys. Keys are stored locally and never sent anywhere except the provider API.</p>
+          <div class="field">
+            <label>OpenAI</label>
+            <input type="password" id="key-openai" placeholder="sk-...">
+          </div>
+          <div class="field">
+            <label>Anthropic</label>
+            <input type="password" id="key-anthropic" placeholder="sk-ant-...">
+          </div>
+          <div class="field">
+            <label>Google Gemini</label>
+            <input type="password" id="key-gemini" placeholder="AI...">
+          </div>
+          <div class="field">
+            <label>DeepSeek</label>
+            <input type="password" id="key-deepseek" placeholder="sk-...">
+          </div>
+          <div class="field">
+            <label>Groq</label>
+            <input type="password" id="key-groq" placeholder="gsk_...">
+          </div>
+          <div class="field">
+            <label>Mistral</label>
+            <input type="password" id="key-mistral" placeholder="...">
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Preferences</h3>
+          <div class="field">
+            <label>System Prompt</label>
+            <textarea id="system-prompt" rows="3" placeholder="You are a helpful coding assistant..."></textarea>
+          </div>
+          <div class="field">
+            <label>Max Tokens</label>
+            <input type="number" id="max-tokens" value="4096" min="256" max="128000">
+          </div>
+          <div class="field">
+            <label>Temperature</label>
+            <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-settings" class="btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>

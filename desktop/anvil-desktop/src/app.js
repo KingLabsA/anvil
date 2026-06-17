@@ -1,299 +1,451 @@
-// Anvil Desktop App
+// Anvil Desktop - Standalone App
+// Calls APIs directly from the browser - no backend server needed
+
+const STORAGE_KEY = 'anvil-desktop';
 
 class AnvilApp {
   constructor() {
-    this.theme = localStorage.getItem('anvil-theme') || 'dark';
-    this.chatHistory = [];
-    this.currentModel = 'gpt-4o-mini';
-    this.settings = {};
+    this.conversations = [];
+    this.currentConvId = null;
+    this.settings = this.loadSettings();
+    this.abortController = null;
     this.init();
   }
 
-  async init() {
+  loadSettings() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + '-settings');
+      return raw ? JSON.parse(raw) : {
+        keys: {},
+        systemPrompt: 'You are Anvil, an expert AI coding assistant. Write clean, production-ready code. Explain your reasoning clearly.',
+        maxTokens: 4096,
+        temperature: 0.7,
+        model: 'openai/gpt-4o-mini',
+        theme: 'dark',
+      };
+    } catch { return { keys: {}, systemPrompt: '', maxTokens: 4096, temperature: 0.7, model: 'openai/gpt-4o-mini', theme: 'dark' }; }
+  }
+
+  saveSettings() {
+    localStorage.setItem(STORAGE_KEY + '-settings', JSON.stringify(this.settings));
+  }
+
+  loadConversations() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + '-conversations');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  saveConversations() {
+    localStorage.setItem(STORAGE_KEY + '-conversations', JSON.stringify(this.conversations));
+  }
+
+  init() {
+    this.conversations = this.loadConversations();
     this.applyTheme();
-    this.initEventListeners();
-    await this.loadSettings();
-    this.setStatus('Ready', 'ready');
-    this.addChatMessage('assistant', 'Hello! I\'m Anvil, your AI coding assistant. Configure your API keys in Settings to get started.');
+    this.bindEvents();
+    this.renderConversations();
+    this.showWelcome();
+    this.setStatus('Ready', 'success');
   }
 
   applyTheme() {
-    document.documentElement.setAttribute('data-theme', this.theme);
-    const icon = document.querySelector('#theme-toggle i');
-    if (icon) icon.className = this.theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+    document.documentElement.setAttribute('data-theme', this.settings.theme);
+    const btn = document.getElementById('btn-theme');
+    if (btn) btn.innerHTML = this.settings.theme === 'dark' ? '&#9790;' : '&#9728;';
   }
 
-  toggleTheme() {
-    this.theme = this.theme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('anvil-theme', this.theme);
-    this.applyTheme();
-  }
+  bindEvents() {
+    document.getElementById('btn-settings').addEventListener('click', () => this.openSettings());
+    document.getElementById('btn-close-settings').addEventListener('click', () => this.closeSettings());
+    document.getElementById('btn-save-settings').addEventListener('click', () => this.saveSettingsModal());
+    document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
+    document.getElementById('btn-new-chat').addEventListener('click', () => this.newConversation());
+    document.getElementById('btn-send').addEventListener('click', () => this.send());
 
-  async loadSettings() {
-    try {
-      const res = await fetch('http://localhost:8000/settings');
-      this.settings = await res.json();
-      this.currentModel = this.settings.default_model || 'gpt-4o-mini';
-    } catch (e) {
-      console.error('Failed to load settings:', e);
-    }
-  }
-
-  async saveSettings(newSettings) {
-    try {
-      await fetch('http://localhost:8000/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings),
-      });
-      this.settings = newSettings;
-      this.showNotification('Settings saved', 'success');
-    } catch (e) {
-      this.showNotification('Failed to save settings', 'error');
-    }
-  }
-
-  initEventListeners() {
-    const submit = document.querySelector('#submit');
-    const query = document.querySelector('#query');
-    
-    if (submit && query) {
-      submit.addEventListener('click', () => this.handleChat());
-      query.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.handleChat();
-        }
-      });
-    }
-
-    const settingsBtn = document.querySelector('#settings-btn');
-    if (settingsBtn) {
-      settingsBtn.addEventListener('click', () => this.showSettings());
-    }
-
-    const themeToggle = document.querySelector('#theme-toggle');
-    if (themeToggle) {
-      themeToggle.addEventListener('click', () => this.toggleTheme());
-    }
-  }
-
-  async handleChat() {
-    const query = document.querySelector('#query');
-    const response = document.querySelector('#response');
-    
-    if (!query || !query.value.trim()) return;
-
-    const message = query.value.trim();
-    query.value = '';
-    
-    this.addChatMessage('user', message);
-    this.setStatus('Processing...', 'active');
-    const loadingId = this.addChatMessage('assistant', 'Thinking...', true);
-
-    try {
-      const res = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: message,
-          model: this.currentModel,
-        }),
-      });
-
-      const data = await res.json();
-      
-      this.removeChatMessage(loadingId);
-      
-      if (data.success) {
-        this.addChatMessage('assistant', data.response);
-        this.setStatus('Ready', 'ready');
-      } else {
-        this.addChatMessage('assistant', `Error: ${data.error}`, true);
-        this.setStatus('Error', 'error');
+    const input = document.getElementById('input');
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.send();
       }
-    } catch (e) {
-      this.removeChatMessage(loadingId);
-      this.addChatMessage('assistant', `Error: ${e.message}`, true);
-      this.setStatus('Error', 'error');
-    }
+    });
+    input.addEventListener('input', () => this.autoResize(input));
+
+    document.getElementById('settings-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'settings-modal') this.closeSettings();
+    });
+
+    document.getElementById('model-select').value = this.settings.model;
+    document.getElementById('model-select').addEventListener('change', (e) => {
+      this.settings.model = e.target.value;
+      this.saveSettings();
+    });
   }
 
-  addChatMessage(role, content, isLoading = false) {
-    const chat = document.querySelector('#chat-messages');
-    if (!chat) return;
+  autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+  }
 
-    const id = 'msg-' + Date.now();
-    const msg = document.createElement('div');
-    msg.id = id;
-    msg.className = `chat-message ${role}`;
-    msg.innerHTML = `
-      <div class="message-avatar">${role === 'user' ? 'U' : 'A'}</div>
-      <div class="message-content">
-        <div class="message-role">${role === 'user' ? 'You' : 'Anvil'}</div>
-        <div class="message-text">${isLoading ? '<em>' + content + '</em>' : this.escapeHtml(content)}</div>
+  newConversation() {
+    const conv = {
+      id: Date.now().toString(),
+      title: 'New Chat',
+      messages: [],
+      createdAt: new Date().toISOString(),
+    };
+    this.conversations.unshift(conv);
+    this.currentConvId = conv.id;
+    this.saveConversations();
+    this.renderConversations();
+    this.renderMessages();
+    document.getElementById('input').focus();
+  }
+
+  renderConversations() {
+    const list = document.getElementById('conversations');
+    list.innerHTML = this.conversations.map(c => `
+      <div class="conv-item ${c.id === this.currentConvId ? 'active' : ''}"
+           data-id="${c.id}">
+        ${this.escapeHtml(c.title)}
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.conv-item').forEach(el => {
+      el.addEventListener('click', () => {
+        this.currentConvId = el.dataset.id;
+        this.renderConversations();
+        this.renderMessages();
+      });
+    });
+  }
+
+  showWelcome() {
+    const messages = document.getElementById('messages');
+    messages.innerHTML = `
+      <div class="welcome">
+        <div class="welcome-icon">&#9874;</div>
+        <h2>What can I help you build?</h2>
+        <p>An expert coding assistant. Ask me to write code, debug issues, explain concepts, or architect systems.</p>
+        <div class="shortcuts">
+          <div class="shortcut" onclick="app.insertPrompt('Write a Python web scraper for')"><kbd>&#128270;</kbd>Write a scraper</div>
+          <div class="shortcut" onclick="app.insertPrompt('Fix this bug:')"><kbd>&#128027;</kbd>Fix a bug</div>
+          <div class="shortcut" onclick="app.insertPrompt('Explain how')"><kbd>&#128218;</kbd>Explain code</div>
+          <div class="shortcut" onclick="app.insertPrompt('Build a REST API with')"><kbd>&#128640;</kbd>Build an API</div>
+        </div>
       </div>
     `;
-    chat.appendChild(msg);
-    chat.scrollTop = chat.scrollHeight;
+  }
+
+  insertPrompt(text) {
+    const input = document.getElementById('input');
+    input.value = text + ' ';
+    input.focus();
+  }
+
+  renderMessages() {
+    const conv = this.conversations.find(c => c.id === this.currentConvId);
+    if (!conv || conv.messages.length === 0) {
+      this.showWelcome();
+      return;
+    }
+
+    const messages = document.getElementById('messages');
+    messages.innerHTML = conv.messages.map(m => `
+      <div class="message ${m.role}">
+        <div class="message-header">
+          <span class="message-role ${m.role}">${m.role === 'user' ? 'You' : 'Anvil'}</span>
+        </div>
+        <div class="message-content">${this.formatContent(m.content)}</div>
+      </div>
+    `).join('');
+
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  formatContent(text) {
+    if (!text) return '';
+    let html = this.escapeHtml(text);
+    // Code blocks
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="lang-$1">$2</code></pre>');
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    return html;
+  }
+
+  escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  setStatus(text, cls) {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.className = 'status ' + (cls || '');
+  }
+
+  async send() {
+    const input = document.getElementById('input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    // Ensure we have a conversation
+    if (!this.currentConvId) {
+      this.newConversation();
+    }
+
+    const conv = this.conversations.find(c => c.id === this.currentConvId);
+    if (!conv) return;
+
+    // Add user message
+    conv.messages.push({ role: 'user', content: message });
+    if (conv.messages.length === 1) {
+      conv.title = message.substring(0, 60);
+      this.renderConversations();
+    }
+    this.saveConversations();
+    this.renderMessages();
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Show thinking
+    const thinkingId = this.addThinking();
+    this.setStatus('Thinking...', 'active');
+    document.getElementById('btn-send').disabled = true;
+
+    try {
+      const response = await this.callAPI(conv);
+      this.removeThinking(thinkingId);
+      conv.messages.push({ role: 'assistant', content: response });
+      this.saveConversations();
+      this.renderMessages();
+      this.setStatus('Ready', 'success');
+    } catch (err) {
+      this.removeThinking(thinkingId);
+      const errMsg = err.message || 'Failed to get response';
+      conv.messages.push({ role: 'assistant', content: `Error: ${errMsg}` });
+      this.saveConversations();
+      this.renderMessages();
+      this.setStatus('Error: ' + errMsg, 'error');
+    }
+
+    document.getElementById('btn-send').disabled = false;
+  }
+
+  addThinking() {
+    const messages = document.getElementById('messages');
+    const id = 'thinking-' + Date.now();
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = 'message assistant';
+    div.innerHTML = `
+      <div class="message-header">
+        <span class="message-role assistant">Anvil</span>
+      </div>
+      <div class="thinking">
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+      </div>
+    `;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
     return id;
   }
 
-  removeChatMessage(id) {
-    const msg = document.querySelector('#' + id);
-    if (msg) msg.remove();
+  removeThinking(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
   }
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
+  async callAPI(conv) {
+    const model = this.settings.model;
+    const [provider, modelId] = model.split('/');
 
-  showSettings() {
-    const modal = document.querySelector('#settings-modal');
-    if (!modal) {
-      this.createSettingsModal();
-      modal = document.querySelector('#settings-modal');
+    const messages = [
+      { role: 'system', content: this.settings.systemPrompt || 'You are Anvil, an expert AI coding assistant.' },
+      ...conv.messages.map(m => ({ role: m.role, content: m.content })),
+    ];
+
+    this.abortController = new AbortController();
+
+    if (provider === 'openai' || provider === 'deepseek' || provider === 'groq' || provider === 'mistral') {
+      return this.callOpenAICompatible(provider, modelId, messages);
+    } else if (provider === 'anthropic') {
+      return this.callAnthropic(modelId, messages);
+    } else if (provider === 'google') {
+      return this.callGemini(modelId, messages);
     }
-    
-    const openaiKey = modal.querySelector('#openai-api-key');
-    const anthropicKey = modal.querySelector('#anthropic-api-key');
-    const geminiKey = modal.querySelector('#gemini-api-key');
-    const deepseekKey = modal.querySelector('#deepseek-api-key');
-    const groqKey = modal.querySelector('#groq-api-key');
-    const mistralKey = modal.querySelector('#mistral-api-key');
-    const defaultModel = modal.querySelector('#default-model');
-    
-    if (openaiKey) openaiKey.value = this.settings.openai_api_key || '';
-    if (anthropicKey) anthropicKey.value = this.settings.anthropic_api_key || '';
-    if (geminiKey) geminiKey.value = this.settings.gemini_api_key || '';
-    if (deepseekKey) deepseekKey.value = this.settings.deepseek_api_key || '';
-    if (groqKey) groqKey.value = this.settings.groq_api_key || '';
-    if (mistralKey) mistralKey.value = this.settings.mistral_api_key || '';
-    if (defaultModel) defaultModel.value = this.settings.default_model || 'gpt-4o-mini';
-    
-    modal.style.display = 'flex';
+
+    throw new Error(`Unsupported provider: ${provider}`);
   }
 
-  createSettingsModal() {
-    const modal = document.createElement('div');
-    modal.id = 'settings-modal';
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Settings</h2>
-          <button class="modal-close" onclick="app.closeSettings()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="settings-section">
-            <h3>API Keys</h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
-              Add your API keys to use cloud models. Keys are stored locally in ~/.anvil/settings.json
-            </p>
-            <div class="setting-item">
-              <label>OpenAI API Key</label>
-              <input type="password" id="openai-api-key" placeholder="sk-...">
-            </div>
-            <div class="setting-item">
-              <label>Anthropic API Key</label>
-              <input type="password" id="anthropic-api-key" placeholder="sk-ant-...">
-            </div>
-            <div class="setting-item">
-              <label>Google Gemini API Key</label>
-              <input type="password" id="gemini-api-key" placeholder="AI...">
-            </div>
-            <div class="setting-item">
-              <label>DeepSeek API Key</label>
-              <input type="password" id="deepseek-api-key" placeholder="sk-...">
-            </div>
-            <div class="setting-item">
-              <label>Groq API Key</label>
-              <input type="password" id="groq-api-key" placeholder="gsk-...">
-            </div>
-            <div class="setting-item">
-              <label>Mistral API Key</label>
-              <input type="password" id="mistral-api-key" placeholder="...">
-            </div>
-          </div>
-          <div class="settings-section">
-            <h3>Default Model</h3>
-            <div class="setting-item">
-              <label>Model</label>
-              <select id="default-model">
-                <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cheap)</option>
-                <option value="gpt-4o">GPT-4o (Powerful)</option>
-                <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                <option value="deepseek-coder">DeepSeek Coder</option>
-                <option value="groq/llama-3.1-70b">Groq Llama 3.1 70B (Fastest)</option>
-                <option value="mistral-large">Mistral Large</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="app.closeSettings()">Cancel</button>
-          <button class="btn btn-primary" onclick="app.saveSettingsFromModal()">Save</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+  getAPIKey(provider) {
+    const keyMap = {
+      openai: 'key-openai',
+      anthropic: 'key-anthropic',
+      google: 'key-gemini',
+      deepseek: 'key-deepseek',
+      groq: 'key-groq',
+      mistral: 'key-mistral',
+    };
+    const input = document.getElementById(keyMap[provider]);
+    return input ? input.value.trim() : '';
+  }
+
+  getBaseURL(provider) {
+    const urls = {
+      openai: 'https://api.openai.com/v1',
+      deepseek: 'https://api.deepseek.com/v1',
+      groq: 'https://api.groq.com/openai/v1',
+      mistral: 'https://api.mistral.ai/v1',
+    };
+    return urls[provider] || 'https://api.openai.com/v1';
+  }
+
+  async callOpenAICompatible(provider, modelId, messages) {
+    const apiKey = this.getAPIKey(provider);
+    if (!apiKey) throw new Error(`No API key for ${provider}. Open Settings to add one.`);
+
+    const res = await fetch(`${this.getBaseURL(provider)}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages,
+        max_tokens: this.settings.maxTokens,
+        temperature: this.settings.temperature,
+      }),
+      signal: this.abortController.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || 'No response';
+  }
+
+  async callAnthropic(modelId, messages) {
+    const apiKey = this.getAPIKey('anthropic');
+    if (!apiKey) throw new Error('No API key for Anthropic. Open Settings to add one.');
+
+    const systemMsg = messages.find(m => m.role === 'system');
+    const chatMsgs = messages.filter(m => m.role !== 'system');
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        max_tokens: this.settings.maxTokens,
+        system: systemMsg?.content || '',
+        messages: chatMsgs,
+      }),
+      signal: this.abortController.signal,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.content?.[0]?.text || 'No response';
+  }
+
+  async callGemini(modelId, messages) {
+    const apiKey = this.getAPIKey('google');
+    if (!apiKey) throw new Error('No API key for Google Gemini. Open Settings to add one.');
+
+    const contents = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+    const systemInstruction = messages.find(m => m.role === 'system');
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction.content }] } } : {}),
+          generationConfig: {
+            maxOutputTokens: this.settings.maxTokens,
+            temperature: this.settings.temperature,
+          },
+        }),
+        signal: this.abortController.signal,
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+  }
+
+  openSettings() {
+    const modal = document.getElementById('settings-modal');
+    modal.classList.remove('hidden');
+
+    document.getElementById('key-openai').value = this.settings.keys?.openai || '';
+    document.getElementById('key-anthropic').value = this.settings.keys?.anthropic || '';
+    document.getElementById('key-gemini').value = this.settings.keys?.google || '';
+    document.getElementById('key-deepseek').value = this.settings.keys?.deepseek || '';
+    document.getElementById('key-groq').value = this.settings.keys?.groq || '';
+    document.getElementById('key-mistral').value = this.settings.keys?.mistral || '';
+    document.getElementById('system-prompt').value = this.settings.systemPrompt || '';
+    document.getElementById('max-tokens').value = this.settings.maxTokens || 4096;
+    document.getElementById('temperature').value = this.settings.temperature || 0.7;
   }
 
   closeSettings() {
-    const modal = document.querySelector('#settings-modal');
-    if (modal) modal.style.display = 'none';
+    document.getElementById('settings-modal').classList.add('hidden');
   }
 
-  async saveSettingsFromModal() {
-    const modal = document.querySelector('#settings-modal');
-    if (!modal) return;
-
-    const newSettings = {
-      openai_api_key: modal.querySelector('#openai-api-key').value || null,
-      anthropic_api_key: modal.querySelector('#anthropic-api-key').value || null,
-      gemini_api_key: modal.querySelector('#gemini-api-key').value || null,
-      deepseek_api_key: modal.querySelector('#deepseek-api-key').value || null,
-      groq_api_key: modal.querySelector('#groq-api-key').value || null,
-      mistral_api_key: modal.querySelector('#mistral-api-key').value || null,
-      default_model: modal.querySelector('#default-model').value,
-      workspace: this.settings.workspace || '.',
+  saveSettingsModal() {
+    this.settings.keys = {
+      openai: document.getElementById('key-openai').value.trim(),
+      anthropic: document.getElementById('key-anthropic').value.trim(),
+      google: document.getElementById('key-gemini').value.trim(),
+      deepseek: document.getElementById('key-deepseek').value.trim(),
+      groq: document.getElementById('key-groq').value.trim(),
+      mistral: document.getElementById('key-mistral').value.trim(),
     };
-
-    await this.saveSettings(newSettings);
+    this.settings.systemPrompt = document.getElementById('system-prompt').value;
+    this.settings.maxTokens = parseInt(document.getElementById('max-tokens').value) || 4096;
+    this.settings.temperature = parseFloat(document.getElementById('temperature').value) || 0.7;
+    this.saveSettings();
     this.closeSettings();
+    this.setStatus('Settings saved', 'success');
   }
 
-  setStatus(text, state = 'ready') {
-    const dot = document.querySelector('#status-dot');
-    const label = document.querySelector('#status-text');
-    if (label) label.textContent = text;
-    if (dot) {
-      dot.className = 'status-dot';
-      if (state === 'error') dot.classList.add('error');
-      else if (state === 'warning') dot.classList.add('warning');
-      else if (state === 'active') dot.classList.add('active');
-    }
-  }
-
-  showNotification(message, type = 'info') {
-    const container = document.querySelector('#notification-container');
-    if (!container) return;
-
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
-      <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info'}"></i>
-      <span>${message}</span>
-    `;
-    container.appendChild(notification);
-
-    setTimeout(() => {
-      notification.classList.add('fade-out');
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
+  toggleTheme() {
+    this.settings.theme = this.settings.theme === 'dark' ? 'light' : 'dark';
+    this.saveSettings();
+    this.applyTheme();
   }
 }
 
