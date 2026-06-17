@@ -1,16 +1,17 @@
-"""Anvil web server — FastAPI-based HTTP/WebSocket interface for non-terminal users."""
+"""Anvil web server — FastAPI-based HTTP/WebSocket interface."""
 
 from __future__ import annotations
 
 import asyncio
 import json
 import uuid
+import os
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -18,12 +19,11 @@ import anvil
 from anvil.core.config import AnvilConfig, ModelConfig
 from anvil.core.engine import AnvilEngine
 from anvil.core.session import Session
-from anvil.onboarding import onboarding_manager
 
 
 class RunRequest(BaseModel):
     task: str
-    model: str = "local"
+    model: str = "gpt-4o-mini"
     max_iterations: int = 20
     verify: bool = True
 
@@ -36,22 +36,82 @@ class RunResponse(BaseModel):
     session_id: str
 
 
-class SessionInfo(BaseModel):
-    id: str
-    task: str
+class ChatRequest(BaseModel):
+    message: str
+    model: str = "gpt-4o-mini"
+    workspace: str = "."
+
+
+class ChatResponse(BaseModel):
+    response: str
     success: bool
-    created_at: str
+    error: str | None = None
 
 
-# In-memory session store (replace with persistent storage in production)
+class SettingsModel(BaseModel):
+    openai_api_key: str | None = None
+    anthropic_api_key: str | None = None
+    gemini_api_key: str | None = None
+    deepseek_api_key: str | None = None
+    groq_api_key: str | None = None
+    mistral_api_key: str | None = None
+    default_model: str = "gpt-4o-mini"
+    workspace: str = "."
+
+
+# Global state
 _sessions: dict[str, Session] = {}
+_settings = SettingsModel()
+_engines: dict[str, AnvilEngine] = {}
+
+
+def load_settings():
+    """Load settings from ~/.anvil/settings.json"""
+    global _settings
+    settings_file = Path.home() / ".anvil" / "settings.json"
+    if settings_file.exists():
+        try:
+            data = json.loads(settings_file.read_text())
+            _settings = SettingsModel(**data)
+        except:
+            pass
+
+
+def save_settings():
+    """Save settings to ~/.anvil/settings.json"""
+    settings_file = Path.home() / ".anvil" / "settings.json"
+    settings_file.parent.mkdir(parents=True, exist_ok=True)
+    settings_file.write_text(json.dumps(_settings.dict(), indent=2))
+
+
+def get_engine(model: str) -> AnvilEngine:
+    """Get or create a cached engine for the given model."""
+    if model not in _engines:
+        # Set API keys from settings
+        if _settings.openai_api_key:
+            os.environ["OPENAI_API_KEY"] = _settings.openai_api_key
+        if _settings.anthropic_api_key:
+            os.environ["ANTHROPIC_API_KEY"] = _settings.anthropic_api_key
+        if _settings.gemini_api_key:
+            os.environ["GEMINI_API_KEY"] = _settings.gemini_api_key
+        if _settings.deepseek_api_key:
+            os.environ["DEEPSEEK_API_KEY"] = _settings.deepseek_api_key
+        if _settings.groq_api_key:
+            os.environ["GROQ_API_KEY"] = _settings.groq_api_key
+        if _settings.mistral_api_key:
+            os.environ["MISTRAL_API_KEY"] = _settings.mistral_api_key
+
+        cfg = AnvilConfig(model=ModelConfig(model=model))
+        cfg.verify.enabled = True
+        _engines[model] = AnvilEngine(cfg)
+    
+    return _engines[model]
 
 
 def create_app(config: AnvilConfig | None = None) -> FastAPI:
     """Create the FastAPI application."""
     app = FastAPI(title="Anvil Web", version="0.3.0")
 
-    # CORS for local dev
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -60,7 +120,10 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Serve static files
+    @app.on_event("startup")
+    def startup():
+        load_settings()
+
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
@@ -78,11 +141,8 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
 
     @app.post("/run", response_model=RunResponse)
     def run_task(req: RunRequest) -> RunResponse:
-        """Execute a task synchronously and return the result."""
-        cfg = config or AnvilConfig(model=ModelConfig(model=req.model))
-        cfg.verify.enabled = req.verify
-
-        engine = AnvilEngine(cfg)
+        """Execute a task synchronously."""
+        engine = get_engine(req.model)
         result = engine.run(req.task, max_iterations=req.max_iterations)
 
         session_id = str(uuid.uuid4())
@@ -97,9 +157,50 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
             session_id=session_id,
         )
 
+    @app.post("/chat", response_model=ChatResponse)
+    def chat(req: ChatRequest) -> ChatResponse:
+        """Chat with Anvil."""
+        try:
+            engine = get_engine(req.model)
+            result = engine.run(req.message, max_iterations=5)
+
+            return ChatResponse(
+                response=result.output or "Task completed",
+                success=result.success,
+                error=result.error,
+            )
+        except Exception as e:
+            return ChatResponse(
+                response="",
+                success=False,
+                error=str(e),
+            )
+
+    @app.get("/settings")
+    def get_settings() -> dict:
+        return _settings.dict()
+
+    @app.post("/settings")
+    def update_settings(settings: SettingsModel) -> dict:
+        global _settings
+        _settings = settings
+        save_settings()
+        _engines.clear()
+        return {"status": "ok"}
+
+    @app.get("/models")
+    def list_models() -> list[dict]:
+        from anvil.models.registry import ModelRegistry
+        return ModelRegistry.list_providers()
+
+    @app.get("/mcp/tools")
+    def list_mcp_tools() -> list[dict]:
+        from anvil.mcp.registry import MCPToolRegistry
+        registry = MCPToolRegistry()
+        return registry.get_available_tools()
+
     @app.get("/sessions")
     def list_sessions() -> list[SessionInfo]:
-        """List recent sessions."""
         return [
             SessionInfo(
                 id=sid,
@@ -110,92 +211,14 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
             for sid, sess in list(_sessions.items())[-50:]
         ]
 
-    @app.websocket("/stream")
-    async def stream_task(websocket: WebSocket) -> None:
-        """WebSocket endpoint for streaming task execution."""
-        await websocket.accept()
-        try:
-            # Receive task request
-            data = await websocket.receive_json()
-            task = data.get("task", "")
-            model = data.get("model", "local")
-            max_iterations = data.get("max_iterations", 20)
-
-            await websocket.send_json({"type": "status", "message": "Starting..."})
-
-            cfg = config or AnvilConfig(model=ModelConfig(model=model))
-            engine = AnvilEngine(cfg)
-
-            # Run in a thread to avoid blocking the event loop
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None, lambda: engine.run(task, max_iterations=max_iterations)
-            )
-
-            # Stream final result
-            await websocket.send_json({
-                "type": "result",
-                "success": result.success,
-                "output": result.output or "",
-                "error": result.error,
-                "steps": len(result.session.steps) if result.session else 0,
-            })
-
-        except WebSocketDisconnect:
-            pass
-        except Exception as e:
-            await websocket.send_json({"type": "error", "message": str(e)})
-        finally:
-            await websocket.close()
-
-    @app.get("/api/onboarding/status")
-    def get_onboarding_status() -> dict[str, Any]:
-        """Get onboarding status for the current user."""
-        return {
-            "should_show_onboarding": onboarding_manager.should_show_onboarding(),
-            "completed_tours": onboarding_manager.get_completed_tours(),
-            "recommended_tour": onboarding_manager.get_recommended_tour().id if onboarding_manager.get_recommended_tour() else None,
-        }
-
-    @app.get("/api/onboarding/tours")
-    def list_onboarding_tours() -> list[dict[str, Any]]:
-        """List all available onboarding tours."""
-        tours = onboarding_manager.list_tours()
-        return [
-            {
-                "id": tour.id,
-                "name": tour.name,
-                "description": tour.description,
-                "steps": len(tour.steps),
-                "completed": onboarding_manager.is_tour_completed(tour.id),
-            }
-            for tour in tours
-        ]
-
-    @app.post("/api/onboarding/tours/{tour_id}/start")
-    def start_onboarding_tour(tour_id: str) -> dict[str, Any]:
-        """Start an onboarding tour."""
-        tour = onboarding_manager.start_tour(tour_id)
-        if not tour:
-            return {"error": "Tour not found"}
-        return {
-            "id": tour.id,
-            "name": tour.name,
-            "current_step": 0,
-            "steps": tour.steps,
-        }
-
     return app
 
 
-# Default app instance
 app = create_app()
 
 
 def main(host: str = "127.0.0.1", port: int = 8000) -> None:
-    """Run the web server."""
     import uvicorn
-
     uvicorn.run(app, host=host, port=port)
 
 

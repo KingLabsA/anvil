@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "identifier": "com.fableforge.anvil-desktop",
   "build": {
-    "frontendDist": "../src",
+    "frontendDist": null,
     "devUrl": "http://localhost:8000"
   },
   "app": {
@@ -15,7 +15,8 @@
         "width": 1200,
         "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "url": "http://localhost:8000"
       }
     ],
     "security": {

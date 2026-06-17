@@ -223,20 +223,58 @@ class AnvilEngine:
         self._init_mcp_registry()
 
     def _init_integrations(self) -> None:
-        from anvil.integrations.agent_swarm import AgentSwarmIntegration
-        from anvil.integrations.cost_optimizer import CostOptimizerIntegration
-        from anvil.integrations.error_recovery import ErrorRecoveryIntegration
-        from anvil.integrations.verifyloop import VerifyLoopIntegration
-        from anvil.remote.control import RemoteControl, TeleportManager
-        self.verifyloop = VerifyLoopIntegration(self.config.verify)
-        self.error_recovery = ErrorRecoveryIntegration()
-        self.agent_swarm = AgentSwarmIntegration()
-        self.cost_optimizer = CostOptimizerIntegration(
-            max_cost_per_session=self.config.cost.max_cost_per_session_usd,
-            max_cost_per_task=self.config.cost.max_cost_per_task_usd,
-        )
-        self.remote_control = RemoteControl(anvil_engine=self)
-        self.teleport_manager = TeleportManager(remote_control=self.remote_control)
+        # Lazy initialization - only load when accessed
+        self._verifyloop = None
+        self._error_recovery = None
+        self._agent_swarm = None
+        self._cost_optimizer = None
+        self._remote_control = None
+        self._teleport_manager = None
+    
+    @property
+    def verifyloop(self):
+        if self._verifyloop is None:
+            from anvil.integrations.verifyloop import VerifyLoopIntegration
+            self._verifyloop = VerifyLoopIntegration(self.config.verify)
+        return self._verifyloop
+    
+    @property
+    def error_recovery(self):
+        if self._error_recovery is None:
+            from anvil.integrations.error_recovery import ErrorRecoveryIntegration
+            self._error_recovery = ErrorRecoveryIntegration()
+        return self._error_recovery
+    
+    @property
+    def agent_swarm(self):
+        if self._agent_swarm is None:
+            from anvil.integrations.agent_swarm import AgentSwarmIntegration
+            self._agent_swarm = AgentSwarmIntegration()
+        return self._agent_swarm
+    
+    @property
+    def cost_optimizer(self):
+        if self._cost_optimizer is None:
+            from anvil.integrations.cost_optimizer import CostOptimizerIntegration
+            self._cost_optimizer = CostOptimizerIntegration(
+                max_cost_per_session=self.config.cost.max_cost_per_session_usd,
+                max_cost_per_task=self.config.cost.max_cost_per_task_usd,
+            )
+        return self._cost_optimizer
+    
+    @property
+    def remote_control(self):
+        if self._remote_control is None:
+            from anvil.remote.control import RemoteControl
+            self._remote_control = RemoteControl(anvil_engine=self)
+        return self._remote_control
+    
+    @property
+    def teleport_manager(self):
+        if self._teleport_manager is None:
+            from anvil.remote.control import TeleportManager
+            self._teleport_manager = TeleportManager(remote_control=self.remote_control)
+        return self._teleport_manager
 
     def _init_instructions(self) -> None:
         workspace = Path(self.config.project_root or self.config.tools.working_dir or ".")
@@ -269,12 +307,18 @@ class AnvilEngine:
         )
 
     def _init_mcp_registry(self) -> None:
-        from anvil.mcp.registry import MCPToolRegistry
-        self.mcp_registry = MCPToolRegistry(anvil_engine=self)
-        mcp_config_path = Path.home() / ".anvil" / "mcp_servers.json"
-        if mcp_config_path.exists():
-            self.mcp_registry.register_mcp_server_from_file(mcp_config_path)
-            self.mcp_registry.discover_tools()
+        self._mcp_registry = None
+    
+    @property
+    def mcp_registry(self):
+        if self._mcp_registry is None:
+            from anvil.mcp.registry import MCPToolRegistry
+            self._mcp_registry = MCPToolRegistry(anvil_engine=self)
+            mcp_config_path = Path.home() / ".anvil" / "mcp_servers.json"
+            if mcp_config_path.exists():
+                self._mcp_registry.register_mcp_server_from_file(mcp_config_path)
+                self._mcp_registry.discover_tools()
+        return self._mcp_registry
 
     # ── agent switching ────────────────────────────────────────────────
 

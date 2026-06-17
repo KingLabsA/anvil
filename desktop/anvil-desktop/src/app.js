@@ -1,10 +1,10 @@
-// Anvil Web App - Functional Implementation
+// Anvil Desktop App
 
 class AnvilApp {
   constructor() {
     this.theme = localStorage.getItem('anvil-theme') || 'dark';
     this.chatHistory = [];
-    this.currentModel = 'shellwhisperer';
+    this.currentModel = 'gpt-4o-mini';
     this.settings = {};
     this.init();
   }
@@ -14,6 +14,7 @@ class AnvilApp {
     this.initEventListeners();
     await this.loadSettings();
     this.setStatus('Ready', 'ready');
+    this.addChatMessage('assistant', 'Hello! I\'m Anvil, your AI coding assistant. Configure your API keys in Settings to get started.');
   }
 
   applyTheme() {
@@ -30,9 +31,9 @@ class AnvilApp {
 
   async loadSettings() {
     try {
-      const res = await fetch('/settings');
+      const res = await fetch('http://localhost:8000/settings');
       this.settings = await res.json();
-      this.currentModel = this.settings.default_model || 'shellwhisperer';
+      this.currentModel = this.settings.default_model || 'gpt-4o-mini';
     } catch (e) {
       console.error('Failed to load settings:', e);
     }
@@ -40,7 +41,7 @@ class AnvilApp {
 
   async saveSettings(newSettings) {
     try {
-      await fetch('/settings', {
+      await fetch('http://localhost:8000/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
@@ -53,7 +54,6 @@ class AnvilApp {
   }
 
   initEventListeners() {
-    // Chat submit
     const submit = document.querySelector('#submit');
     const query = document.querySelector('#query');
     
@@ -67,13 +67,11 @@ class AnvilApp {
       });
     }
 
-    // Settings button
     const settingsBtn = document.querySelector('#settings-btn');
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => this.showSettings());
     }
 
-    // Theme toggle
     const themeToggle = document.querySelector('#theme-toggle');
     if (themeToggle) {
       themeToggle.addEventListener('click', () => this.toggleTheme());
@@ -89,15 +87,12 @@ class AnvilApp {
     const message = query.value.trim();
     query.value = '';
     
-    // Add user message to chat
     this.addChatMessage('user', message);
-    
-    // Show loading
     this.setStatus('Processing...', 'active');
     const loadingId = this.addChatMessage('assistant', 'Thinking...', true);
 
     try {
-      const res = await fetch('/chat', {
+      const res = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,7 +103,6 @@ class AnvilApp {
 
       const data = await res.json();
       
-      // Remove loading message
       this.removeChatMessage(loadingId);
       
       if (data.success) {
@@ -163,7 +157,6 @@ class AnvilApp {
       modal = document.querySelector('#settings-modal');
     }
     
-    // Populate settings
     const openaiKey = modal.querySelector('#openai-api-key');
     const anthropicKey = modal.querySelector('#anthropic-api-key');
     const geminiKey = modal.querySelector('#gemini-api-key');
@@ -178,7 +171,7 @@ class AnvilApp {
     if (deepseekKey) deepseekKey.value = this.settings.deepseek_api_key || '';
     if (groqKey) groqKey.value = this.settings.groq_api_key || '';
     if (mistralKey) mistralKey.value = this.settings.mistral_api_key || '';
-    if (defaultModel) defaultModel.value = this.settings.default_model || 'shellwhisperer';
+    if (defaultModel) defaultModel.value = this.settings.default_model || 'gpt-4o-mini';
     
     modal.style.display = 'flex';
   }
@@ -195,7 +188,10 @@ class AnvilApp {
         </div>
         <div class="modal-body">
           <div class="settings-section">
-            <h3>Model Providers</h3>
+            <h3>API Keys</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
+              Add your API keys to use cloud models. Keys are stored locally in ~/.anvil/settings.json
+            </p>
             <div class="setting-item">
               <label>OpenAI API Key</label>
               <input type="password" id="openai-api-key" placeholder="sk-...">
@@ -226,12 +222,12 @@ class AnvilApp {
             <div class="setting-item">
               <label>Model</label>
               <select id="default-model">
-                <option value="shellwhisperer">ShellWhisperer (Local)</option>
-                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cheap)</option>
+                <option value="gpt-4o">GPT-4o (Powerful)</option>
                 <option value="claude-3.5-sonnet">Claude 3.5 Sonnet</option>
                 <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
                 <option value="deepseek-coder">DeepSeek Coder</option>
-                <option value="groq/llama-3.1-70b">Groq Llama 3.1 70B</option>
+                <option value="groq/llama-3.1-70b">Groq Llama 3.1 70B (Fastest)</option>
                 <option value="mistral-large">Mistral Large</option>
               </select>
             </div>
@@ -301,5 +297,4 @@ class AnvilApp {
   }
 }
 
-// Initialize app
 const app = new AnvilApp();

@@ -12,7 +12,7 @@ from anvil.permissions.permissions import PermissionConfig
 
 @dataclass
 class ModelConfig:
-    model: str = "shellwhisperer"
+    model: str = "gpt-4o-mini"
     api_base: str | None = None
     api_key: str | None = None
     max_tokens: int = 4096
