@@ -15,9 +15,9 @@ class ModelConfig:
     model: str = "gpt-4o-mini"
     api_base: str | None = None
     api_key: str | None = None
-    max_tokens: int = 4096
+    max_tokens: int = 8192
     temperature: float = 0.2
-    context_window: int = 8192
+    context_window: int = 32768
     system_prompt: str | None = None
 
 

@@ -172,17 +172,19 @@ class LocalModel(BaseModel):
         self.model_path = model_path
         self.api_base = (api_base or "http://localhost:11434").rstrip("/")
         self.model_name = model_path or "fableforge-14b"
-        self.client = httpx.Client(timeout=120.0)
+        self.client = httpx.Client(timeout=300.0)
 
     def complete(self, messages: list[Message], **kwargs) -> ModelResponse:
         start = time.time()
+        context_window = kwargs.get("context_window", 32768)
         payload = {
             "model": self.model_name,
             "messages": _msgs(messages),
             "stream": False,
             "options": {
                 "temperature": kwargs.get("temperature", 0.2),
-                "num_predict": kwargs.get("max_tokens", 4096),
+                "num_predict": kwargs.get("max_tokens", 8192),
+                "num_ctx": context_window,
             },
         }
         try:
@@ -982,6 +984,24 @@ class ModelRegistry:
         cls._models[name] = model_class
 
     @classmethod
+    def _is_ollama_model(cls, name: str) -> bool:
+        """Detect if a model name refers to an Ollama local model.
+
+        Ollama models contain ':' (tag syntax) or start with known FableForge
+        org prefixes.  HuggingFace model IDs never contain ':'.
+        """
+        if ":" in name:
+            return True
+        lower = name.lower()
+        ollama_prefixes = (
+            "fableforge", "mythos", "shellwhisperer", "deepseek-r1",
+            "qwen", "llama", "mistral", "codellama", "phi", "gemma",
+            "nomic", "mistral", "neural-chat", "solar", "starling",
+            "openchat", "dolphin", "codestral",
+        )
+        return any(lower.startswith(p) for p in ollama_prefixes)
+
+    @classmethod
     def create(cls, name: str, **kwargs) -> BaseModel:
         if name in cls._models:
             return cls._models[name](**kwargs)
@@ -989,9 +1009,19 @@ class ModelRegistry:
         transformers_kwargs = {k: v for k, v in kwargs.items() if k in ("device", "load_in_4bit")}
 
         if name in ("shellwhisperer", "fableforge-ai/ShellWhisperer-1.5B"):
-            return TransformersModel(model_name="fableforge-ai/ShellWhisperer-1.5B", **transformers_kwargs)
+            local_kwargs = {k: v for k, v in kwargs.items() if k in ("model_path", "api_base")}
+            local_kwargs.setdefault("model_path", "shellwhisperer-1.5b:latest")
+            return LocalModel(**local_kwargs)
         if name in ("local", "ollama", "llama"):
             local_kwargs = {k: v for k, v in kwargs.items() if k in ("model_path", "api_base")}
+            return LocalModel(**local_kwargs)
+
+        # Ollama / local models — detect BEFORE provider routing so that
+        # names like "fableforge-ai/mythos-9b:latest" don't fall through
+        # to TransformersModel.
+        if cls._is_ollama_model(name):
+            local_kwargs = {k: v for k, v in kwargs.items() if k in ("model_path", "api_base")}
+            local_kwargs.setdefault("model_path", name)
             return LocalModel(**local_kwargs)
 
         # OpenAI-compatible prefix routing

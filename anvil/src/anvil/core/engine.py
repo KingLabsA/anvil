@@ -71,9 +71,14 @@ Delegation & skills:
   external API. Provide `service` and either `base_url` or `spec_url` (an OpenAPI
   spec URL). After pressing, load the new skill with `skill` and call its CLI via `bash`.
 
-TOOL-CALL PROTOCOL (REQUIRED):
-To use a tool, emit a fenced block tagged `tool` containing a JSON object with
-`tool` and `args`. You may emit multiple blocks. Examples:
+TOOL-CALL PROTOCOL (STRICTLY REQUIRED):
+To use a tool, you MUST emit a fenced block tagged `tool` containing a JSON object
+with `tool` and `args`. You may emit multiple blocks.
+
+DO NOT describe what you would do. DO NOT write pseudocode. You MUST emit actual
+```tool blocks. If you don't emit tool blocks, no action will be taken.
+
+Examples:
 
 ```tool
 {{"tool": "edit", "args": {{"path": "src/app.py", "old_string": "return a - b", "new_string": "return a + b"}}}}
@@ -92,9 +97,10 @@ To use a tool, emit a fenced block tagged `tool` containing a JSON object with
 ```
 
 Rules:
-- Always use the ```tool JSON format above for ANY file change or command.
-- Do NOT write pseudo-code like `edit_file(...)`; emit a real ```tool block.
-- To modify an existing file, prefer `edit` (old_string/new_string), not `write`.
+- ALWAYS use the ```tool JSON format above for ANY file change or command.
+- NEVER just describe actions in plain text — emit a ```tool block instead.
+- To modify an existing file, use `edit` with `old_string` and `new_string`.
+- Use relative file paths (not absolute paths).
 
 Current agent: {agent_name}
 Available tools: {tools}"""
@@ -402,8 +408,44 @@ class AnvilEngine:
             tool, args, agent_config=self.agent.permission,
         )
 
+    def _normalize_tool_args(self, tool: str, args: dict[str, Any]) -> dict[str, Any]:
+        """Normalize file paths in tool args so hallucinated absolute paths
+        resolve against the working directory.
+
+        Models frequently emit paths like ``/home/user/.../calculator.py``
+        when the file is actually at ``calculator.py`` in the workspace.
+        """
+        working = Path(self.config.tools.working_dir or self.config.project_root or ".")
+        path_keys = {"path", "file_path"}
+        out = dict(args)
+        for key in path_keys:
+            val = out.get(key)
+            if not val or not isinstance(val, str):
+                continue
+            p = Path(val)
+            # Already relative or exists — leave it alone.
+            if not p.is_absolute():
+                continue
+            if p.exists():
+                continue
+            # Try basename first, then tail components.
+            candidate = working / p.name
+            if candidate.exists():
+                out[key] = str(candidate)
+                continue
+            # Walk the parts looking for a match.
+            parts = p.parts
+            for i in range(len(parts)):
+                sub = Path(*parts[i:]) if i < len(parts) - 1 else Path(parts[-1])
+                candidate = working / sub
+                if candidate.exists():
+                    out[key] = str(candidate)
+                    break
+        return out
+
     def _execute_tool(self, tool: str, args: dict[str, Any]) -> ToolResult:
         """Execute a tool after passing it through the permission gate."""
+        args = self._normalize_tool_args(tool, args)
         action = self._check_permission(tool, args)
         if action == PermissionAction.DENY:
             return ToolResult(
@@ -772,7 +814,12 @@ class AnvilEngine:
             Message(role="system", content=system),
             Message(role="user", content=PLAN_PROMPT.format(task=task)),
         ]
-        response = self.model.complete(messages, temperature=self.agent.temperature)
+        response = self.model.complete(
+            messages,
+            temperature=self.agent.temperature,
+            max_tokens=self.config.model.max_tokens,
+            context_window=self.config.model.context_window,
+        )
         plan_text = response.content
 
         steps: list[str] = []
@@ -815,7 +862,12 @@ class AnvilEngine:
             Message(role="system", content=system),
             Message(role="user", content=user_content),
         ]
-        response = self.model.complete(messages, temperature=self.agent.temperature)
+        response = self.model.complete(
+            messages,
+            temperature=self.agent.temperature,
+            max_tokens=self.config.model.max_tokens,
+            context_window=self.config.model.context_window,
+        )
         tool_calls = self._parse_tool_calls(response.content)
         results: list[dict] = []
         files_in_step: list[str] = []
@@ -828,8 +880,17 @@ class AnvilEngine:
             })
             if result.file_path and result.success:
                 files_in_step.append(result.file_path)
+        # No tool calls parsed means the model failed to follow the protocol.
+        # Mark as failure so the engine can retry rather than silently succeeding.
+        if not results:
+            return {
+                "success": False,
+                "tool_calls": [],
+                "files_changed": [],
+                "error": "Model did not emit any valid tool calls",
+            }
         return {
-            "success": any(r["success"] for r in results) if results else True,
+            "success": any(r["success"] for r in results),
             "tool_calls": results,
             "files_changed": files_in_step,
         }
@@ -894,7 +955,12 @@ class AnvilEngine:
             )),
             Message(role="user", content=user_content),
         ]
-        response = self.model.complete(messages, temperature=self.agent.temperature)
+        response = self.model.complete(
+            messages,
+            temperature=self.agent.temperature,
+            max_tokens=self.config.model.max_tokens,
+            context_window=self.config.model.context_window,
+        )
         tool_calls = self._parse_tool_calls(response.content)
         results: list[dict] = []
         fix_files: list[str] = []
@@ -915,7 +981,16 @@ class AnvilEngine:
 
     # ── tool-call parser ────────────────────────────────────────────────
 
+    @staticmethod
+    def _strip_thinking(text: str) -> str:
+        """Remove thinking blocks from model output."""
+        text = re.sub(r"<\|begin of thinking\|>.*?<\|end of thinking\|>", "", text, flags=re.DOTALL)
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+        return text
+
     def _parse_tool_calls(self, text: str) -> list[dict]:
+        text = self._strip_thinking(text)
+
         # 1. Preferred: structured JSON tool calls in ```tool fences.
         structured = self._parse_structured_tool_calls(text)
         if structured:
@@ -942,23 +1017,64 @@ class AnvilEngine:
         """Parse explicit ```tool / ```tool_call / ```json fenced JSON tool calls.
 
         Each block may contain a single object ``{"tool": ..., "args": {...}}``
-        or a JSON array of such objects. This is the protocol the system prompt
-        instructs the model to use, and it is parsed deterministically.
+        or a JSON array of such objects.  Also handles:
+        - double-brace escaping (``{{`` → ``{``) from weak models
+        - bare JSON objects outside fences
         """
         import json as _json
 
         calls: list[dict] = []
         valid_tools = set(ALL_TOOL_NAMES)
-        fence = re.compile(r"```(?:tool|tool_call|tool_calls|json)\s*\n(.*?)```", re.DOTALL)
-        for match in fence.finditer(text):
-            blob = match.group(1).strip()
-            if not blob:
-                continue
+
+        def _try_parse_json(blob: str) -> dict | list | None:
+            """Try to parse JSON, with double-brace fixup."""
             try:
-                parsed = _json.loads(blob)
+                return _json.loads(blob)
             except (ValueError, TypeError):
-                continue
+                pass
+            # Weak models emit {{ }} instead of { }
+            fixed = blob.replace("{{", "{").replace("}}", "}")
+            if fixed != blob:
+                try:
+                    return _json.loads(fixed)
+                except (ValueError, TypeError):
+                    pass
+            # Try extracting the first JSON object from the blob.
+            for start_ch, end_ch in [("{", "}"), ("[", "]")]:
+                idx = blob.find(start_ch)
+                if idx < 0:
+                    continue
+                depth = 0
+                in_str = False
+                escape = False
+                for i in range(idx, len(blob)):
+                    c = blob[i]
+                    if escape:
+                        escape = False
+                        continue
+                    if c == "\\":
+                        escape = True
+                        continue
+                    if c == '"':
+                        in_str = not in_str
+                        continue
+                    if in_str:
+                        continue
+                    if c == start_ch:
+                        depth += 1
+                    elif c == end_ch:
+                        depth -= 1
+                        if depth == 0:
+                            try:
+                                return _json.loads(blob[idx : i + 1])
+                            except (ValueError, TypeError):
+                                break
+                            break
+            return None
+
+        def _extract_calls(parsed) -> list[dict]:
             items = parsed if isinstance(parsed, list) else [parsed]
+            result = []
             for item in items:
                 if not isinstance(item, dict):
                     continue
@@ -968,7 +1084,116 @@ class AnvilEngine:
                 args = item.get("args") or item.get("arguments") or {}
                 if not isinstance(args, dict):
                     continue
-                calls.append({"tool": tool, "args": args})
+                result.append({"tool": tool, "args": args})
+            return result
+
+        # A. Fenced tool blocks
+        fence = re.compile(r"```(?:tool|tool_call|tool_calls|json)\s*\n(.*?)```", re.DOTALL)
+        for match in fence.finditer(text):
+            blob = match.group(1).strip()
+            if not blob:
+                continue
+            parsed = _try_parse_json(blob)
+            if parsed is not None:
+                calls.extend(_extract_calls(parsed))
+
+        if calls:
+            return calls
+
+        # B. Bare JSON objects outside fences (some models skip the fences)
+        # Use a brace-depth tracker to find balanced JSON objects.
+        for m in re.finditer(r'(?<!\w)(\{)', text):
+            start = m.start()
+            depth = 0
+            in_str = False
+            esc = False
+            end = -1
+            for i in range(start, len(text)):
+                c = text[i]
+                if esc:
+                    esc = False
+                    continue
+                if c == "\\":
+                    esc = True
+                    continue
+                if c == '"':
+                    in_str = not in_str
+                    continue
+                if in_str:
+                    continue
+                if c == "{":
+                    depth += 1
+                elif c == "}":
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+            if end < 0:
+                continue
+            blob = text[start : end + 1]
+            parsed = _try_parse_json(blob)
+            if parsed is not None:
+                calls.extend(_extract_calls(parsed))
+
+        if calls:
+            return calls
+
+        # C. Natural language fallback — models that describe actions instead of
+        #    emitting ```tool blocks.  Only triggers when nothing else matched.
+        calls = self._parse_natural_language_tool_calls(text)
+        return calls
+
+    def _parse_natural_language_tool_calls(self, text: str) -> list[dict]:
+        """Fallback parser for models that describe actions in natural language.
+
+        Detects patterns like:
+        - "edit calculator.py to change X to Y"
+        - "run pytest -v"
+        - "I'll use the edit tool on..."
+        """
+        calls: list[dict] = []
+
+        # Pattern: "edit <file>" or "modify <file>" with old/new strings
+        edit_pats = [
+            re.compile(
+                r'(?:edit|modify|change|replace|fix)\s+[`"\']?([^\s`"\']+\.py)[`"\']?\s+'
+                r'(?:to\s+)?(?:replace|change|fix)\s+[`"\'](.+?)[`"\']\s+(?:with|to)\s+[`"\'](.+?)[`"\']',
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r'(?:edit|modify|change|replace|fix)\s+[`"\']?([^\s`"\']+\.py)[`"\']?\s*'
+                r'(?:,?\s*(?:where|line)\s+[`"\'](.+?)[`"\']\s+(?:becomes?|→|->|to)\s+[`"\'](.+?)[`"\'])',
+                re.IGNORECASE,
+            ),
+        ]
+        for pat in edit_pats:
+            for m in pat.finditer(text):
+                calls.append({
+                    "tool": "edit",
+                    "args": {"path": m.group(1), "old_string": m.group(2), "new_string": m.group(3)},
+                })
+
+        # Pattern: "run <command>" or "execute <command>"
+        cmd_pats = [
+            re.compile(r'(?:run|execute|perform)\s+[`"\']?(python[^`"\n]*|pytest[^`"\n]*|npm\s+\w+[^`"\n]*|git\s+\w+[^`"\n]*|pip\s+\w+[^`"\n]*)[`"\']?', re.IGNORECASE),
+            re.compile(r'(?:bash|shell|terminal):\s*[`"\']([^`"\']+)[`"\']', re.IGNORECASE),
+        ]
+        for pat in cmd_pats:
+            for m in pat.finditer(text):
+                cmd = m.group(1).strip()
+                if cmd:
+                    calls.append({"tool": "bash", "args": {"command": cmd}})
+
+        # Pattern: "read <file>"
+        read_pats = [
+            re.compile(r'(?:read|open|view|cat|show)\s+[`"\']?([^\s`"\']+)[`"\']?', re.IGNORECASE),
+        ]
+        for pat in read_pats:
+            for m in pat.finditer(text):
+                path = m.group(1)
+                if "." in path and not path.startswith("-"):
+                    calls.append({"tool": "read", "args": {"path": path}})
+
         return calls
 
     def _parse_code_block(self, match) -> dict | None:
