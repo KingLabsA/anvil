@@ -123,8 +123,10 @@ def run(ctx, task, max_iterations, no_verify, no_recover, flow):
 
     # Resolve the agent from config or CLI flag.
     agent_name = cfg.default_agent
-    agent_obj = BUILTIN_AGENTS.get(agent_name)
-    if agent_obj is None:
+    agent_factory = BUILTIN_AGENTS.get(agent_name)
+    if agent_factory is not None:
+        agent_obj = agent_factory()
+    else:
         mgr = AgentManager()
         agent_obj = mgr.get(agent_name)
         if agent_obj is None:
@@ -211,7 +213,13 @@ def chat(ctx, task, max_iterations):
 
     cfg: AnvilConfig = ctx.obj["config"]
     agent_name = cfg.default_agent
-    agent_obj = BUILTIN_AGENTS.get(agent_name) or AgentManager().get(agent_name) or BUILTIN_AGENTS["build"]
+    agent_factory = BUILTIN_AGENTS.get(agent_name) or AgentManager().get(agent_name)
+    if agent_factory is not None and callable(agent_factory) and not hasattr(agent_factory, 'name'):
+        agent_obj = agent_factory()
+    elif agent_factory is not None:
+        agent_obj = agent_factory
+    else:
+        agent_obj = BUILTIN_AGENTS["build"]()
     engine = AnvilEngine(cfg, agent=agent_obj)
 
     console.print(f"[bold]Active agent:[/] [{agent_obj.color}]{agent_obj.name}[/{agent_obj.color}] — {agent_obj.description}")

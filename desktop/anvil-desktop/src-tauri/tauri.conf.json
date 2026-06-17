@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "identifier": "com.fableforge.anvil-desktop",
   "build": {
-    "frontendDist": "../src",
-    "beforeBuildCommand": "cp -r ../src/* ../src-tauri/target/release/bundle/macos/Anvil\\ Desktop.app/Contents/Resources/ 2>/dev/null || true"
+    "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,

@@ -59,6 +59,13 @@ class SettingsModel(BaseModel):
     workspace: str = "."
 
 
+class SessionInfo(BaseModel):
+    id: str
+    task: str
+    success: bool
+    created_at: str
+
+
 # Global state
 _sessions: dict[str, Session] = {}
 _settings = SettingsModel()
