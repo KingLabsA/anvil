@@ -1,44 +1,32 @@
-FROM python:3.11.12-slim AS base
+FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+# Set working directory
+WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl git && \
-    rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-FROM base AS builder
+# Copy project files
+COPY . /app/
 
-WORKDIR /build
-COPY . /build/anvil/
-RUN pip install --no-cache-dir /build/anvil httpx
+# Install Anvil with all dependencies
+RUN pip install --no-cache-dir -e ".[all]"
 
-FROM base AS runtime
-
-RUN groupadd --gid 1000 anvil && \
-    useradd --uid 1000 --gid anvil --shell /bin/bash --create-home anvil
-
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-WORKDIR /home/anvil
-
-RUN mkdir -p /home/anvil/.anvil && chown anvil:anvil /home/anvil/.anvil
-
+# Create non-root user
+RUN useradd -m -u 1000 anvil && \
+    chown -R anvil:anvil /app
 USER anvil
 
-EXPOSE 8765
+# Expose port for web UI
+EXPOSE 8000
 
-VOLUME ["/home/anvil/.anvil"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8765/health || exit 1
-
-ENV ANVIL_HOME=/home/anvil/.anvil \
-    ANVIL_HOST=0.0.0.0 \
-    ANVIL_PORT=8765
-
-ENTRYPOINT ["anvil"]
-CMD ["daemon", "--host", "0.0.0.0", "--port", "8765"]
+# Default command
+CMD ["anvil", "serve", "--host", "0.0.0.0", "--port", "8000"]

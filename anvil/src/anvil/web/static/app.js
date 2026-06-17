@@ -596,6 +596,16 @@
         tab.addEventListener('click', () => {
           $$('.sidebar-tab').forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
+          
+          // Show/hide panels based on tab
+          const tabName = tab.dataset.tab;
+          const filesPanel = document.querySelector('.sidebar-section');
+          const mcpPanel = document.getElementById('mcp-panel');
+          const modelsPanel = document.getElementById('models-panel');
+          
+          if (filesPanel) filesPanel.style.display = tabName === 'files' ? 'block' : 'none';
+          if (mcpPanel) mcpPanel.style.display = tabName === 'mcp' ? 'flex' : 'none';
+          if (modelsPanel) modelsPanel.style.display = tabName === 'models' ? 'flex' : 'none';
         });
       });
 

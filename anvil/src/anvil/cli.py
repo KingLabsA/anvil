@@ -1549,3 +1549,283 @@ def codebase_docs(query, limit):
 
 
 
+
+
+# ── MCP commands ──────────────────────────────────────────────────────
+
+@main.group()
+def mcp():
+    """MCP (Model Context Protocol) commands."""
+    pass
+
+
+@mcp.command("list")
+def mcp_list():
+    """List available MCP tools."""
+    from anvil.mcp.registry import MCPToolRegistry
+    
+    registry = MCPToolRegistry()
+    tools = registry.get_available_tools()
+    
+    if not tools:
+        console.print("[yellow]No MCP tools configured[/]")
+        console.print("[dim]Configure MCP servers in ~/.anvil/mcp_servers.json[/]")
+        return
+    
+    table = Table(title="MCP Tools")
+    table.add_column("Name", style="cyan")
+    table.add_column("Description")
+    table.add_column("Server", style="dim")
+    
+    for tool in tools:
+        table.add_row(
+            tool.get("name", "unknown"),
+            tool.get("description", "")[:50],
+            tool.get("server", "built-in"),
+        )
+    
+    console.print(table)
+
+
+@mcp.command("call")
+@click.argument("tool_name")
+@click.argument("args", nargs=-1)
+def mcp_call(tool_name, args):
+    """Call an MCP tool."""
+    from anvil.mcp import MCPToolRegistry
+    
+    registry = MCPToolRegistry()
+    
+    # Parse args as key=value pairs
+    kwargs = {}
+    for arg in args:
+        if "=" in arg:
+            key, value = arg.split("=", 1)
+            kwargs[key] = value
+    
+    try:
+        result = registry.call_tool(tool_name, **kwargs)
+        console.print(f"[green]✓ Tool '{tool_name}' executed successfully[/]")
+        console.print(Panel(str(result), title="Result", border_style="cyan"))
+    except Exception as e:
+        console.print(f"[red]✗ Error calling tool: {e}[/]")
+        sys.exit(1)
+
+
+@mcp.command("servers")
+def mcp_servers():
+    """List configured MCP servers."""
+    from anvil.mcp import MCPToolRegistry
+    
+    registry = MCPToolRegistry()
+    servers = registry.list_servers()
+    
+    if not servers:
+        console.print("[yellow]No MCP servers configured[/]")
+        return
+    
+    table = Table(title="MCP Servers")
+    table.add_column("Name", style="cyan")
+    table.add_column("Type")
+    table.add_column("Status", style="green")
+    
+    for server in servers:
+        table.add_row(
+            server.name,
+            server.type,
+            "connected" if server.connected else "disconnected",
+        )
+    
+    console.print(table)
+
+
+# ── Model commands ────────────────────────────────────────────────────
+
+@main.group()
+def models():
+    """Model provider commands."""
+    pass
+
+
+@models.command("list")
+def models_list():
+    """List available model providers."""
+    from anvil.models.registry import ModelRegistry
+    
+    providers = ModelRegistry.list_providers()
+    
+    table = Table(title="Model Providers")
+    table.add_column("Provider", style="cyan")
+    table.add_column("Prefix", style="dim")
+    table.add_column("Models", style="green")
+    table.add_column("Status")
+    
+    for provider in providers:
+        status = "[green]✓ Configured[/]" if provider["configured"] else "[dim]Not configured[/]"
+        table.add_row(
+            provider["name"],
+            provider["prefix"],
+            ", ".join(provider["models"][:3]),
+            status,
+        )
+    
+    console.print(table)
+    console.print(f"\n[dim]Total: {len(providers)} providers, {sum(len(p['models']) for p in providers)} models[/]")
+
+
+@models.command("test")
+@click.argument("provider")
+@click.option("--model", "-m", default=None, help="Specific model to test")
+def models_test(provider, model):
+    """Test a model provider."""
+    from anvil.models.registry import ModelRegistry
+    
+    registry = ModelRegistry()
+    
+    console.print(f"[cyan]Testing provider: {provider}...[/]")
+    
+    try:
+        result = registry.test_provider(provider, model)
+        if result.success:
+            console.print(f"[green]✓ Provider '{provider}' is working[/]")
+            console.print(f"[dim]Response: {result.response[:100]}...[/]")
+        else:
+            console.print(f"[red]✗ Provider '{provider}' failed: {result.error}[/]")
+            sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]✗ Error testing provider: {e}[/]")
+        sys.exit(1)
+
+
+# ── Remote commands ───────────────────────────────────────────────────
+
+@main.group()
+def remote():
+    """Remote access and session sharing commands."""
+    pass
+
+
+@remote.command("share")
+@click.argument("session_id")
+@click.option("--expires", "-e", default=24, help="Hours until link expires")
+def remote_share(session_id, expires):
+    """Create a shareable link for a session."""
+    from anvil.remote import RemoteControl
+    
+    control = RemoteControl()
+    link = control.create_share_link(session_id, expires_hours=expires)
+    
+    console.print(f"[green]✓ Share link created[/]")
+    console.print(f"[cyan]{link}[/]")
+    console.print(f"[dim]Expires in {expires} hours[/]")
+
+
+@remote.command("list")
+def remote_list():
+    """List active remote sessions."""
+    from anvil.remote import RemoteControl
+    
+    control = RemoteControl()
+    sessions = control.list_sessions()
+    
+    if not sessions:
+        console.print("[yellow]No active remote sessions[/]")
+        return
+    
+    table = Table(title="Active Remote Sessions")
+    table.add_column("Session ID", style="cyan")
+    table.add_column("Share Link")
+    table.add_column("Expires", style="dim")
+    table.add_column("Devices", style="green")
+    
+    for session in sessions:
+        table.add_row(
+            session.session_id[:8] + "...",
+            session.share_link[:30] + "...",
+            session.expires_at.strftime("%Y-%m-%d %H:%M"),
+            str(len(session.devices)),
+        )
+    
+    console.print(table)
+
+
+@remote.command("revoke")
+@click.argument("share_token")
+def remote_revoke(share_token):
+    """Revoke a share link."""
+    from anvil.remote import RemoteControl
+    
+    control = RemoteControl()
+    control.revoke_share_link(share_token)
+    
+    console.print(f"[green]✓ Share link revoked[/]")
+
+
+# ── Instructions commands ─────────────────────────────────────────────
+
+@main.group()
+def instructions():
+    """Persistent instructions (ANVIL.md) commands."""
+    pass
+
+
+@instructions.command("init")
+@click.option("--type", "-t", "project_type", default="general", 
+              type=click.Choice(["general", "python", "typescript"]),
+              help="Project type for template")
+def instructions_init(project_type):
+    """Initialize ANVIL.md with template."""
+    from anvil.core.instructions import InstructionsTemplate
+    
+    template = InstructionsTemplate.generate_template(project_type)
+    
+    anvil_md = Path("ANVIL.md")
+    if anvil_md.exists():
+        console.print("[yellow]ANVIL.md already exists[/]")
+        if not click.confirm("Overwrite?"):
+            return
+    
+    anvil_md.write_text(template)
+    console.print(f"[green]✓ Created ANVIL.md with {project_type} template[/]")
+
+
+@instructions.command("show")
+def instructions_show():
+    """Show loaded instructions."""
+    from anvil.core.instructions import InstructionsLoader
+    
+    loader = InstructionsLoader(Path("."))
+    instructions = loader.load_all()
+    
+    if not instructions:
+        console.print("[yellow]No instructions found[/]")
+        console.print("[dim]Create ANVIL.md or .anvil/rules/*.md[/]")
+        return
+    
+    console.print(Panel(instructions, title="Loaded Instructions", border_style="cyan"))
+
+
+@instructions.command("validate")
+def instructions_validate():
+    """Validate instructions syntax."""
+    from anvil.core.instructions import InstructionsLoader
+    
+    loader = InstructionsLoader(Path("."))
+    instructions = loader.load_all()
+    
+    if not instructions:
+        console.print("[yellow]No instructions to validate[/]")
+        return
+    
+    # Basic validation
+    errors = []
+    if len(instructions) > 10000:
+        errors.append("Instructions too long (>10KB)")
+    
+    if errors:
+        console.print("[red]✗ Validation errors:[/]")
+        for error in errors:
+            console.print(f"  [red]• {error}[/]")
+        sys.exit(1)
+    else:
+        console.print("[green]✓ Instructions are valid[/]")

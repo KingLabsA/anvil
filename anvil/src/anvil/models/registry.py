@@ -1070,3 +1070,88 @@ class ModelRegistry:
             "copilot/gpt-4", "copilot/claude-3",
             "vertex/gemini-pro", "vertex/claude-3",
         ]
+    
+    @classmethod
+    def list_providers(cls) -> list[dict]:
+        """List all available model providers with their models."""
+        providers = [
+            {
+                "name": "Local/HuggingFace",
+                "prefix": "shellwhisperer, local, or any HF model",
+                "models": ["shellwhisperer", "fableforge-ai/ShellWhisperer-1.5B", "local"],
+                "configured": True,
+            },
+            {
+                "name": "OpenAI",
+                "prefix": "gpt-*, o3-*, o4-*",
+                "models": ["gpt-4o", "gpt-4o-mini", "o3-mini", "o4-mini"],
+                "configured": bool(os.getenv("OPENAI_API_KEY")),
+            },
+            {
+                "name": "Anthropic",
+                "prefix": "claude-*",
+                "models": ["claude-3.5-sonnet", "claude-3.5-haiku", "claude-3-opus"],
+                "configured": bool(os.getenv("ANTHROPIC_API_KEY")),
+            },
+            {
+                "name": "Google Gemini",
+                "prefix": "gemini-*",
+                "models": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+                "configured": bool(os.getenv("GEMINI_API_KEY")),
+            },
+            {
+                "name": "AWS Bedrock",
+                "prefix": "bedrock/*",
+                "models": ["bedrock/claude-3", "bedrock/llama-3", "bedrock/mistral-large"],
+                "configured": bool(os.getenv("AWS_ACCESS_KEY_ID")),
+            },
+            {
+                "name": "Azure OpenAI",
+                "prefix": "azure/*",
+                "models": ["azure/gpt-4", "azure/gpt-4-turbo", "azure/gpt-35-turbo"],
+                "configured": bool(os.getenv("AZURE_OPENAI_API_KEY")),
+            },
+            {
+                "name": "DeepSeek",
+                "prefix": "deepseek-*",
+                "models": ["deepseek-coder", "deepseek-chat"],
+                "configured": bool(os.getenv("DEEPSEEK_API_KEY")),
+            },
+            {
+                "name": "Groq",
+                "prefix": "groq/*",
+                "models": ["groq/llama-3.1-70b", "groq/mixtral-8x7b"],
+                "configured": bool(os.getenv("GROQ_API_KEY")),
+            },
+            {
+                "name": "Mistral",
+                "prefix": "mistral-*",
+                "models": ["mistral-large", "codestral", "mistral-small"],
+                "configured": bool(os.getenv("MISTRAL_API_KEY")),
+            },
+            {
+                "name": "Cerebras",
+                "prefix": "cerebras/*",
+                "models": ["cerebras/llama3.1-70b", "cerebras/llama3.1-8b"],
+                "configured": bool(os.getenv("CEREBRAS_API_KEY")),
+            },
+            {
+                "name": "OpenRouter",
+                "prefix": "openrouter/*",
+                "models": ["openrouter/openai/gpt-4o"],
+                "configured": bool(os.getenv("OPENROUTER_API_KEY")),
+            },
+            {
+                "name": "GitHub Copilot",
+                "prefix": "copilot/*",
+                "models": ["copilot/gpt-4", "copilot/claude-3"],
+                "configured": bool(os.getenv("GITHUB_TOKEN")),
+            },
+            {
+                "name": "Google Vertex AI",
+                "prefix": "vertex/*",
+                "models": ["vertex/gemini-pro", "vertex/claude-3"],
+                "configured": bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")),
+            },
+        ]
+        return providers

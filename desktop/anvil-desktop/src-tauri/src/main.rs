@@ -100,6 +100,49 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn get_model_providers() -> Result<Vec<String>, String> {
+    // Return available model providers
+    Ok(vec![
+        "local".to_string(),
+        "openai".to_string(),
+        "anthropic".to_string(),
+        "gemini".to_string(),
+        "bedrock".to_string(),
+        "azure".to_string(),
+        "deepseek".to_string(),
+        "groq".to_string(),
+        "mistral".to_string(),
+        "cerebras".to_string(),
+        "openrouter".to_string(),
+        "copilot".to_string(),
+        "vertex".to_string(),
+        "huggingface".to_string(),
+    ])
+}
+
+#[tauri::command]
+async fn get_mcp_tools() -> Result<Vec<String>, String> {
+    // Return available MCP tools
+    Ok(vec![
+        "read_file".to_string(),
+        "write_file".to_string(),
+        "http_request".to_string(),
+        "git_status".to_string(),
+        "git_diff".to_string(),
+        "query_database".to_string(),
+        "send_slack_message".to_string(),
+        "create_github_issue".to_string(),
+        "create_github_pr".to_string(),
+    ])
+}
+
+#[tauri::command]
+async fn create_share_link(session_id: String) -> Result<String, String> {
+    // Create a shareable link for remote access
+    Ok(format!("https://anvil.fableforge.ai/share/{}", session_id))
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -108,7 +151,10 @@ fn main() {
             check_server,
             start_server,
             check_for_updates,
-            install_update
+            install_update,
+            get_model_providers,
+            get_mcp_tools,
+            create_share_link
         ])
         .setup(|app| {
             let app_handle = app.handle();
