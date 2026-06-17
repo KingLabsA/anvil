@@ -142,32 +142,75 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
     @app.post("/run", response_model=RunResponse)
     def run_task(req: RunRequest) -> RunResponse:
         """Execute a task synchronously."""
-        engine = get_engine(req.model)
-        result = engine.run(req.task, max_iterations=req.max_iterations)
+        try:
+            # Set API keys from settings
+            if _settings.openai_api_key:
+                os.environ["OPENAI_API_KEY"] = _settings.openai_api_key
+            if _settings.anthropic_api_key:
+                os.environ["ANTHROPIC_API_KEY"] = _settings.anthropic_api_key
+            if _settings.gemini_api_key:
+                os.environ["GEMINI_API_KEY"] = _settings.gemini_api_key
+            if _settings.deepseek_api_key:
+                os.environ["DEEPSEEK_API_KEY"] = _settings.deepseek_api_key
+            if _settings.groq_api_key:
+                os.environ["GROQ_API_KEY"] = _settings.groq_api_key
+            if _settings.mistral_api_key:
+                os.environ["MISTRAL_API_KEY"] = _settings.mistral_api_key
 
-        session_id = str(uuid.uuid4())
-        if result.session:
-            _sessions[session_id] = result.session
+            engine = get_engine(req.model)
+            result = engine.run(req.task, max_iterations=req.max_iterations)
 
-        return RunResponse(
-            success=result.success,
-            output=result.output or "",
-            error=result.error,
-            steps=len(result.session.steps) if result.session else 0,
-            session_id=session_id,
-        )
+            session_id = str(uuid.uuid4())
+            if result.session:
+                _sessions[session_id] = result.session
+
+            return RunResponse(
+                success=result.success,
+                output=result.output or "",
+                error=result.error,
+                steps=len(result.session.steps) if result.session else 0,
+                session_id=session_id,
+            )
+        except Exception as e:
+            return RunResponse(
+                success=False,
+                output="",
+                error=str(e),
+                steps=0,
+                session_id="",
+            )
 
     @app.post("/chat", response_model=ChatResponse)
     def chat(req: ChatRequest) -> ChatResponse:
-        """Chat with Anvil."""
+        """Chat with Anvil — calls the model API directly."""
         try:
-            engine = get_engine(req.model)
-            result = engine.run(req.message, max_iterations=5)
+            # Set API keys from settings
+            if _settings.openai_api_key:
+                os.environ["OPENAI_API_KEY"] = _settings.openai_api_key
+            if _settings.anthropic_api_key:
+                os.environ["ANTHROPIC_API_KEY"] = _settings.anthropic_api_key
+            if _settings.gemini_api_key:
+                os.environ["GEMINI_API_KEY"] = _settings.gemini_api_key
+            if _settings.deepseek_api_key:
+                os.environ["DEEPSEEK_API_KEY"] = _settings.deepseek_api_key
+            if _settings.groq_api_key:
+                os.environ["GROQ_API_KEY"] = _settings.groq_api_key
+            if _settings.mistral_api_key:
+                os.environ["MISTRAL_API_KEY"] = _settings.mistral_api_key
+
+            from anvil.models.registry import ModelRegistry, Message
+            model = ModelRegistry.create(req.model)
+
+            messages = [
+                Message(role="system", content="You are Anvil, an expert AI coding assistant. Write clean, production-ready code. Explain your reasoning clearly."),
+                Message(role="user", content=req.message),
+            ]
+            response = model.complete(messages, temperature=0.7)
 
             return ChatResponse(
-                response=result.output or "Task completed",
-                success=result.success,
-                error=result.error,
+                response=response.content,
+                success=True,
+                error=None,
             )
         except Exception as e:
             return ChatResponse(
@@ -175,6 +218,7 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
                 success=False,
                 error=str(e),
             )
+
 
     @app.get("/settings")
     def get_settings() -> dict:

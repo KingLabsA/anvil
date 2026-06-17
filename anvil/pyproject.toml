@@ -48,7 +48,7 @@ api = [
 ]
 mcp = ["mcp>=1.0.0"]
 codebase = ["sentence-transformers>=2.2.0", "faiss-cpu>=1.7.4"]
-lsp = ["pylsp>=1.10.0"]
+lsp = ["python-lsp-server>=1.10.0"]
 integrations = ["slack-sdk>=3.27.0", "discord.py>=2.3.0"]
 tui = ["textual>=0.47", "textual-dev>=0.4"]
 web = ["fastapi>=0.111", "uvicorn>=0.30"]
