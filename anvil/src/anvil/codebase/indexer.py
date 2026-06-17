@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import hashlib
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 import re
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,6 +25,7 @@ class CodeChunk:
     classes: list[str] = field(default_factory=list)
     imports: list[str] = field(default_factory=list)
     hash: str = ""
+    embedding: Optional[list[float]] = field(default=None, repr=False)
 
 
 @dataclass
@@ -49,11 +53,14 @@ class CodebaseIndex:
         "target", "vendor", ".bundle", ".tox", ".eggs",
     }
     
-    def __init__(self, project_root: str | Path):
+    def __init__(self, project_root: str | Path, embedding_model: str = "all-MiniLM-L6-v2"):
         self.project_root = Path(project_root)
+        self.embedding_model = embedding_model
         self.chunks: list[CodeChunk] = []
         self.file_hashes: dict[str, str] = {}
         self.indexed = False
+        self._vector_index = None
+        self._embedding_model_instance = None
     
     def index(self, max_files: int = 1000) -> int:
         """Index the codebase by chunking files.
@@ -425,3 +432,166 @@ class CodebaseIndex:
             return True
         except Exception:
             return False
+    
+    def build_semantic_index(self) -> bool:
+        """Build semantic search index using embeddings.
+        
+        Returns:
+            True if semantic index was built successfully, False otherwise
+        """
+        if not self.indexed:
+            self.index()
+        
+        try:
+            from sentence_transformers import SentenceTransformer
+            import numpy as np
+            
+            logger.info(f"Loading embedding model: {self.embedding_model}")
+            self._embedding_model_instance = SentenceTransformer(self.embedding_model)
+            
+            # Generate embeddings for all chunks
+            texts = [chunk.content for chunk in self.chunks]
+            if not texts:
+                logger.warning("No chunks to embed")
+                return False
+            
+            logger.info(f"Generating embeddings for {len(texts)} chunks")
+            embeddings = self._embedding_model_instance.encode(
+                texts,
+                show_progress_bar=True,
+                convert_to_numpy=True
+            )
+            
+            # Attach embeddings to chunks
+            for chunk, embedding in zip(self.chunks, embeddings):
+                chunk.embedding = embedding.tolist()
+            
+            # Build FAISS index
+            try:
+                import faiss
+                
+                embeddings_array = embeddings.astype(np.float32)
+                self._vector_index = faiss.IndexFlatL2(embeddings_array.shape[1])
+                self._vector_index.add(embeddings_array)
+                logger.info(f"Built FAISS index with {self._vector_index.ntotal} vectors")
+                return True
+                
+            except ImportError:
+                logger.warning("FAISS not available, semantic search will use numpy fallback")
+                self._vector_index = embeddings
+                return True
+                
+        except ImportError as e:
+            logger.warning(f"Semantic indexing not available: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to build semantic index: {e}")
+            return False
+    
+    def semantic_search(self, query: str, limit: int = 10) -> list[SearchResult]:
+        """Search the codebase using semantic similarity.
+        
+        Args:
+            query: Search query
+            limit: Maximum number of results
+            
+        Returns:
+            List of search results ranked by semantic similarity
+        """
+        if not self.indexed:
+            self.index()
+        
+        # Build semantic index if not already built
+        if self._vector_index is None:
+            if not self.build_semantic_index():
+                # Fall back to keyword search
+                logger.info("Falling back to keyword search")
+                return self.search(query, limit)
+        
+        try:
+            import numpy as np
+            
+            # Generate query embedding
+            query_embedding = self._embedding_model_instance.encode(
+                [query],
+                convert_to_numpy=True
+            )[0]
+            
+            # Search
+            if hasattr(self._vector_index, 'search'):
+                # FAISS index
+                distances, indices = self._vector_index.search(
+                    np.array([query_embedding], dtype=np.float32),
+                    min(limit, len(self.chunks))
+                )
+                
+                results = []
+                for idx, distance in zip(indices[0], distances[0]):
+                    if idx < 0 or idx >= len(self.chunks):
+                        continue
+                    chunk = self.chunks[idx]
+                    # Convert distance to similarity score (lower distance = higher score)
+                    score = 1.0 / (1.0 + distance)
+                    results.append(SearchResult(
+                        chunk=chunk,
+                        score=score,
+                        match_reason="semantic similarity"
+                    ))
+                
+                return results
+            else:
+                # Numpy fallback
+                embeddings = self._vector_index
+                query_vec = query_embedding.reshape(1, -1)
+                
+                # Calculate cosine similarity
+                norms = np.linalg.norm(embeddings, axis=1) * np.linalg.norm(query_vec)
+                similarities = np.dot(embeddings, query_vec.T).flatten() / norms
+                
+                # Get top indices
+                top_indices = np.argsort(similarities)[-limit:][::-1]
+                
+                results = []
+                for idx in top_indices:
+                    chunk = self.chunks[idx]
+                    results.append(SearchResult(
+                        chunk=chunk,
+                        score=float(similarities[idx]),
+                        match_reason="semantic similarity"
+                    ))
+                
+                return results
+                
+        except Exception as e:
+            logger.error(f"Semantic search failed: {e}")
+            # Fall back to keyword search
+            return self.search(query, limit)
+    
+    def get_context_for_task(self, task: str, max_chunks: int = 10, use_semantic: bool = True) -> str:
+        """Get relevant code context for a task.
+        
+        Args:
+            task: Task description
+            max_chunks: Maximum number of chunks to retrieve
+            use_semantic: Whether to use semantic search (falls back to keyword if unavailable)
+            
+        Returns:
+            Formatted context string with relevant code chunks
+        """
+        if use_semantic and self._vector_index is not None:
+            results = self.semantic_search(task, limit=max_chunks)
+        else:
+            results = self.search(task, limit=max_chunks)
+        
+        if not results:
+            return ""
+        
+        context_parts = []
+        for result in results:
+            chunk = result.chunk
+            header = f"File: {chunk.file_path} (lines {chunk.line_start}-{chunk.line_end})"
+            if result.match_reason != "semantic similarity":
+                header += f" [{result.match_reason}]"
+            context_parts.append(f"{header}\n{chunk.content}")
+        
+        return "\n\n".join(context_parts)

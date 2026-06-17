@@ -18,6 +18,7 @@ import anvil
 from anvil.core.config import AnvilConfig, ModelConfig
 from anvil.core.engine import AnvilEngine
 from anvil.core.session import Session
+from anvil.onboarding import onboarding_manager
 
 
 class RunRequest(BaseModel):
@@ -146,6 +147,43 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
             await websocket.send_json({"type": "error", "message": str(e)})
         finally:
             await websocket.close()
+
+    @app.get("/api/onboarding/status")
+    def get_onboarding_status() -> dict[str, Any]:
+        """Get onboarding status for the current user."""
+        return {
+            "should_show_onboarding": onboarding_manager.should_show_onboarding(),
+            "completed_tours": onboarding_manager.get_completed_tours(),
+            "recommended_tour": onboarding_manager.get_recommended_tour().id if onboarding_manager.get_recommended_tour() else None,
+        }
+
+    @app.get("/api/onboarding/tours")
+    def list_onboarding_tours() -> list[dict[str, Any]]:
+        """List all available onboarding tours."""
+        tours = onboarding_manager.list_tours()
+        return [
+            {
+                "id": tour.id,
+                "name": tour.name,
+                "description": tour.description,
+                "steps": len(tour.steps),
+                "completed": onboarding_manager.is_tour_completed(tour.id),
+            }
+            for tour in tours
+        ]
+
+    @app.post("/api/onboarding/tours/{tour_id}/start")
+    def start_onboarding_tour(tour_id: str) -> dict[str, Any]:
+        """Start an onboarding tour."""
+        tour = onboarding_manager.start_tour(tour_id)
+        if not tour:
+            return {"error": "Tour not found"}
+        return {
+            "id": tour.id,
+            "name": tour.name,
+            "current_step": 0,
+            "steps": tour.steps,
+        }
 
     return app
 

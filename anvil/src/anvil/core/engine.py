@@ -19,8 +19,10 @@ from typing import Any
 
 from anvil.agents.agent_base import BaseAgent
 from anvil.agents.agent_manager import AgentManager
+from anvil.agents.auto_creator import AutoAgentCreator
 from anvil.agents.builtin_agents import BuildAgent
 from anvil.core.config import AnvilConfig
+from anvil.core.instructions import InstructionsLoader, InstructionsWatcher
 from anvil.core.session import Session, Step, StepKind, StepStatus, ToolCall
 from anvil.memory.manager import MemoryManager
 from anvil.models.registry import Message, ModelRegistry
@@ -214,13 +216,18 @@ class AnvilEngine:
         self.session: Session | None = None
         self._steps_taken: int = 0
         self._is_subagent: bool = False
+        self._instructions_prompt: str = ""
         self._init_integrations()
+        self._init_instructions()
+        self._init_auto_creator()
+        self._init_mcp_registry()
 
     def _init_integrations(self) -> None:
         from anvil.integrations.agent_swarm import AgentSwarmIntegration
         from anvil.integrations.cost_optimizer import CostOptimizerIntegration
         from anvil.integrations.error_recovery import ErrorRecoveryIntegration
         from anvil.integrations.verifyloop import VerifyLoopIntegration
+        from anvil.remote.control import RemoteControl, TeleportManager
         self.verifyloop = VerifyLoopIntegration(self.config.verify)
         self.error_recovery = ErrorRecoveryIntegration()
         self.agent_swarm = AgentSwarmIntegration()
@@ -228,6 +235,46 @@ class AnvilEngine:
             max_cost_per_session=self.config.cost.max_cost_per_session_usd,
             max_cost_per_task=self.config.cost.max_cost_per_task_usd,
         )
+        self.remote_control = RemoteControl(anvil_engine=self)
+        self.teleport_manager = TeleportManager(remote_control=self.remote_control)
+
+    def _init_instructions(self) -> None:
+        workspace = Path(self.config.project_root or self.config.tools.working_dir or ".")
+        self._instructions_loader = InstructionsLoader(workspace)
+        self._instructions_watcher = InstructionsWatcher(workspace, self._instructions_loader)
+        self._instructions_prompt = self._instructions_loader.get_system_prompt_addition()
+
+    def _refresh_instructions(self) -> str:
+        cached = self._instructions_prompt
+        reloaded = self._instructions_watcher.reload_if_changed()
+        if reloaded is not None:
+            if reloaded.strip():
+                self._instructions_prompt = (
+                    "\n## Project-Specific Instructions\n\n"
+                    "The following are project-specific instructions from ANVIL.md files. "
+                    "Follow these strictly:\n\n"
+                    f"{reloaded}\n\n"
+                    "## End Project Instructions\n"
+                )
+            else:
+                self._instructions_prompt = ""
+        return self._instructions_prompt
+
+    def _init_auto_creator(self) -> None:
+        fable5_path = str(Path.home() / ".anvil" / "fable5")
+        workspace = self.config.project_root or str(Path.cwd())
+        self.auto_creator = AutoAgentCreator(
+            fable5_dataset_path=fable5_path,
+            workspace_path=workspace,
+        )
+
+    def _init_mcp_registry(self) -> None:
+        from anvil.mcp.registry import MCPToolRegistry
+        self.mcp_registry = MCPToolRegistry(anvil_engine=self)
+        mcp_config_path = Path.home() / ".anvil" / "mcp_servers.json"
+        if mcp_config_path.exists():
+            self.mcp_registry.register_mcp_server_from_file(mcp_config_path)
+            self.mcp_registry.discover_tools()
 
     # ── agent switching ────────────────────────────────────────────────
 
@@ -265,6 +312,39 @@ class AnvilEngine:
             error=None if invocation.success else invocation.response,
         )
 
+    def _try_auto_invoke(self, task: str) -> EngineResult | None:
+        """Attempt automatic agent/skill creation and invocation.
+
+        Returns an ``EngineResult`` if auto-invocation handled the task,
+        or ``None`` to fall through to the normal plan-execute loop.
+        """
+        try:
+            result = self.auto_creator.auto_invoke(task)
+        except Exception:
+            return None
+
+        if not result.success and not result.created_new:
+            return None
+
+        if not result.created_new:
+            existing = self.agent_manager.get(result.agent_name)
+            if existing and existing.is_subagent:
+                return self.invoke_subagent(result.agent_name, task)
+            return None
+
+        if result.agent_name:
+            new_agent = self.agent_manager.get(result.agent_name)
+            if new_agent is None:
+                created = self.auto_creator.get_created_agents().get(result.agent_name)
+                if created:
+                    self.agent_manager.register(created.agent)
+                    new_agent = created.agent
+
+            if new_agent and new_agent.is_subagent:
+                return self.invoke_subagent(result.agent_name, task)
+
+        return None
+
     # ── permission-checked tool dispatch ────────────────────────────────
 
     def _check_permission(self, tool: str, args: dict[str, Any]) -> PermissionAction:
@@ -286,6 +366,15 @@ class AnvilEngine:
                 success=False,
                 output="",
                 error=f"Permission denied: tool '{tool}' is not allowed for agent '{self.agent.name}'",
+            )
+        # Check MCP registry for external tools
+        if hasattr(self, 'mcp_registry') and tool in self.mcp_registry.get_tool_names():
+            from anvil.mcp.protocol import CallResult
+            result: CallResult = self.mcp_registry.call_tool(tool, args)
+            return ToolResult(
+                success=not result.is_error,
+                output=result.text,
+                error=result.text if result.is_error else None,
             )
         # ASK is handled upstream (engine logs it); for now we treat it like ALLOW
         # and rely on the TUI / CLI to intercept when needed.
@@ -453,6 +542,11 @@ class AnvilEngine:
             sub_agent = self.agent_manager.get(agent_name)
             if sub_agent and sub_agent.is_subagent:
                 return self.invoke_subagent(agent_name, sub_task)
+
+        # Auto-invoke: check if a matching agent/skill should be created.
+        auto_result = self._try_auto_invoke(task)
+        if auto_result is not None:
+            return auto_result
 
         plan = self._plan(task, session)
         if not plan:
@@ -627,6 +721,9 @@ class AnvilEngine:
         memory_context = self.memory.get_context_prompt(task, limit=5)
         if memory_context:
             system += f"\n\n{memory_context}"
+        instructions_ctx = self._refresh_instructions()
+        if instructions_ctx:
+            system += f"\n\n{instructions_ctx}"
         messages = [
             Message(role="system", content=system),
             Message(role="user", content=PLAN_PROMPT.format(task=task)),
@@ -658,6 +755,9 @@ class AnvilEngine:
         memory_context = self.memory.get_context_prompt(step, limit=3)
         if memory_context:
             system += f"\n\n{memory_context}"
+        instructions_ctx = self._refresh_instructions()
+        if instructions_ctx:
+            system += f"\n\n{instructions_ctx}"
         context = self._gather_file_context(step, files_changed)
         user_content = EXECUTE_PROMPT.format(
             agent_name=self.agent.name,

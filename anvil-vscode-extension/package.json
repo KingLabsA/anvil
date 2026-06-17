@@ -1,0 +1,183 @@
+{
+  "name": "anvil-ai",
+  "displayName": "Anvil AI - Self-Verified Coding Agent",
+  "description": "AI coding agent with self-verification, multi-agent orchestration, and custom model training",
+  "version": "0.3.0",
+  "publisher": "fableforge",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["AI", "Machine Learning", "Programming Languages"],
+  "keywords": ["ai", "coding", "agent", "copilot", "assistant", "anvil"],
+  "activationEvents": [
+    "onCommand:anvil.start",
+    "onCommand:anvil.open",
+    "onWebviewPanel:anvil"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "anvil.start",
+        "title": "Anvil: Start Server"
+      },
+      {
+        "command": "anvil.open",
+        "title": "Anvil: Open Panel"
+      },
+      {
+        "command": "anvil.ask",
+        "title": "Anvil: Ask Question"
+      },
+      {
+        "command": "anvil.explain",
+        "title": "Anvil: Explain Code"
+      },
+      {
+        "command": "anvil.refactor",
+        "title": "Anvil: Refactor Code"
+      },
+      {
+        "command": "anvil.fix",
+        "title": "Anvil: Fix Errors"
+      },
+      {
+        "command": "anvil.generateTests",
+        "title": "Anvil: Generate Tests"
+      },
+      {
+        "command": "anvil.verify",
+        "title": "Anvil: Verify Code"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "anvil.explain",
+          "when": "editorHasSelection",
+          "group": "anvil@1"
+        },
+        {
+          "command": "anvil.refactor",
+          "when": "editorHasSelection",
+          "group": "anvil@2"
+        },
+        {
+          "command": "anvil.fix",
+          "when": "editorHasSelection",
+          "group": "anvil@3"
+        },
+        {
+          "command": "anvil.generateTests",
+          "when": "editorHasSelection",
+          "group": "anvil@4"
+        },
+        {
+          "command": "anvil.verify",
+          "when": "editorHasSelection",
+          "group": "anvil@5"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "anvil.open",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a"
+      },
+      {
+        "command": "anvil.ask",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i"
+      },
+      {
+        "command": "anvil.verify",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorHasSelection"
+      }
+    ],
+    "configuration": {
+      "title": "Anvil",
+      "properties": {
+        "anvil.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Anvil server URL"
+        },
+        "anvil.model": {
+          "type": "string",
+          "default": "local",
+          "enum": ["local", "openai", "anthropic", "gemini", "deepseek"],
+          "description": "Default model to use"
+        },
+        "anvil.autoVerify": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically verify code after changes"
+        },
+        "anvil.theme": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "light", "dark"],
+          "description": "Theme for Anvil panel"
+        },
+        "anvil.maxTokens": {
+          "type": "number",
+          "default": 4096,
+          "description": "Maximum tokens per request"
+        },
+        "anvil.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Model temperature"
+        },
+        "anvil.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start Anvil server on activation"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "anvil",
+          "title": "Anvil",
+          "icon": "media/anvil-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "anvil": [
+        {
+          "type": "webview",
+          "id": "anvil.panel",
+          "name": "Anvil Assistant"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
