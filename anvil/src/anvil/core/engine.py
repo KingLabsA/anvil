@@ -78,29 +78,50 @@ with `tool` and `args`. You may emit multiple blocks.
 DO NOT describe what you would do. DO NOT write pseudocode. You MUST emit actual
 ```tool blocks. If you don't emit tool blocks, no action will be taken.
 
-Examples:
+EXAMPLES (study these — your output must match this EXACT format):
 
+Example 1 — Fix a bug:
 ```tool
-{{"tool": "edit", "args": {{"path": "src/app.py", "old_string": "return a - b", "new_string": "return a + b"}}}}
+{{"tool": "read", "args": {{"path": "calculator.py"}}}}
 ```
 
 ```tool
-{{"tool": "write", "args": {{"path": "hello.py", "content": "print('hi')\\n"}}}}
+{{"tool": "edit", "args": {{"path": "calculator.py", "old_string": "    return a - b - 1", "new_string": "    return a - b"}}}}
 ```
 
 ```tool
-{{"tool": "bash", "args": {{"command": "python -m pytest -x"}}}}
+{{"tool": "bash", "args": {{"command": "python -m pytest test_calculator.py -v"}}}}
+```
+
+Example 2 — Create a file and run tests:
+```tool
+{{"tool": "write", "args": {{"path": "utils.py", "content": "def add(a, b):\\n    return a + b\\n\\ndef multiply(a, b):\\n    return a * b\\n"}}}}
 ```
 
 ```tool
-{{"tool": "read", "args": {{"path": "src/app.py"}}}}
+{{"tool": "write", "args": {{"path": "test_utils.py", "content": "from utils import add, multiply\\n\\ndef test_add():\\n    assert add(2, 3) == 5\\n\\ndef test_multiply():\\n    assert multiply(4, 5) == 20\\n"}}}}
 ```
 
-Rules:
-- ALWAYS use the ```tool JSON format above for ANY file change or command.
-- NEVER just describe actions in plain text — emit a ```tool block instead.
-- To modify an existing file, use `edit` with `old_string` and `new_string`.
-- Use relative file paths (not absolute paths).
+```tool
+{{"tool": "bash", "args": {{"command": "python -m pytest test_utils.py -v"}}}}
+```
+
+Example 3 — Search and fix:
+```tool
+{{"tool": "grep", "args": {{"pattern": "TODO|FIXME|HACK", "path": "src"}}}}
+```
+
+```tool
+{{"tool": "bash", "args": {{"command": "python -m pytest --tb=short"}}}}
+```
+
+CRITICAL RULES:
+- ALWAYS use the ```tool JSON format above for ANY file change or command
+- NEVER just describe actions in plain text — emit a ```tool block instead
+- To modify an existing file, use `edit` with `old_string` and `new_string`
+- Use relative file paths (not absolute paths)
+- The JSON inside ```tool must be valid JSON — use double quotes, not single quotes
+- You can emit multiple ```tool blocks in one response
 
 Current agent: {agent_name}
 Available tools: {tools}"""
