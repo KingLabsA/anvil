@@ -18,7 +18,7 @@ class TestAnvilEngineInit:
     def test_default_config(self):
         cfg = AnvilConfig()
         engine = AnvilEngine(cfg)
-        assert engine.config.model.model == "shellwhisperer"
+        assert engine.config.model.model == "gpt-4o-mini"
         assert engine.config.verify.enabled is True
         assert engine.tools is not None
         assert engine.verify is not None
@@ -244,7 +244,7 @@ class TestFullLoop:
 class TestEngineConfig:
     def test_default_config(self):
         cfg = AnvilConfig()
-        assert cfg.model.model == "shellwhisperer"
+        assert cfg.model.model == "gpt-4o-mini"
         assert cfg.verify.enabled is True
         assert cfg.verify.max_retries == 3
         assert cfg.cost.max_cost_per_session_usd == 5.0
@@ -281,12 +281,12 @@ class TestEngineConfig:
 
     def test_env_vars_not_used_for_defaults(self):
         cfg = AnvilConfig()
-        assert cfg.model.model == "shellwhisperer"
+        assert cfg.model.model == "gpt-4o-mini"
 
     def test_find_config_returns_default_when_no_file(self):
         with patch.object(Path, "exists", return_value=False):
             cfg = AnvilConfig.find_config()
-            assert cfg.model.model == "shellwhisperer"
+            assert cfg.model.model == "gpt-4o-mini"
 
     def test_model_config(self):
         mc = ModelConfig(model="gpt-4o", api_key="key123", max_tokens=2048)

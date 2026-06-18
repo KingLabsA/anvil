@@ -15,7 +15,7 @@ from anvil.verify.pipeline import Checkers, VerifyPipeline, VerifyReport, Verify
 class TestConfig:
     def test_default_config(self):
         cfg = AnvilConfig()
-        assert cfg.model.model == "shellwhisperer"
+        assert cfg.model.model == "gpt-4o-mini"
         assert cfg.verify.enabled is True
         assert cfg.verify.auto_recover is True
         assert cfg.verify.max_retries == 3

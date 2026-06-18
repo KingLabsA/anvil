@@ -22,7 +22,7 @@ class TestAgentDaemonInit:
     def test_default_config(self):
         daemon = AgentDaemon()
         assert daemon.config is not None
-        assert daemon.config.model.model == "shellwhisperer"
+        assert daemon.config.model.model == "gpt-4o-mini"
 
     def test_custom_config(self):
         cfg = AnvilConfig(model=ModelConfig(model="gpt-4o"))
