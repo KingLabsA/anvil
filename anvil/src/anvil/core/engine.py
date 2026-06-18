@@ -126,22 +126,44 @@ CRITICAL RULES:
 Current agent: {agent_name}
 Available tools: {tools}"""
 
-PLAN_PROMPT = """Break this task into small, verifiable steps. For each step, say:
-- What to do
-- Which tool to use
-- How to verify it worked
+PLAN_PROMPT = """Break this task into small, verifiable steps. Each step MUST be an ACTION that changes code, not just analysis.
+
+GOOD step examples:
+- "Fix the subtract function to return a - b instead of a - b - 1"
+- "Change integer division // to float division / in divide function"
+- "Add error handling for division by zero"
+- "Run tests to verify all fixes work"
+
+BAD step examples (too passive):
+- "Identify the bug" (just reads code, doesn't fix it)
+- "Analyze the problem" (no action taken)
+- "Read the file to understand" (not a fix)
+
+Each step should be numbered and describe the specific change to make.
 
 Task: {task}"""
 
-EXECUTE_PROMPT = """Execute the next step by emitting ```tool blocks. Do NOT describe what you would do — actually do it.
+EXECUTE_PROMPT = """Execute this step NOW by emitting ```tool blocks. Do NOT just read or analyze — make the actual code change.
+
+Step: {step}
+
+You MUST emit at least one `edit` or `write` tool block to change code. Reading files alone does NOT complete a step.
+
+```tool
+{{"tool": "edit", "args": {{"path": "FILE", "old_string": "OLD CODE", "new_string": "NEW CODE"}}}}
+```
+
+Then verify with:
+```tool
+{{"tool": "bash", "args": {{"command": "python -m pytest -x"}}}}
+```
 
 Current agent: {agent_name}
 Current plan: {plan}
-Current step: {step}
 Files changed so far: {files}
 Verify results so far: {verify_results}
 
-REMINDER: You MUST emit ```tool JSON blocks to take action. Plain text descriptions do nothing."""
+REMINDER: Emit ```tool JSON blocks. No prose. Just tool blocks."""
 
 RECOVER_PROMPT = """The last step failed verification. Here's what happened:
 
