@@ -492,28 +492,45 @@ def create_app(config: AnvilConfig | None = None) -> FastAPI:
                 data = await websocket.receive_json()
                 model_name = data.get("model", "shellwhisperer")
                 message = data.get("message", "")
+                use_engine = data.get("engine", True)
 
                 # Send thinking
                 await websocket.send_json({"type": "thinking", "content": "Thinking..."})
 
-                # Call model
                 try:
-                    if model_name.startswith(("fableforge", "mythos", "shellwhisperer")) or "/" in model_name:
-                        import httpx
-                        client = httpx.Client(timeout=120.0)
-                        resp = client.post("http://localhost:11434/api/chat", json={
-                            "model": model_name,
-                            "messages": [
-                                {"role": "system", "content": "You are Anvil, an expert AI coding assistant."},
-                                {"role": "user", "content": message},
-                            ],
-                            "stream": False,
+                    if use_engine:
+                        # Full engine loop — Plan → Execute → Verify → Recover
+                        engine = get_engine(model_name)
+
+                        import concurrent.futures
+                        loop = asyncio.get_event_loop()
+
+                        with concurrent.futures.ThreadPoolExecutor() as pool:
+                            result = await loop.run_in_executor(
+                                pool, lambda: engine.run(message, max_iterations=10)
+                            )
+
+                        # Stream session steps as events
+                        if result.session:
+                            for step in result.session.steps:
+                                step_type = step.kind.value if hasattr(step.kind, 'value') else str(step.kind)
+                                step_status = step.status.value if hasattr(step.status, 'value') else str(step.status)
+                                await websocket.send_json({
+                                    "type": "step",
+                                    "kind": step_type,
+                                    "status": step_status,
+                                    "content": step.content[:500],
+                                })
+
+                        await websocket.send_json({
+                            "type": "response",
+                            "content": result.output or "",
+                            "success": result.success,
+                            "error": result.error,
+                            "steps": len(result.session.steps) if result.session else 0,
                         })
-                        resp.raise_for_status()
-                        result = resp.json()
-                        content = result.get("message", {}).get("content", "")
-                        await websocket.send_json({"type": "response", "content": content, "success": True})
                     else:
+                        # Direct model call (chat mode)
                         from anvil.models.registry import ModelRegistry, Message
                         model = ModelRegistry.create(model_name)
                         messages = [

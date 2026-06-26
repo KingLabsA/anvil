@@ -665,13 +665,17 @@ class AnvilApp {
       const data = JSON.parse(event.data);
       if (data.type === 'thinking') {
         this.setStatus('Thinking...', 'active');
-        this._thinkingId = this.logEntry('info', '🤔 Thinking...');
+        this._thinkingId = this.logEntry('info', 'Thinking...');
+      } else if (data.type === 'step') {
+        const icon = data.status === 'success' ? 'PASS' : data.status === 'failed' ? 'FAIL' : data.status === 'recovering' ? 'RETRY' : '...';
+        this.logEntry('info', `[${icon}] ${data.kind}: ${data.content}`);
       } else if (data.type === 'response') {
         if (data.success) {
-          this.logEntry('success', data.response || '(empty response)');
+          const steps = data.steps ? ` (${data.steps} steps)` : '';
+          this.logEntry('success', `Done${steps}: ${(data.content || '').substring(0, 500)}`);
           this.setStatus('Ready', 'ready');
         } else {
-          this.logEntry('error', `Error: ${data.error}`);
+          this.logEntry('error', `Error: ${data.error || data.content}`);
           this.setStatus('Error', 'error');
         }
       }
@@ -684,7 +688,7 @@ class AnvilApp {
       this.connectWebSocket();
       return false;
     }
-    this.ws.send(JSON.stringify({ message, model: this.currentModel }));
+    this.ws.send(JSON.stringify({ message, model: this.currentModel, engine: true }));
     return true;
   }
 }
