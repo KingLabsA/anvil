@@ -35,10 +35,8 @@ class TestAnvilEngineInit:
     def test_integrations_initialized(self):
         cfg = AnvilConfig(model=ModelConfig(model="local"))
         engine = AnvilEngine(cfg)
-        assert hasattr(engine, "verifyloop")
-        assert hasattr(engine, "error_recovery")
-        assert hasattr(engine, "agent_swarm")
-        assert hasattr(engine, "cost_optimizer")
+        assert hasattr(engine, "error_recovery_engine")
+        assert hasattr(engine, "_cost_tracker")
 
     def test_tool_executor_initialized(self):
         cfg = AnvilConfig(model=ModelConfig(model="local"))

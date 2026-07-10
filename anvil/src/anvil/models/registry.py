@@ -78,7 +78,7 @@ class TransformersModel(BaseModel):
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
 
-            kwargs = {"dtype": torch.float16 if self.device == "cuda" else torch.float32, "trust_remote_code": True}
+            kwargs = {"dtype": torch.bfloat16 if self.device == "cuda" else torch.float32, "trust_remote_code": True}
             if load_in_4bit and self.device == "cuda":
                 kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True)
                 kwargs["device_map"] = "auto"
@@ -104,6 +104,14 @@ class TransformersModel(BaseModel):
             tokenize=False,
             add_generation_prompt=True,
         )
+        # Debug: print the prompt
+        if len(messages) <= 5:
+            print(f"\n=== PROMPT ({len(messages)} msgs, {len(chat_text)} chars) ===")
+            for m in messages:
+                role_str = m.role.ljust(10)
+                content_preview = m.content[:80].replace('\n', '\\n')
+                print(f"  {role_str} {content_preview}")
+            print(f"=== FULL TEXT ===\n{chat_text[:500]}\n=== END ===")
         inputs = self.tokenizer(chat_text, return_tensors="pt", padding=True, truncation=True, max_length=2048)
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
         input_tokens = inputs["input_ids"].shape[1]

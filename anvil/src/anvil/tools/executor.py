@@ -39,11 +39,19 @@ class ToolExecutor:
         self.sandbox = sandbox
         self.todo_manager = TodoListManager()
         self.blocked_patterns = [
-            "rm -rf /", "mkfs", "dd if=", ":(){ :|:&", "fork bomb",
-            "> /dev/sda", "chmod -R 777 /",
+            re.compile(r'\brm\s+-rf\s+/[ /\t]*$'),
+            re.compile(r'\bmkfs\b'),
+            re.compile(r'\bdd\s+if='),
+            re.compile(r':\(\)\{'),
+            re.compile(r'fork\s+bomb'),
+            re.compile(r'>\s*/dev/sd[a-z]'),
+            re.compile(r'chmod\s+-R\s+777\s+/'),
         ]
         self.confirm_patterns = [
-            "git push", "git reset --hard", "DROP TABLE", "DELETE FROM",
+            re.compile(r'\bgit push\b'),
+            re.compile(r'\bgit reset --hard\b'),
+            re.compile(r'\bDROP\s+TABLE\b', re.IGNORECASE),
+            re.compile(r'\bDELETE\s+FROM\b', re.IGNORECASE),
         ]
 
     def execute(self, tool: str, args: dict[str, Any]) -> ToolResult:
@@ -75,10 +83,10 @@ class ToolExecutor:
         if not command:
             return ToolResult(success=False, output="", error="No command provided")
         for pattern in self.blocked_patterns:
-            if pattern in command:
+            if pattern.search(command):
                 return ToolResult(
                     success=False, output="",
-                    error=f"Blocked: command matches dangerous pattern '{pattern}'",
+                    error=f"Blocked: command matches dangerous pattern '{pattern.pattern}'",
                 )
         import time
         start = time.time()
@@ -252,7 +260,11 @@ class ToolExecutor:
         p = Path(path)
         if not p.is_absolute():
             p = self.working_dir / p
-        return p.resolve()
+        resolved = p.resolve()
+        wd = self.working_dir.resolve()
+        if self.sandbox and not str(resolved).startswith(str(wd)):
+            raise PermissionError(f"Path traversal blocked: {path} resolves outside working directory {wd}")
+        return resolved
 
 
 TOOL_DEFINITIONS = [

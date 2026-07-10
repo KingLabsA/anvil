@@ -20,6 +20,7 @@ from bench_agent.leaderboard import (
     update_leaderboard,
 )
 from bench_agent.models import TaskCategory
+from bench_agent.providers import create_model_fn
 from bench_agent.runner import TaskRunner
 from bench_agent.tasks import ALL_TASKS, get_task_count
 
@@ -93,7 +94,8 @@ def run(
     console.print(f"[bold blue]Running BenchAgent for model: {model}[/bold blue]")
     console.print(f"Provider: {provider}")
 
-    runner = TaskRunner(total_timeout=timeout)
+    model_fn = create_model_fn(provider, model)
+    runner = TaskRunner(total_timeout=timeout, model_fn=model_fn)
 
     if categories:
         cat_names = [c.value for c in categories]
@@ -109,6 +111,7 @@ def run(
             num_tasks=num_tasks,
             max_retries=retries,
             runner=runner,
+            model_fn=model_fn,
         )
     except Exception as e:
         console.print(f"[bold red]Error: {e}[/bold red]")

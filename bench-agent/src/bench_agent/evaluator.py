@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, Callable
 
 from bench_agent.models import ScoreReport, Task, TaskCategory, TaskResult
 from bench_agent.runner import TaskRunner
@@ -14,54 +14,20 @@ from bench_agent.scorer import (
 )
 from bench_agent.tasks import ALL_TASKS, TASKS_BY_CATEGORY
 
-PROMPT_TEMPLATE = """You are an AI assistant being evaluated on your tool-use capabilities.
-
-You have access to the following tools: {tools}
-
-Your task: {description}
-
-Working directory: {workdir}
-
-{initial_files}
-
-You must complete this task using the tools available. You have {max_turns} turns maximum.
-Be precise and thorough. After completing the task, verify your work.
-"""
-
-
-class ModelProvider:
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    LOCAL = "local"
-    HUGGINGFACE = "huggingface"
-
-
-def _build_prompt(task: Task, workdir: str) -> str:
-    files_section = ""
-    if task.initial_state:
-        files_section = "Initial files:\n"
-        for fname, content in task.initial_state.items():
-            files_section += f"\n--- {fname} ---\n{content}\n"
-
-    return PROMPT_TEMPLATE.format(
-        tools=", ".join(task.tools_required),
-        description=task.description,
-        workdir=workdir,
-        initial_files=files_section,
-        max_turns=task.max_turns,
-    )
+ModelFn = Callable[[str], str]
 
 
 def evaluate_model(
     model_name: str,
-    provider: str = ModelProvider.OPENAI,
+    provider: str = "openai",
     categories: list[TaskCategory] | None = None,
     num_tasks: int | None = None,
     api_key: str | None = None,
     base_url: str | None = None,
     runner: TaskRunner | None = None,
+    model_fn: ModelFn | None = None,
 ) -> ScoreReport:
-    runner = runner or TaskRunner()
+    runner = runner or TaskRunner(model_fn=model_fn)
 
     tasks: list[Task] = []
     if categories:
@@ -104,11 +70,12 @@ def evaluate_model(
 
 def evaluate_with_retry(
     model_name: str,
-    provider: str = ModelProvider.OPENAI,
+    provider: str = "openai",
     categories: list[TaskCategory] | None = None,
     num_tasks: int | None = None,
     max_retries: int = 3,
     retry_delay: float = 5.0,
+    model_fn: ModelFn | None = None,
     **kwargs: Any,
 ) -> ScoreReport:
     for attempt in range(max_retries):
@@ -118,6 +85,7 @@ def evaluate_with_retry(
                 provider=provider,
                 categories=categories,
                 num_tasks=num_tasks,
+                model_fn=model_fn,
                 **kwargs,
             )
         except Exception:

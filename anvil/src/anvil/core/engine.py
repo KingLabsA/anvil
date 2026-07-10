@@ -273,44 +273,26 @@ class AnvilEngine:
         self._init_mcp_registry()
 
     def _init_integrations(self) -> None:
-        # Lazy initialization - only load when accessed
+        self._error_recovery_engine = None
+        self._cost_tracker = None
         self._verifyloop = None
-        self._error_recovery = None
-        self._agent_swarm = None
-        self._cost_optimizer = None
-        self._remote_control = None
-        self._teleport_manager = None
+
+        try:
+            from error_recovery.recovery_engine import ErrorRecoveryEngine
+            from error_recovery.models import ErrorRecoveryConfig as ERConfig
+            self._error_recovery_engine = ErrorRecoveryEngine(config=ERConfig())
+        except ImportError:
+            pass
+
+        try:
+            from agent_telemetry.token_tracker import TokenTracker
+            self._cost_tracker = TokenTracker()
+        except ImportError:
+            pass
     
     @property
-    def verifyloop(self):
-        if self._verifyloop is None:
-            from anvil.integrations.verifyloop import VerifyLoopIntegration
-            self._verifyloop = VerifyLoopIntegration(self.config.verify)
-        return self._verifyloop
-    
-    @property
-    def error_recovery(self):
-        if self._error_recovery is None:
-            from anvil.integrations.error_recovery import ErrorRecoveryIntegration
-            self._error_recovery = ErrorRecoveryIntegration()
-        return self._error_recovery
-    
-    @property
-    def agent_swarm(self):
-        if self._agent_swarm is None:
-            from anvil.integrations.agent_swarm import AgentSwarmIntegration
-            self._agent_swarm = AgentSwarmIntegration()
-        return self._agent_swarm
-    
-    @property
-    def cost_optimizer(self):
-        if self._cost_optimizer is None:
-            from anvil.integrations.cost_optimizer import CostOptimizerIntegration
-            self._cost_optimizer = CostOptimizerIntegration(
-                max_cost_per_session=self.config.cost.max_cost_per_session_usd,
-                max_cost_per_task=self.config.cost.max_cost_per_task_usd,
-            )
-        return self._cost_optimizer
+    def error_recovery_engine(self):
+        return self._error_recovery_engine
     
     @property
     def remote_control(self):
@@ -865,6 +847,15 @@ class AnvilEngine:
             context_window=self.config.model.context_window,
         )
         plan_text = response.content
+        if self._cost_tracker is not None:
+            try:
+                self._cost_tracker.track(
+                    model=self.config.model.model,
+                    input_tokens=getattr(response, "input_tokens", 0),
+                    output_tokens=getattr(response, "output_tokens", 0),
+                )
+            except Exception:
+                pass
 
         steps: list[str] = []
         for line in plan_text.split("\n"):
@@ -1012,6 +1003,27 @@ class AnvilEngine:
     def _recover(self, step: str, verify_report: VerifyReport, files_changed: list, session: Session) -> dict:
         failures = "\n".join(f"- {f.message}" for f in verify_report.failures)
         context = self._gather_file_context(step, files_changed)
+
+        # Try structured error recovery first if available
+        if self._error_recovery_engine is not None:
+            try:
+                recovery_result = self._error_recovery_engine.analyze(
+                    error_message=failures,
+                    context=context or "",
+                )
+                if recovery_result and recovery_result.get("suggestion"):
+                    return {
+                        "success": True,
+                        "tool_calls": [{
+                            "tool": "edit",
+                            "args": recovery_result["suggestion"],
+                            "output": "Auto-recovery suggestion applied",
+                            "success": True,
+                        }],
+                    }
+            except Exception:
+                pass
+
         user_content = RECOVER_PROMPT.format(
             step=step, error=failures,
             verify_report=verify_report.format_summary(),

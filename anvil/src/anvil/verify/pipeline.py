@@ -206,9 +206,10 @@ class Checkers:
         if suffix != ".py":
             return VerifyResult(checker="imports", status=VerifyStatus.SKIP, message="Only Python import checking supported")
         try:
+            code = Path(file_path).read_text()
             result = subprocess.run(
-                [sys.executable, "-c", f"import ast; ast.parse(open('{file_path}').read())"],
-                capture_output=True, text=True, timeout=10,
+                [sys.executable, "-c", "import ast, sys; ast.parse(sys.stdin.read())"],
+                input=code, capture_output=True, text=True, timeout=10,
             )
             if result.returncode == 0:
                 return VerifyResult(checker="imports", status=VerifyStatus.PASS, message="Imports parsed successfully")

@@ -447,7 +447,7 @@ class TestPathResolution:
     def test_blocked_patterns_exist(self):
         executor = ToolExecutor(working_dir="/tmp")
         assert len(executor.blocked_patterns) > 0
-        assert "rm -rf /" in executor.blocked_patterns
+        assert any(p.pattern == r'\brm\s+-rf\s+/[ /\t]*$' for p in executor.blocked_patterns)
 
     def test_resolve_empty_path_returns_working_dir(self):
         executor = ToolExecutor(working_dir="/tmp")
